@@ -1,5 +1,4 @@
 # HomeBudget Python wrapper
-refer to `docs/about.md` for more information about the project and its goals.
 
 - [Overview](#overview)
 - [Situation](#situation)
@@ -28,4 +27,3 @@ The aim of the wrapper is to
 - [POC Python wrapper module](../reference/hb-finances/homebudget.py)
 - [hb-finances that implements the wrapper](../reference/hb-finances)
 - [sample HB sqlite database](../reference/hb-sqlite-db/homebudget.db)
-

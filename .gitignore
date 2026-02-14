@@ -205,3 +205,14 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# local development sandbox
+.dev
+docs/develop
+
+# user data
+data
+reference
+
+# credentials
+.credentials
