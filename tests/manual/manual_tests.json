@@ -1,0 +1,32 @@
+{
+  "tests": [
+    {
+      "id": "sync_validation",
+      "title": "Sync validation procedure",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Record the current transaction count in the Windows app"
+        },
+        {
+          "kind": "auto",
+          "label": "Add a test expense with the wrapper",
+          "command": "homebudget expense add --date 2026-02-16 --category Dining --subcategory Restaurant --amount 25.50 --account Wallet --notes \"TDD Test Expense\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify a new SyncUpdate entry exists",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Confirm the new expense appears in the Windows app"
+        },
+        {
+          "kind": "user",
+          "label": "Wait for sync and confirm the expense appears in the mobile app"
+        }
+      ]
+    }
+  ]
+}

@@ -1,1 +1,3 @@
-sqlite-gsheet>=2.0.0
+click>=8.1.0
+pytest
+pytest-cov

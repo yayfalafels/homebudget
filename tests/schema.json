@@ -1,0 +1,214 @@
+{
+  "statements": [
+    {
+      "type": "index",
+      "name": "AccountDeviceIdDeviceKeyIndex",
+      "sql": "CREATE INDEX AccountDeviceIdDeviceKeyIndex ON Account(deviceIdKey, deviceKey)"
+    },
+    {
+      "type": "index",
+      "name": "AccountLogAccountKeyIndex",
+      "sql": "CREATE INDEX AccountLogAccountKeyIndex ON AccountLog(accountKey)"
+    },
+    {
+      "type": "index",
+      "name": "AccountLogTimeStampIndex",
+      "sql": "CREATE INDEX AccountLogTimeStampIndex ON AccountLog(timeStamp)"
+    },
+    {
+      "type": "index",
+      "name": "AccountTransTransDateIndex",
+      "sql": "CREATE INDEX AccountTransTransDateIndex ON AccountTrans(transDate)"
+    },
+    {
+      "type": "index",
+      "name": "AccountTransTransKeyIndex",
+      "sql": "CREATE INDEX AccountTransTransKeyIndex ON AccountTrans(transType, transKey)"
+    },
+    {
+      "type": "index",
+      "name": "BillDeviceIdDeviceKeyIndex",
+      "sql": "CREATE INDEX BillDeviceIdDeviceKeyIndex ON Bill(deviceIdKey, deviceKey)"
+    },
+    {
+      "type": "index",
+      "name": "BillsDueDateIndex",
+      "sql": "CREATE INDEX BillsDueDateIndex ON Bill(dueDate)"
+    },
+    {
+      "type": "index",
+      "name": "BudgetCatKeySubCatKeyMonthYearIndex",
+      "sql": "CREATE INDEX BudgetCatKeySubCatKeyMonthYearIndex ON Budget(catKey, subCatKey, month, year)"
+    },
+    {
+      "type": "index",
+      "name": "BudgetFutureSubCatStartDateEndDateIndex",
+      "sql": "CREATE INDEX BudgetFutureSubCatStartDateEndDateIndex ON BudgetFuture(subCatKey, startDate, endDate)"
+    },
+    {
+      "type": "index",
+      "name": "DeviceInfoDeviceIdIndex",
+      "sql": "CREATE INDEX DeviceInfoDeviceIdIndex ON DeviceInfo(deviceId)"
+    },
+    {
+      "type": "index",
+      "name": "ExpenseDateIndex",
+      "sql": "CREATE INDEX ExpenseDateIndex ON Expense(date)"
+    },
+    {
+      "type": "index",
+      "name": "ExpenseDeviceIdDeviceKeyIndex",
+      "sql": "CREATE INDEX ExpenseDeviceIdDeviceKeyIndex ON Expense(deviceIdKey, deviceKey)"
+    },
+    {
+      "type": "index",
+      "name": "FIHintsNameIndex",
+      "sql": "CREATE INDEX FIHintsNameIndex ON FIHints(accountKey, name, trnType)"
+    },
+    {
+      "type": "index",
+      "name": "FITransFiTIDIndex",
+      "sql": "CREATE INDEX FITransFiTIDIndex ON FITrans(accountKey, fiTID)"
+    },
+    {
+      "type": "index",
+      "name": "IncomeDate",
+      "sql": "CREATE INDEX IncomeDate ON Income(date)"
+    },
+    {
+      "type": "index",
+      "name": "IncomeDeviceIdDeviceKeyIndex",
+      "sql": "CREATE INDEX IncomeDeviceIdDeviceKeyIndex ON Income(deviceIdKey, deviceKey)"
+    },
+    {
+      "type": "index",
+      "name": "PayeeDeviceIdDeviceKeyIndex",
+      "sql": "CREATE INDEX PayeeDeviceIdDeviceKeyIndex ON Payee(deviceIdKey, deviceKey)"
+    },
+    {
+      "type": "table",
+      "name": "Account",
+      "sql": "CREATE TABLE Account (key INTEGER PRIMARY KEY, name TEXT, icon TEXT, accountType TEXT, balance REAL DEFAULT 0.00, deleteOK CHAR(1) DEFAULT 'Y', deviceIdKey INTEGER, deviceKey INTEGER, balanceDate DATE, includeAccount CHAR(1) DEFAULT 'Y', seqNum INTEGER DEFAULT 0, currency TEXT)"
+    },
+    {
+      "type": "table",
+      "name": "AccountLog",
+      "sql": "CREATE TABLE AccountLog(key INTEGER PRIMARY KEY, accountKey INTEGER, timeStamp DATETIME, transType INTEGER, transKey INTEGER, transAmount REAL, newBalance REAL, checked CHAR(1) DEFAULT 'N', transDate DATE)"
+    },
+    {
+      "type": "table",
+      "name": "AccountTrans",
+      "sql": "CREATE TABLE AccountTrans(key INTEGER PRIMARY KEY, accountKey INTEGER, timeStamp DATETIME, transType INTEGER, transKey INTEGER, transDate DATE, transAmount REAL, checked CHAR(1) DEFAULT 'N')"
+    },
+    {
+      "type": "table",
+      "name": "Bill",
+      "sql": "CREATE TABLE Bill (key INTEGER PRIMARY KEY, payeeKey INTEGER, amount REAL, dueDate  DATE, paid CHAR(1) DEFAULT 'Y', expenseKey INTEGER, deviceIdKey INTEGER, deviceKey INTEGER, timeStamp DATETIME, billType INTEGER DEFAULT 0, currency TEXT, currencyAmount TEXT, recurringKey INTEGER DEFAULT 0, catKey INTEGER DEFAULT 0, subCatKey INTEGER DEFAULT 0, fromAccountKey INTEGER DEFAULT 0, notes TEXT)"
+    },
+    {
+      "type": "table",
+      "name": "Budget",
+      "sql": "CREATE TABLE Budget(key INTEGER PRIMARY KEY, catKey INTEGER, subCatKey INTEGER, month INTEGER, year INTEGER, amount TEXT)"
+    },
+    {
+      "type": "table",
+      "name": "BudgetFuture",
+      "sql": "CREATE TABLE BudgetFuture(key INTEGER PRIMARY KEY, catKey INTEGER, subCatKey INTEGER, cycle INTEGER, startDate DATE, endDate DATE, amount TEXT)"
+    },
+    {
+      "type": "table",
+      "name": "BudgetHistory",
+      "sql": "CREATE TABLE BudgetHistory(key INTEGER PRIMARY KEY, budgetType CHAR(1) DEFAULT 'E', catKey INTEGER, subCatKey INTEGER, startDate DATE, endDate DATE, amount TEXT, rolloverBalance TEXT, rolloverOnOff CHAR(1))"
+    },
+    {
+      "type": "table",
+      "name": "BudgetSettings",
+      "sql": "CREATE TABLE BudgetSettings(key INTEGER PRIMARY KEY, budgetType CHAR(1) DEFAULT 'E', catKey INTEGER, subCatKey INTEGER, cycle INTEGER, startDate DATE, endDate DATE, amount TEXT, rolloverOnOff CHAR(1) DEFAULT 'N', rolloverBalance TEXT, modulus INTEGER, deviceIdKey INTEGER, deviceKey INTEGER)"
+    },
+    {
+      "type": "table",
+      "name": "Category",
+      "sql": "CREATE TABLE Category (key INTEGER PRIMARY KEY, name TEXT, icon TEXT, deleteOK CHAR(1) DEFAULT 'N', seqNum INTEGER DEFAULT 0, deviceIdKey INTEGER, deviceKey INTEGER)"
+    },
+    {
+      "type": "table",
+      "name": "Currency",
+      "sql": "CREATE TABLE Currency (key INTEGER PRIMARY KEY, name TEXT, code TEXT, locale TEXT, exchangeRate TEXT)"
+    },
+    {
+      "type": "table",
+      "name": "DeviceInfo",
+      "sql": "CREATE TABLE DeviceInfo(key INTEGER PRIMARY KEY, deviceId TEXT, deviceName TEXT, isActive CHAR(1), isPrimary CHAR(1))"
+    },
+    {
+      "type": "table",
+      "name": "Expense",
+      "sql": "CREATE TABLE Expense (key INTEGER PRIMARY KEY, date DATE, catKey INTEGER, subCatKey INTEGER, amount REAL, periods INTEGER, notes TEXT, isDetailEntry CHAR(1), masterKey INTEGER, includesReceipt CHAR(1) DEFAULT 'N', payFrom INTEGER DEFAULT 0, payeeKey INTEGER DEFAULT 0, billKey INTEGER DEFAULT 0, deviceIdKey INTEGER, deviceKey INTEGER, timeStamp DATETIME, currency TEXT, currencyAmount TEXT, recurringKey INTEGER DEFAULT 0, isCategorySplit CHAR(1) DEFAULT 'N')"
+    },
+    {
+      "type": "table",
+      "name": "FIHints",
+      "sql": "CREATE TABLE FIHints (key INTEGER PRIMARY KEY, accountKey INTEGER, name TEXT, trnType INTEGER, processAs INTEGER, catKey INTEGER, subCatKey INTEGER, payeeKey INTEGER, account2Key INTEGER)"
+    },
+    {
+      "type": "table",
+      "name": "FITrans",
+      "sql": "CREATE TABLE FITrans (key INTEGER PRIMARY KEY, accountKey INTEGER, fiTID TEXT, trnType TEXT, datePosted TEXT, trnAmount TEXT, sic TEXT, name TEXT, processState CHAR(1) DEFAULT 'U', processAs INTEGER, catKey INTEGER, subCatKey INTEGER, payeeKey INTEGER, account2Key INTEGER)"
+    },
+    {
+      "type": "table",
+      "name": "Income",
+      "sql": "CREATE TABLE Income(key INTEGER PRIMARY KEY, date DATE, name TEXT, amount REAL DEFAULT 0.00, notes TEXT, masterKey INTEGER, addIncomeTo INTEGER DEFAULT 0, deviceIdKey INTEGER, deviceKey INTEGER, timeStamp DATETIME, currency TEXT, currencyAmount TEXT, recurringKey INTEGER DEFAULT 0)"
+    },
+    {
+      "type": "table",
+      "name": "Payee",
+      "sql": "CREATE TABLE Payee (key INTEGER PRIMARY KEY, name TEXT, accountNum TEXT, phoneNum TEXT, webURL TEXT, deviceIdKey INTEGER, deviceKey INTEGER, notes TEXT)"
+    },
+    {
+      "type": "table",
+      "name": "RecurringBill",
+      "sql": "CREATE TABLE RecurringBill (key INTEGER PRIMARY KEY, billType INTEGER DEFAULT 0, payeeOrAccountKey INTEGER, amount TEXT, nextGenDate  DATE, recurringIndex INTEGER, modulus INTEGER, deviceIdKey INTEGER, deviceKey INTEGER, currency TEXT, currencyAmount TEXT, endDate DATE, generateNow CHAR(1) DEFAULT 'N', catKey INTEGER DEFAULT 0, subCatKey INTEGER DEFAULT 0, fromAccountKey INTEGER DEFAULT 0, notes TEXT)"
+    },
+    {
+      "type": "table",
+      "name": "RecurringExpense",
+      "sql": "CREATE TABLE RecurringExpense (key INTEGER PRIMARY KEY, subCatKey INTEGER, catKey INTEGER, amount TEXT, timesAYear INTEGER, nextGenDate DATE, modulus INTEGER, payFrom INTEGER, payee INTEGER, notes TEXT, deviceIdKey INTEGER, deviceKey INTEGER, currency TEXT, currencyAmount TEXT, endDate DATE, generateNow CHAR(1) DEFAULT 'N')"
+    },
+    {
+      "type": "table",
+      "name": "RecurringIncome",
+      "sql": "CREATE TABLE RecurringIncome(key INTEGER PRIMARY KEY, name TEXT, amount REAL DEFAULT 0.00, startDate DATE, timesAYear INTEGER, notes TEXT, nextGenDate DATE, modulus INTEGER, addIncomeTo INTEGER DEFAULT 0, deviceIdKey INTEGER, deviceKey INTEGER, currency TEXT, currencyAmount TEXT, endDate DATE, generateNow CHAR(1) DEFAULT 'N')"
+    },
+    {
+      "type": "table",
+      "name": "RecurringTransfer",
+      "sql": "CREATE TABLE RecurringTransfer(key INTEGER PRIMARY KEY, name TEXT, fromAccount INTEGER, toAccount INTEGER, amount REAL DEFAULT 0.00, timesAYear INTEGER, nextGenDate DATE, modulus INTEGER, notes TEXT, deviceIdKey INTEGER, deviceKey INTEGER, currency TEXT, currencyAmount TEXT, endDate DATE, generateNow CHAR(1) DEFAULT 'N')"
+    },
+    {
+      "type": "table",
+      "name": "Settings",
+      "sql": "CREATE TABLE Settings (cyclestart INTEGER, lastRun DATETIME, currency TEXT, initialBudget REAL, email TEXT, locale TEXT, dateFormat TEXT, imageResolution INTEGER, deleteExpenseAfter INTEGER, deleteReceiptAfter INTEGER, debugFlag INTEGER, screenMajor INTEGER, screenMinor, screenMini INTEGER, screenMicro INTEGER, passwordOnOff INTEGER, password TEXT, passwordEmail TEXT, future1 TEXT, future2 TEXT, future3 TEXT, future4 TEXT, future5 TEXT, future6 TEXT, future7 TEXT, future8 TEXT, future9 TEXT, future10 TEXT, lastUsedAccount INTEGER DEFAULT 0, colorScheme INTEGER DEFAULT 2, lastUsedPayee INTEGER DEFAULT 0, monthlyCycleStart INTEGER DEFAULT 1, rolloverStart TEXT DEFAULT '', showBillReminders CHAR(1) DEFAULT 'N', showBillBadge CHAR(1) DEFAULT 'N', startPage INTEGER DEFAULT 0, includeFutureTrans CHAR(1) DEFAULT 'Y', showMonthlyBudgetView CHAR(1) DEFAULT 'N', keyBoardClicks CHAR(1) DEFAULT 'Y', billLookForward INTEGER DEFAULT 6, billNotifyHour INTEGER DEFAULT 2, showAmountInNumbers CHAR(1) DEFAULT 'N', importMatchLength INTEGER DEFAULT 16, homeScreenStyle INTEGER DEFAULT 1)"
+    },
+    {
+      "type": "table",
+      "name": "SubCategory",
+      "sql": "CREATE TABLE SubCategory (key INTEGER PRIMARY KEY, catKey INTEGER, name TEXT, icon TEXT, deleteOK CHAR(1) DEFAULT 'Y', amount REAL DEFAULT 0.00, forPeriod INTEGER DEFAULT 1, autoGenExpEntry CHAR(1) DEFAULT 'N', autoGenDay INTEGER DEFAULT 1, recurExpAmount TEXT, nextGenDate DATE, timesAYear INTEGER, modulus INTEGER, payFrom INTEGER DEFAULT 0, expenseType INTEGER DEFAULT 1, seqNum INTEGER DEFAULT 0, payee INTEGER DEFAULT 0, deviceIdKey INTEGER, deviceKey INTEGER)"
+    },
+    {
+      "type": "table",
+      "name": "SyncInfo",
+      "sql": "CREATE TABLE SyncInfo (inAGroup CHAR(1), groupName TEXT, password TEXT, passwordEmail TEXT, lastUpdateSeq INTEGER, enforceRestrictions CHAR(1), lastSync DATETIME)"
+    },
+    {
+      "type": "table",
+      "name": "SyncUpdate",
+      "sql": "CREATE TABLE SyncUpdate(key INTEGER PRIMARY KEY, updateType TEXT, uuid TEXT, payload TEXT)"
+    },
+    {
+      "type": "table",
+      "name": "Transfer",
+      "sql": "CREATE TABLE Transfer(key INTEGER PRIMARY KEY, transferDate DATE, fromAccount INTEGER, toAccount INTEGER, amount REAL DEFAULT 0.00, notes TEXT, billKey INTEGER DEFAULT 0, deviceIdKey INTEGER, deviceKey INTEGER, currency TEXT, currencyAmount TEXT, recurringKey INTEGER DEFAULT 0)"
+    }
+  ]
+}
