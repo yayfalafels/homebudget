@@ -1,30 +1,416 @@
 {
   "tests": [
     {
-      "id": "sync_validation",
-      "title": "Sync validation procedure",
+      "id": "uat_expense_crud",
+      "title": "UAT: Expense CRUD with sync validation",
+      "resource": "expense",
       "steps": [
         {
           "kind": "user",
-          "label": "Record the current transaction count in the Windows app"
+          "label": "Record expense count from both Windows and mobile apps, ensure mobile is on WiFi"
         },
         {
           "kind": "auto",
-          "label": "Add a test expense with the wrapper",
-          "command": "homebudget expense add --date 2026-02-16 --category Dining --subcategory Restaurant --amount 25.50 --account Wallet --notes \"TDD Test Expense\""
+          "label": "Create test expense",
+          "command": "hb expense add --date 2026-02-17 --category \"Food (Basic)\" --subcategory \"Cheap restaurant\" --amount 25.50 --account \"TWH - Personal\" --notes \"UAT Expense Create 01\""
         },
         {
           "kind": "auto",
-          "label": "Verify a new SyncUpdate entry exists",
+          "label": "Verify SyncUpdate created",
           "command": "python tests/manual/verify_syncupdate.py"
         },
         {
           "kind": "user",
-          "label": "Confirm the new expense appears in the Windows app"
+          "label": "Verify: New expense appears in Windows app AND mobile app"
+        },
+        {
+          "kind": "auto",
+          "label": "List expenses to get key",
+          "command": "hb expense list --start-date 2026-02-17 --end-date 2026-02-17 --account \"TWH - Personal\" --limit 5"
         },
         {
           "kind": "user",
-          "label": "Wait for sync and confirm the expense appears in the mobile app"
+          "label": "Record the expense key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read expense",
+          "command_template": "hb expense get {expense_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Expense details match what was entered"
+        },
+        {
+          "kind": "auto",
+          "label": "Update expense",
+          "command_template": "hb expense update {expense_key} --amount 30.00 --notes \"UAT Expense 01 Updated\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for update",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Updated expense appears in Windows app AND mobile app"
+        },
+        {
+          "kind": "auto",
+          "label": "Delete expense",
+          "command_template": "hb expense delete {expense_key} --yes"
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for delete",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Expense removed from Windows app AND mobile app"
+        }
+      ]
+    },
+    {
+      "id": "uat_income_crud",
+      "title": "UAT: Income CRUD with sync validation",
+      "resource": "income",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Record income count from both Windows and mobile apps, ensure mobile is on WiFi"
+        },
+        {
+          "kind": "auto",
+          "label": "Create test income",
+          "command": "hb income add --date 2026-02-17 --category Salary --amount 1000.00 --account \"TWH - Personal\" --notes \"UAT Income Create 01\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: New income appears in Windows app AND mobile app"
+        },
+        {
+          "kind": "auto",
+          "label": "List incomes to get key",
+          "command": "hb income list --start-date 2026-02-17 --end-date 2026-02-17 --account \"TWH - Personal\" --limit 5"
+        },
+        {
+          "kind": "user",
+          "label": "Record the income key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read income",
+          "command_template": "hb income get {income_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Income details match what was entered"
+        },
+        {
+          "kind": "auto",
+          "label": "Update income",
+          "command_template": "hb income update {income_key} --amount 1050.00 --notes \"UAT Income Updated 01\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for update",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Updated income appears in Windows app AND mobile app"
+        },
+        {
+          "kind": "auto",
+          "label": "Delete income",
+          "command_template": "hb income delete {income_key} --yes"
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for delete",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Income removed from Windows app AND mobile app"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_crud",
+      "title": "UAT: Transfer CRUD with sync validation",
+      "resource": "transfer",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Record transfer count from both Windows and mobile apps, ensure mobile is on WiFi"
+        },
+        {
+          "kind": "auto",
+          "label": "Create test transfer",
+          "command": "hb transfer add --date 2026-02-17 --from-account \"TWH - Personal\" --to-account \"30 CC Hashemis\" --amount 100.00 --notes \"UAT Transfer Create 01\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: New transfer appears in Windows app AND mobile app"
+        },
+        {
+          "kind": "auto",
+          "label": "List transfers to get key",
+          "command": "hb transfer list --start-date 2026-02-17 --end-date 2026-02-17 --limit 5"
+        },
+        {
+          "kind": "user",
+          "label": "Record the transfer key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read transfer",
+          "command_template": "hb transfer get {transfer_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Transfer details match what was entered"
+        },
+        {
+          "kind": "auto",
+          "label": "Update transfer",
+          "command_template": "hb transfer update {transfer_key} --amount 150.00 --notes \"UAT Transfer Updated 01\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for update",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Updated transfer appears in Windows app AND mobile app"
+        },
+        {
+          "kind": "auto",
+          "label": "Delete transfer",
+          "command_template": "hb transfer delete {transfer_key} --yes"
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for delete",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Transfer removed from Windows app AND mobile app"
+        }
+      ]
+    },
+    {
+      "id": "uat_expense_currency_usd",
+      "title": "UAT: Expense CRUD with USD foreign currency",
+      "resource": "expense_currency",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is on WiFi and synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Create expense in USD foreign currency",
+          "command": "hb expense add --date 2026-02-17 --category \"Food (Basic)\" --subcategory \"Cheap restaurant\" --amount 25.50 --currency USD --currency-amount 27.50 --account \"TWH - Personal\" --notes \"UAT Currency Test 01 - USD 27.50\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: New expense appears in Windows app with currency info AND appears on mobile app"
+        },
+        {
+          "kind": "auto",
+          "label": "List expenses to get key",
+          "command": "hb expense list --start-date 2026-02-17 --end-date 2026-02-17 --account \"TWH - Personal\" --limit 5"
+        },
+        {
+          "kind": "user",
+          "label": "Record the currency expense key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read expense and verify currency fields",
+          "command_template": "hb expense get {expense_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Currency=USD and currencyAmount=27.50 are preserved in the record"
+        },
+        {
+          "kind": "auto",
+          "label": "Delete currency expense",
+          "command_template": "hb expense delete {expense_key} --yes"
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for delete",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Currency expense removed from Windows app AND mobile app"
+        }
+      ]
+    },
+    {
+      "id": "uat_income_currency_usd",
+      "title": "UAT: Income CRUD with USD foreign currency",
+      "resource": "income_currency",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Record income count from both Windows and mobile apps, ensure mobile is on WiFi"
+        },
+        {
+          "kind": "auto",
+          "label": "Create income in USD foreign currency",
+          "command": "hb income add --date 2026-02-17 --name \"USD Salary\" --amount 1000.00 --currency USD --currency-amount 1100.00 --account \"TWH - Personal\" --notes \"UAT Currency Test 01 - USD 1100.00\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: New income appears in Windows app with currency info AND appears on mobile app"
+        },
+        {
+          "kind": "auto",
+          "label": "List incomes to get key",
+          "command": "hb income list --start-date 2026-02-17 --end-date 2026-02-17 --account \"TWH - Personal\" --limit 5"
+        },
+        {
+          "kind": "user",
+          "label": "Record the currency income key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read income and verify currency fields",
+          "command_template": "hb income get {income_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Currency=USD and currencyAmount=1100.00 are preserved in the record"
+        },
+        {
+          "kind": "auto",
+          "label": "Delete currency income",
+          "command_template": "hb income delete {income_key} --yes"
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for delete",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Currency income removed from Windows app AND mobile app"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_currency_usd",
+      "title": "UAT: Transfer CRUD with USD foreign currency",
+      "resource": "transfer_currency",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Record transfer count from both Windows and mobile apps, ensure mobile is on WiFi"
+        },
+        {
+          "kind": "auto",
+          "label": "Create transfer in USD foreign currency",
+          "command": "hb transfer add --date 2026-02-17 --from-account \"TWH - Personal\" --to-account \"30 CC Hashemis\" --amount 100.00 --currency USD --currency-amount 110.00 --notes \"UAT Currency Test 01 - USD 110.00\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: New transfer appears in Windows app with currency info AND appears on mobile app"
+        },
+        {
+          "kind": "auto",
+          "label": "List transfers to get key",
+          "command": "hb transfer list --start-date 2026-02-17 --end-date 2026-02-17 --limit 5"
+        },
+        {
+          "kind": "user",
+          "label": "Record the currency transfer key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read transfer and verify currency fields",
+          "command_template": "hb transfer get {transfer_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Currency=USD and currencyAmount=110.00 are preserved in the record"
+        },
+        {
+          "kind": "auto",
+          "label": "Delete currency transfer",
+          "command_template": "hb transfer delete {transfer_key} --yes"
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for delete",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Currency transfer removed from Windows app AND mobile app"
+        }
+      ]
+    },
+    {
+      "id": "uat_batch_import_csv",
+      "title": "UAT: Batch import CSV with sync validation",
+      "resource": "batch",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Record expense count from both Windows and mobile apps, ensure mobile is on WiFi"
+        },
+        {
+          "kind": "auto",
+          "label": "Create sample CSV file",
+          "command": "cat > /tmp/batch_test.csv << 'EOF'\ntype,date,account,category,subcategory,amount,notes,to_account\nexpense,2026-02-17,TWH - Personal,Food (Basic),Cheap restaurant,15.00,Batch test 01,\nexpense,2026-02-17,TWH - Personal,Food (Basic),Cheap restaurant,12.50,Batch test 02,\nincome,2026-02-17,TWH - Personal,Salary and Wages,,500.00,Batch test income 01,\ntransfer,2026-02-17,TWH - Personal,,,100.00,Batch test transfer 01,30 CC Hashemis\nEOF"
+        },
+        {
+          "kind": "auto",
+          "label": "Import batch CSV",
+          "command": "hb batch import /tmp/batch_test.csv"
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate entries created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: All 4 transactions appear in Windows app AND mobile app after sync"
         }
       ]
     }

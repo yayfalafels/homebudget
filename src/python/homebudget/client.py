@@ -29,7 +29,7 @@ class HomeBudgetClient:
         if db_path is not None:
             return Path(db_path)
         config_path = (
-            Path(os.environ["USER_PROFILE"]) / "OneDrive" / "Documents" / "HomeBudgetData" / "hb-config.json"
+            Path(os.environ["USERPROFILE"]) / "OneDrive" / "Documents" / "HomeBudgetData" / "hb-config.json"
         )
         if not config_path.exists():
             raise ValueError("db_path is required when config file is missing")
@@ -68,10 +68,17 @@ class HomeBudgetClient:
         key: int,
         amount=None,
         notes: str | None = None,
+        currency: str | None = None,
+        currency_amount=None,
     ) -> ExpenseRecord:
         self.repository.begin_transaction()
         try:
-            record = self.repository.update_expense(key=key, amount=amount, notes=notes)
+            record = self.repository.update_expense(
+                key=key, amount=amount, notes=notes, currency=currency, currency_amount=currency_amount
+            )
+            if self.enable_sync:
+                manager = SyncUpdateManager(self.repository.connection)
+                manager.create_expense_update(record, operation="UpdateExpense")
             self.repository.commit()
             return record
         except Exception:
@@ -81,7 +88,11 @@ class HomeBudgetClient:
     def delete_expense(self, key: int) -> None:
         self.repository.begin_transaction()
         try:
+            record = self.repository.get_expense(key)
             self.repository.delete_expense(key)
+            if self.enable_sync:
+                manager = SyncUpdateManager(self.repository.connection)
+                manager.create_expense_update(record, operation="DeleteExpense")
             self.repository.commit()
         except Exception:
             self.repository.rollback()

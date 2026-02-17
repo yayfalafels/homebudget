@@ -30,21 +30,35 @@ Source: [docs/sqlite-schema.md](sqlite-schema.md#syncupdate)
 
 ## Payload encoding and decoding
 
-The payload field follows a three-step encoding process:
+The payload field follows a multi-step encoding process:
 
-1. Serialize operation to JSON string
-2. Compress with zlib using raw deflate
-3. Encode compressed bytes with base64
+### Encoding (wrapper → SyncUpdate)
 
-Decoding reverses this process:
+1. Serialize operation to JSON string with compact formatting
+2. Compress with **zlib using wbits=15** (full format with header and checksum, level 9)
+3. Pad compressed data to 660 bytes with null bytes (0x00)
+4. Encode with **URL-safe base64** (using `-` and `_` instead of `+` and `/`)
+5. Strip trailing `=` padding characters
+6. Result: 880-character payload string
 
-1. Decode base64 to raw bytes
-2. Decompress with zlib using `wbits=-zlib.MAX_WBITS` for raw deflate
-3. Parse JSON string to operation object
+### Decoding (SyncUpdate → operation)
 
-Base64 padding may be required for proper decoding. The encoder uses standard base64 with padding stripped, so the decoder must add padding as needed when the payload length is not a multiple of 4.
+1. Convert URL-safe base64 to standard (replace `-` with `+`, `_` with `/`)
+2. Add `=` padding if needed (length not multiple of 4)
+3. Decode base64 to binary (660 bytes)
+4. Strip trailing null bytes (0x00) from binary data
+5. Decompress with **zlib using wbits=15** (full format with header and checksum) — inverse of encoding step 2
+6. Parse UTF-8 JSON string to operation object
 
-Reference implementation: [.dev/.scripts/python/decode_syncupdate_payloads.py](.dev/.scripts/python/decode_syncupdate_payloads.py)
+**Critical discoveries** (2026-02-17):
+- Native app uses **full zlib format** with header and checksum, NOT raw deflate
+- Native app uses **URL-safe base64** encoding
+- All payloads are **padded to 660 bytes** before encoding, producing consistent 880-character strings
+- Decompression requires `wbits=15` (full zlib format), not `wbits=-15` (raw deflate)
+
+Reference implementations:
+- Encoder: [src/python/homebudget/sync.py](../src/python/homebudget/sync.py) - `SyncUpdateManager.encode_payload()`
+- Decoder: [tests/manual/verify_syncupdate.py](../tests/manual/verify_syncupdate.py) - `_decode_sync_payload()`
 
 ## Operation types
 
@@ -217,19 +231,34 @@ import uuid
 import zlib
 
 def encode_payload(operation: dict) -> str:
-    """Encode operation to SyncUpdate payload format."""
+    """Encode operation to SyncUpdate payload format.
+    
+    Uses full zlib compression with header, 660-byte padding,
+    and URL-safe base64 encoding to match native app format.
+    """
+    # Step 1: Serialize to compact JSON
     json_str = json.dumps(operation, separators=(',', ':'))
+    
+    # Step 2: Compress with full zlib format (includes header and checksum)
     compressed = zlib.compress(json_str.encode('utf-8'), level=9)
-    # Use raw deflate by stripping zlib header and checksum
-    raw_deflate = compressed[2:-4]
-    encoded = base64.b64encode(raw_deflate).decode('ascii')
-    # Strip padding for consistency with native app
+    
+    # Step 3: Pad to 660 bytes with null bytes
+    target_length = 660
+    if len(compressed) < target_length:
+        compressed = compressed + b'\x00' * (target_length - len(compressed))
+    
+    # Step 4: Encode with URL-safe base64
+    encoded = base64.urlsafe_b64encode(compressed).decode('ascii')
+    
+    # Step 5: Strip padding characters
     return encoded.rstrip('=')
 
 def generate_uuid() -> str:
     """Generate UUID for SyncUpdate entry."""
     return str(uuid.uuid4())
 ```
+
+**Important**: Do NOT strip the zlib header and checksum bytes. The native app uses `zlib.compress()` directly without modification. Earlier implementations incorrectly stripped bytes [2:-4] assuming raw deflate format.
 
 ### Transaction safety
 

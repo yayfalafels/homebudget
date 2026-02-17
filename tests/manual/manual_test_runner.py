@@ -8,6 +8,8 @@ from datetime import datetime
 import argparse
 import json
 from pathlib import Path
+import subprocess
+import sys
 from typing import Any
 
 
@@ -16,6 +18,7 @@ class ManualStep:
     kind: str
     label: str
     command: str | None = None
+    command_template: str | None = None
 
 
 @dataclass
@@ -41,6 +44,7 @@ class ManualTestRunner:
                     kind=step.get("kind", "user"),
                     label=step.get("label", ""),
                     command=step.get("command"),
+                    command_template=step.get("command_template"),
                 )
                 for step in item.get("steps", [])
             ]
@@ -72,25 +76,65 @@ class ManualTestRunner:
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         output_path = self.output_dir / f"{test.test_id}-{timestamp}.md"
         results: list[str] = []
-        print(f"Running manual test: {test.title}")
+        variables: dict[str, str] = {}  # Store captured variables like expense_key
+        print(f"\nRunning manual test: {test.title}")
 
-        for index, step in enumerate(test.steps, start=1):
-            print("")
+        setup_step = ManualStep(
+            kind="user",
+            label="Confirm hb-config.json is configured and connected to WiFi",
+            command=None,
+        )
+        steps = [setup_step, *test.steps]
+
+        for index, step in enumerate(steps, start=1):
+            print(f"\n{'='*70}")
             print(f"Step {index}: {step.label}")
-            if step.command:
-                print(f"Command: {step.command}")
-            if step.kind == "user":
-                status = self._prompt_choice("Status", ["pass", "fail", "skip"])
-                notes = input("Notes: ").strip()
-                results.append(self._format_result(index, step, status, notes))
+            if step.kind == "auto":
+                # Execute auto step
+                command = step.command
+                if step.command_template:
+                    command = step.command_template.format(**variables)
+                print(f"Command: {command}")
+                try:
+                    result = subprocess.run(
+                        command,
+                        shell=True,
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                    )
+                    print(f"Output:\n{result.stdout}")
+                    if result.returncode != 0:
+                        print(f"Error:\n{result.stderr}", file=sys.stderr)
+                        status = "fail"
+                        notes = f"Command failed: {result.stderr[:200]}"
+                    else:
+                        status = "pass"
+                        notes = ""
+                except subprocess.TimeoutExpired:
+                    status = "fail"
+                    notes = "Command timeout"
+                except Exception as e:
+                    status = "fail"
+                    notes = str(e)
+                results.append(self._format_result(index, step, status, notes, command))
             else:
-                input("Press Enter when the step is complete: ")
-                results.append(self._format_result(index, step, "complete", ""))
+                # User verification step
+                print("This step requires your manual verification.")
+                status = self._prompt_choice("Result", ["pass", "fail", "skip"])
+                if status == "pass" and "Record" in step.label and "key" in step.label.lower():
+                    # Prompt for variable input if this is a recording step
+                    key_input = input("Enter the value: ").strip()
+                    if key_input:
+                        variables["expense_key"] = key_input
+                        print(f"Recorded: expense_key = {key_input}")
+                notes = input("Notes (optional): ").strip()
+                results.append(self._format_result(index, step, status, notes))
 
         overall = self._prompt_choice("Overall result", ["pass", "fail", "incomplete"])
-        overall_notes = input("Overall notes: ").strip()
+        overall_notes = input("Overall notes (optional): ").strip()
         self._write_report(output_path, test, results, overall, overall_notes)
-        print(f"Wrote results to {output_path}")
+        print(f"\nWrote results to {output_path}")
         return output_path
 
     def _write_report(
@@ -126,8 +170,15 @@ class ManualTestRunner:
             handle.write(content)
 
     @staticmethod
-    def _format_result(index: int, step: ManualStep, status: str, notes: str) -> str:
-        command_line = f"Command: {step.command}" if step.command else "Command: none"
+    def _format_result(
+        index: int, step: ManualStep, status: str, notes: str, command: str | None = None
+    ) -> str:
+        if command:
+            command_line = f"Command: {command}"
+        elif step.command:
+            command_line = f"Command: {step.command}"
+        else:
+            command_line = "Command: none"
         return "\n".join(
             [
                 f"### Step {index}",
@@ -144,20 +195,20 @@ class ManualTestRunner:
     def _prompt_choice(prompt: str, options: list[str]) -> str:
         option_text = "/".join(options)
         while True:
-            value = input(f"{prompt} [{option_text}]: ").strip().lower()
+            value = input(f"\n{prompt} [{option_text}]: ").strip().lower()
             if value in options:
                 return value
-            print(f"Choose one of {option_text}.")
+            print(f"Choose one of: {', '.join(options)}")
 
     @staticmethod
     def _prompt_int(prompt: str, min_value: int, max_value: int) -> int:
         while True:
-            raw = input(f"{prompt} [{min_value}-{max_value}]: ").strip()
+            raw = input(f"\n{prompt} [{min_value}-{max_value}]: ").strip()
             if raw.isdigit():
                 value = int(raw)
                 if min_value <= value <= max_value:
                     return value
-            print("Enter a valid number.")
+            print(f"Enter a number between {min_value} and {max_value}.")
 
 
 def parse_args() -> argparse.Namespace:
@@ -174,6 +225,11 @@ def parse_args() -> argparse.Namespace:
         help="Run a specific test id from the spec.",
     )
     parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List available tests and exit.",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("tests/manual/results"),
@@ -188,8 +244,19 @@ def main() -> None:
     tests = runner.load_tests()
     if not tests:
         raise ValueError("No tests found in the spec file.")
+    
+    if args.list:
+        print("Available tests:")
+        for test in tests:
+            print(f"  {test.test_id}: {test.title}")
+        return
+    
     selected = runner.select_test(tests, args.test_id)
-    runner.run(selected)
+    try:
+        runner.run(selected)
+    except KeyboardInterrupt:
+        print("\n\nTest interrupted by user.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

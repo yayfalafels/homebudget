@@ -216,3 +216,7 @@ reference
 
 # credentials
 .credentials
+
+# agent helpers
+.github/prompts
+.github/skills

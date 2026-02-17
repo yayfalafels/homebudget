@@ -272,16 +272,33 @@ class Repository:
             for row in rows
         ]
 
-    def update_expense(self, key: int, amount=None, notes: str | None = None) -> ExpenseRecord:
+    def update_expense(
+        self,
+        key: int,
+        amount=None,
+        notes: str | None = None,
+        currency: str | None = None,
+        currency_amount=None,
+    ) -> ExpenseRecord:
         self._ensure_connection()
         updates = []
         params: list[object] = []
+        normalized_amount: Decimal | None = None
+        normalized_currency_amount: Decimal | None = None
         if amount is not None:
             updates.append("amount = ?")
-            params.append(float(Decimal(str(amount))))
+            normalized_amount = Decimal(str(amount))
+            params.append(float(normalized_amount))
         if notes is not None:
             updates.append("notes = ?")
             params.append(notes)
+        if currency is not None:
+            updates.append("currency = ?")
+            params.append(currency)
+        if currency_amount is not None:
+            updates.append("currencyAmount = ?")
+            normalized_currency_amount = Decimal(str(currency_amount))
+            params.append(str(normalized_currency_amount))
         if not updates:
             return self.get_expense(key)
         params.append(key)
@@ -289,6 +306,11 @@ class Repository:
             f"UPDATE Expense SET {', '.join(updates)} WHERE key = ?",
             params,
         )
+        if normalized_amount is not None:
+            self.connection.execute(
+                "UPDATE AccountTrans SET transAmount = ? WHERE transType = ? AND transKey = ?",
+                (float(normalized_amount), TRANSACTION_TYPES["expense"], key),
+            )
         return self.get_expense(key)
 
     def delete_expense(self, key: int) -> None:
