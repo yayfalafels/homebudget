@@ -213,6 +213,7 @@ docs/develop
 # user data
 data
 reference
+*.db
 
 # credentials
 .credentials
