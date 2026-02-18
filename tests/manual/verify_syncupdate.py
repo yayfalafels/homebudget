@@ -48,7 +48,7 @@ def _decode_sync_payload(payload: str) -> dict[str, Any]:
     HomeBudget encodes payloads with the following process:
     1. JSON serialize operation data
     2. Compress with full zlib format (includes header and checksum)
-    3. Pad to 660 bytes with null bytes
+    3. Pad to 512 bytes minimum with null bytes if compressed size < 512
     4. Encode with URL-safe base64 (- and _ instead of + and /)
     5. Strip trailing = padding
     
@@ -58,10 +58,11 @@ def _decode_sync_payload(payload: str) -> dict[str, Any]:
     - Native app uses FULL zlib format with header, NOT raw deflate
     - Decompression requires wbits=15 (full format), not wbits=-15 (raw)
     - URL-safe base64: - maps to +, _ maps to /
-    - All payloads padded to 660 bytes before encoding (880 chars after)
+    - Small payloads (Delete/Income/Transfer) padded to 512 bytes → 683 chars
+    - Large payloads (Expense Add/Update) no padding needed → 832-920 chars
     
     Args:
-        payload: 880-character URL-safe base64 encoded string from SyncUpdate.payload
+        payload: Variable-length URL-safe base64 string from SyncUpdate.payload
         
     Returns:
         Dictionary containing decoded operation (e.g., AddExpense payload)
@@ -86,7 +87,7 @@ def _decode_sync_payload(payload: str) -> dict[str, Any]:
         raise ValueError(f"Base64 decode failed: {exc}") from exc
     
     # NOW strip trailing null bytes from the binary data
-    # HomeBudget app pads compressed data to 660 bytes with 0x00
+    # HomeBudget app pads compressed data to 512 bytes minimum with 0x00
     raw = raw.rstrip(b'\x00')
     
     # Decompress using full zlib format (inverse of encoding with zlib.compress())

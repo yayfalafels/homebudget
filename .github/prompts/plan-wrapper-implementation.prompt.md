@@ -449,7 +449,7 @@ Each feature follows this workflow:
 8. **Refactor** - Clean up based on results
 9. **Commit** - Mark feature complete, move to next
 
-#### Feature 5.1: Expense CRUD (Week 1)
+#### Feature 5.1: Expense CRUD
 
 **Document**
 - Update user-guide.md: "Working with Expenses" section
@@ -586,7 +586,7 @@ Implement Expense CRUD with TDD using main env/:
 Reference: docs/design.md and docs/methods.md
 ```
 
-#### Feature 5.2: Income CRUD (Week 2)
+#### Feature 5.2: Income CRUD
 
 Follow same TDD workflow as 5.1:
 1. Document (user-guide.md income section)
@@ -596,7 +596,7 @@ Follow same TDD workflow as 5.1:
 5. Validate auto + manual
 6. Review docs (user-guide.md, api-examples.md, cli-examples.md, methods.md)
 
-#### Feature 5.3: Transfer CRUD (Week 2)
+#### Feature 5.3: Transfer CRUD
 
 Follow same TDD workflow as 5.1:
 1. Document (user-guide.md transfer section)
@@ -606,7 +606,7 @@ Follow same TDD workflow as 5.1:
 5. Validate auto + manual
 6. Review docs (user-guide.md, api-examples.md, cli-examples.md, methods.md)
 
-#### Feature 5.4: Reference Data (Week 3)
+#### Feature 5.4: Reference Data
 
 1. Document - Reference data queries in user-guide.md
 2. Auto tests - tests/integration/test_reference_data.py
@@ -614,7 +614,7 @@ Follow same TDD workflow as 5.1:
 4. Validate - pytest tests/integration/test_reference_data.py
 5. Review docs - Ensure query patterns and return types match implementation
 
-#### Feature 5.5: CLI Commands (Week 3-4)
+#### Feature 5.5: CLI Commands
 
 1. Document - cli-examples.md complete coverage
 2. Auto tests - tests/integration/test_cli.py
@@ -622,7 +622,7 @@ Follow same TDD workflow as 5.1:
 4. Validate - Click test runner + manual CLI execution
 5. Review docs - Verify all CLI examples work as documented
 
-#### Feature 5.6: Batch Operations (Week 4)
+#### Feature 5.6: Batch Operations
 
 1. Document - Batch import workflow in user-guide.md
 2. Manual test - Large CSV import with error handling
@@ -639,14 +639,14 @@ Batch implementation notes
 
 **Feature summary table**
 
-| Feature | Week | Tests | Implementation | Doc Review | Key Files |
-| --- | --- | --- | --- | --- | --- |
-| 5.1 Expense CRUD | 1 | test_expense_crud.py + manual | client.py, repository.py, sync.py | user-guide, api-examples, cli-examples, methods | Issue 001 resolution |
-| 5.2 Income CRUD | 2 | test_income_crud.py + manual | client.py, repository.py | user-guide, api-examples, cli-examples, methods | Sync support |
-| 5.3 Transfer CRUD | 2 | test_transfer_crud.py + manual | client.py, repository.py | user-guide, api-examples, cli-examples, methods | Dual AccountTrans |
-| 5.4 Reference Data | 3 | test_reference_data.py | repository.py | user-guide, api-examples, methods | Read-only queries |
-| 5.5 CLI Commands | 3-4 | test_cli.py | cli/main.py, cli/commands/ | cli-examples, user-guide | Click framework |
-| 5.6 Batch Operations | 4 | test_batch_operations.py | cli/commands/batch.py | user-guide, api-examples, cli-examples | CSV/JSON import |
+| Feature | Tests | Implementation | Doc Review | Key Files |
+| --- | --- | --- | --- | --- |
+| 5.1 Expense CRUD | test_expense_crud.py + manual | client.py, repository.py, sync.py | user-guide, api-examples, cli-examples, methods | Issue 001 resolution |
+| 5.2 Income CRUD | test_income_crud.py + manual | client.py, repository.py | user-guide, api-examples, cli-examples, methods | Sync support |
+| 5.3 Transfer CRUD | test_transfer_crud.py + manual | client.py, repository.py | user-guide, api-examples, cli-examples, methods | Dual AccountTrans |
+| 5.4 Reference Data | test_reference_data.py | repository.py | user-guide, api-examples, methods | Read-only queries |
+| 5.5 CLI Commands | test_cli.py | cli/main.py, cli/commands/ | cli-examples, user-guide | Click framework |
+| 5.6 Batch Operations | test_batch_operations.py | cli/commands/batch.py | user-guide, api-examples, cli-examples | CSV/JSON import |
 
 ### Phase 6: Integration and validation
 

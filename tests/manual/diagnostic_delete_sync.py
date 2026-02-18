@@ -162,7 +162,9 @@ def run_diagnostic(db_path: Path | None = None) -> None:
                 updateType = latest.get("updateType", "MISSING")
                 payload_len = latest.get("payload_len", "N/A")
                 
-                status = "✓" if payload_len == 880 else "⚠" if payload_len else "✗"
+                # Valid ranges from inspection: 683 (Delete/Income/Transfer), 832-920 (Expense)
+                is_valid = payload_len in range(680, 925) if isinstance(payload_len, int) else False
+                status = "✓" if is_valid else "⚠" if payload_len else "✗"
                 print(f"{status} {op_name:10} Operation={op:20} Type={updateType:20} Len={payload_len}")
             
             print("\n✓ Diagnostic test completed")

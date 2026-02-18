@@ -63,7 +63,7 @@ def compare_operations(db_path: Path) -> None:
         
         op = operations[op_name]
         print(f"\n{op_name}:")
-        print(f"  Payload length: {op['payload_len']} chars (should be 880)")
+        print(f"  Payload length: {op['payload_len']} chars")
         print(f"  SyncUpdate key: {op['sync_key']}")
         print(f"  JSON fields:")
         
