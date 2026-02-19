@@ -8,6 +8,8 @@
 - [Entry points](#entry-points)
 - [Forex input rules](#forex-input-rules)
 - [Working with expenses](#working-with-expenses)
+- [Working with income](#working-with-income)
+- [Working with transfers](#working-with-transfers)
 - [Configuration](#configuration)
 - [Common workflows](#common-workflows)
 - [Troubleshooting](#troubleshooting)
@@ -15,7 +17,7 @@
 
 ## Getting started
 
-The HomeBudget wrapper is a Python library and CLI that lets you manage HomeBudget data through a SQLite database. The wrapper supports expense, income, and transfer operations plus reference data queries. It also supports sync updates so changes appear in the HomeBudget apps.
+The HomeBudget wrapper is a Python library and CLI that lets you manage HomeBudget data through a SQLite database. The wrapper supports expense and income operations. It also supports sync updates so changes appear in the HomeBudget apps.
 
 What you need
 - Python 3.10 or later
@@ -68,8 +70,7 @@ Config file format
 
 ```json
 {
-  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db",
-  "sync_enabled": true
+  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db"
 }
 ```
 
@@ -83,12 +84,12 @@ For a complete set of examples, see the API and CLI example documents.
 ## Entry points
 
 Library entry point
-- Use the `HomeBudgetClient` class to perform CRUD operations and reference lookups
+- Use the `HomeBudgetClient` class to perform CRUD operations
 - Use DTO classes to validate data before writing to the database
 
 CLI entry point
 - Use `homebudget` or `hb` for the command line interface
-- Provide `--db` for the database path and `--format` for output control
+- Provide `--db` for the database path
 
 ### Sync behavior
 
@@ -104,7 +105,7 @@ homebudget --no-sync expense add [options]
 
 ## Forex input rules
 
-Forex inputs use one of two paths for expenses, income, and transfers.
+Forex inputs use one of two paths for expenses and income.
 
 Base currency path
 - Provide amount only
@@ -141,13 +142,7 @@ homebudget --no-sync expense add --date 2026-02-17 --category "Food" --amount 25
 This is useful for:
 - Maintenance tasks where sync should not happen
 - Testing without affecting mobile devices
-- Batch operations where you want to manage UI control manually
-
-### Batch behavior
-
-- Use HomeBudgetClient batch for bulk add operations with a list of records
-- Batch runs validation per record and performs sync once after the batch completes
-- UI control is applied once around the entire batch operation
+- Operations where you want to manage UI control manually
 
 ## Working with expenses
 
@@ -215,6 +210,106 @@ homebudget expense add \
   --notes "Lunch"
 ```
 
+## Working with income
+
+Use the income methods to add, list, update, and delete income transactions. Sync updates are created for write operations when sync is enabled.
+
+Add income.
+
+```python
+from decimal import Decimal
+import datetime
+
+from homebudget import HomeBudgetClient, IncomeDTO
+
+with HomeBudgetClient() as client:
+  income = IncomeDTO(
+    date=datetime.date(2026, 2, 28),
+    name="Salary",
+    amount=Decimal("5000.00"),
+    account="Bank",
+    notes="February salary"
+  )
+  saved = client.add_income(income)
+  print(saved.key)
+```
+
+List income for a date range.
+
+```python
+import datetime
+from homebudget import HomeBudgetClient
+
+with HomeBudgetClient() as client:
+  results = client.list_incomes(
+    start_date=datetime.date(2026, 2, 1),
+    end_date=datetime.date(2026, 2, 28)
+  )
+  for income in results:
+    print(income.key, income.amount)
+```
+
+Add income with the CLI.
+
+```bash
+homebudget income add \
+  --date 2026-02-28 \
+  --name "Salary" \
+  --amount 5000.00 \
+  --account Bank \
+  --notes "February salary"
+```
+
+## Working with transfers
+
+Use the transfer methods to add, list, update, and delete transfers between accounts. Sync updates are created for write operations when sync is enabled.
+
+Add a transfer.
+
+```python
+from decimal import Decimal
+import datetime
+
+from homebudget import HomeBudgetClient, TransferDTO
+
+with HomeBudgetClient() as client:
+  transfer = TransferDTO(
+    date=datetime.date(2026, 2, 20),
+    from_account="Bank",
+    to_account="Wallet",
+    amount=Decimal("200.00"),
+    notes="Cash withdrawal"
+  )
+  saved = client.add_transfer(transfer)
+  print(saved.key)
+```
+
+List transfers for a date range.
+
+```python
+import datetime
+from homebudget import HomeBudgetClient
+
+with HomeBudgetClient() as client:
+  results = client.list_transfers(
+    start_date=datetime.date(2026, 2, 1),
+    end_date=datetime.date(2026, 2, 28)
+  )
+  for transfer in results:
+    print(transfer.key, transfer.amount)
+```
+
+Add a transfer with the CLI.
+
+```bash
+homebudget transfer add \
+  --date 2026-02-20 \
+  --from-account "Bank" \
+  --to-account "Wallet" \
+  --amount 200.00 \
+  --notes "Cash withdrawal"
+```
+
 ## Configuration
 
 The wrapper reads a user config JSON file for HomeBudget settings such as the database path.
@@ -229,8 +324,7 @@ Config file example
 
 ```json
 {
-  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db",
-  "sync_enabled": true
+  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db"
 }
 ```
 
@@ -313,7 +407,7 @@ Report update
 | Update expense | HomeBudgetClient.update_expense | homebudget expense update |
 | Delete expense | HomeBudgetClient.delete_expense | homebudget expense delete |
 | Add income | HomeBudgetClient.add_income | homebudget income add |
-| List income | HomeBudgetClient.list_income | homebudget income list |
+| List income | HomeBudgetClient.list_incomes | homebudget income list |
 | Get income | HomeBudgetClient.get_income | homebudget income get |
 | Update income | HomeBudgetClient.update_income | homebudget income update |
 | Delete income | HomeBudgetClient.delete_income | homebudget income delete |
@@ -322,7 +416,7 @@ Report update
 | Get transfer | HomeBudgetClient.get_transfer | homebudget transfer get |
 | Update transfer | HomeBudgetClient.update_transfer | homebudget transfer update |
 | Delete transfer | HomeBudgetClient.delete_transfer | homebudget transfer delete |
-| Batch add expenses | HomeBudgetClient.batch | homebudget expense batch-add |
-| List accounts | HomeBudgetClient.list_accounts | homebudget account list |
-| List categories | HomeBudgetClient.list_categories | homebudget category list |
-| List currencies | HomeBudgetClient.list_currencies | homebudget currency list |
+| Start UI | N/A | homebudget ui start |
+| Close UI | N/A | homebudget ui close |
+| Refresh UI | N/A | homebudget ui refresh |
+| Check UI status | N/A | homebudget ui status |

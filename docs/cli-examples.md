@@ -9,10 +9,7 @@
 - [Global options](#global-options)
 - [Expense commands](#expense-commands)
 - [Income commands](#income-commands)
-- [Transfer commands](#transfer-commands)
-- [Reference data commands](#reference-data-commands)
-- [Batch import](#batch-import)
-- [Output formats](#output-formats)
+- [UI control commands](#ui-control-commands)
 
 ## Overview
 
@@ -70,8 +67,7 @@ Config file example
 
 ```json
 {
-  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db",
-  "sync_enabled": true
+  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db"
 }
 ```
 
@@ -247,141 +243,48 @@ Delete income.
 homebudget income delete 14021 --yes
 ```
 
-## Transfer commands
+## UI control commands
 
-Forex rule
-- Provide amount only for base currency
-- Provide currency, currency amount, and exchange rate for foreign currency
-- For base currency updates, currency amount matches amount
+The CLI provides commands to control the HomeBudget UI application.
 
-Add a transfer.
+Start the HomeBudget UI.
 
 ```bash
-homebudget transfer add \
-  --date 2026-02-20 \
-  --from-account Bank \
-  --to-account Wallet \
-  --amount 200.00 \
-  --notes "Cash withdrawal"
+homebudget ui start
 ```
 
-Add a transfer using a foreign currency and exchange rate.
+Close the HomeBudget UI.
 
 ```bash
-homebudget transfer add \
-  --date 2026-02-20 \
-  --from-account Bank \
-  --to-account Wallet \
-  --currency EUR \
-  --currency-amount 150.00 \
-  --exchange-rate 1.25 \
-  --notes "Cash withdrawal"
+homebudget ui close
 ```
 
-List transfers.
+Refresh the HomeBudget UI (close and reopen).
 
 ```bash
-homebudget transfer list \
-  --start-date 2026-02-01 \
-  --end-date 2026-02-28
+homebudget ui refresh
 ```
 
-Update a transfer.
+Check the status of the HomeBudget UI.
 
 ```bash
-homebudget transfer update 15008 \
-  --notes "Updated notes"
+homebudget ui status
 ```
 
-Update a transfer using a foreign currency and exchange rate.
+Start UI with custom verification settings.
 
 ```bash
-homebudget transfer update 15008 \
-  --currency EUR \
-  --currency-amount 160.00 \
-  --exchange-rate 1.20 \
-  --notes "Updated notes"
+homebudget ui start --verify-attempts 10 --verify-delay 0.3 --settle-time 3.0
 ```
 
-Delete a transfer.
+Close UI without verification.
 
 ```bash
-homebudget transfer delete 15008 --yes
+homebudget ui close --no-verify
 ```
 
-## Reference data commands
-
-List accounts.
+Refresh UI with force kill disabled.
 
 ```bash
-homebudget account list
-```
-
-List categories.
-
-```bash
-homebudget category list
-```
-
-List currencies.
-
-```bash
-homebudget currency list
-```
-
-## Batch import
-
-Batch add expenses from a CSV file.
-
-```bash
-homebudget expense batch-add C:/path/to/expenses.csv
-```
-
-Batch add expenses from a JSON file.
-
-```bash
-homebudget expense batch-add C:/path/to/expenses.json --format json
-```
-
-Example JSON list for batch expenses.
-
-```json
-[
-  {
-    "date": "2026-02-16",
-    "category": "Dining",
-    "subcategory": "Restaurant",
-    "amount": 25.50,
-    "account": "Wallet",
-    "notes": "Lunch"
-  },
-  {
-    "date": "2026-02-16",
-    "category": "Transport",
-    "subcategory": "Taxi",
-    "amount": 12.00,
-    "account": "Wallet",
-    "notes": "Cab home"
-  }
-]
-```
-
-Batch operations perform sync once after the batch completes.
-
-## Output formats
-
-JSON output for a list command.
-
-```bash
-homebudget --format json expense list \
-  --start-date 2026-02-01 \
-  --end-date 2026-02-28
-```
-
-CSV output for a list command.
-
-```bash
-homebudget --format csv expense list \
-  --start-date 2026-02-01 \
-  --end-date 2026-02-28
+homebudget ui refresh --no-force
 ```

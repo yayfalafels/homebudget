@@ -26,9 +26,10 @@ This document consolidates the wrapper design steps into a single reference. It 
 
 Scope
 - Wrapper design for SQLite based HomeBudget data
-- Expenses, income, transfers, and reference data
+- Expenses and income operations
 - Sync update support for Issue 001
 - CLI command design and workflow alignment
+- UI control for managing HomeBudget application during database operations
 
 Primary sources
 - docs/sqlite-schema.md
@@ -63,16 +64,15 @@ src/python/homebudget/
   repository.py
   schema.py
   exceptions.py
+  persistence.py
+  ui_control.py
   cli/
+    __init__.py
     main.py
-    commands/
-    formatters.py
-    validators.py
-  utils/
-    currency.py
-    dates.py
-    validation.py
-    logging.py
+    expense.py
+    income.py
+    ui.py
+    common.py
 ```
 
 ## API surface and data objects
@@ -83,24 +83,18 @@ Public API entry point
 Transaction data objects
 - ExpenseDTO
 - IncomeDTO
-- TransferDTO
+- TransferDTO (defined but not yet implemented)
 
 Reference data objects
-- AccountDTO
-- CategoryDTO
-- CurrencyDTO
+- Not yet implemented
 
 Batch operations
-- HomeBudgetClient.batch with resource, operation, and records list
-- Resource values include expense, income, and transfer
-- Operation values include add for batch inserts
-- Records are full DTO entries for the resource type
-- Batch runs input validation for each record and performs sync once at the end
-- Batch delegates to the lower level add methods with sync disabled
+- Not yet implemented
 
-Shared validation
-- Use a validation utility in utils validation for expense, income, and transfer inputs
-- Reuse the same validation from single add and batch operations
+UI Control
+- HomeBudgetUIController provides methods to open, close, and check status of the HomeBudget UI
+- Client integrates UI control with transactions when enable_ui_control is set
+- UI control automatically closes UI before database operations and reopens after
 
 Method list reference
 - See docs/methods.md
@@ -119,8 +113,7 @@ Config file example
 
 ```json
 {
-  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db",
-  "sync_enabled": true
+  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db"
 }
 ```
 
@@ -131,7 +124,7 @@ Client and CLI behavior
 ## Schema mapping
 
 Core tables
-- Expense, Income, Transfer, AccountTrans, Account, Category, SubCategory, Currency
+- Expense, Income, Transfer (transfer not yet implemented), AccountTrans, Account, Category, SubCategory, Currency
 
 Supporting tables
 - SyncInfo, SyncUpdate, DeviceInfo, Settings
@@ -158,15 +151,13 @@ Mapping highlights
 
 ## CLI design
 
-- Command groups for expense, income, transfer, account, category, currency
-- Global options include db path, sync toggle, output format, and verbosity
-- Output formats include table, json, and csv
-- Batch import supports csv and json files
-- Batch operations use JSON lists for records and sync once at the end
+- Command groups for expense, income, and ui
+- Global options include db path and sync toggle
+- UI control commands support managing the HomeBudget application
 
 ## Forex input rules
 
-Forex inputs follow one of two paths for expenses, income, and transfers.
+Forex inputs follow one of two paths for expenses and income.
 
 Base currency path
 - Provide amount only

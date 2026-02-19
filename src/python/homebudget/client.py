@@ -9,7 +9,14 @@ from decimal import Decimal
 import json
 import os
 
-from homebudget.models import ExpenseDTO, ExpenseRecord, IncomeDTO, IncomeRecord
+from homebudget.models import (
+    ExpenseDTO,
+    ExpenseRecord,
+    IncomeDTO,
+    IncomeRecord,
+    TransferDTO,
+    TransferRecord,
+)
 from homebudget.persistence import PersistenceBackend
 from homebudget.repository import Repository
 from homebudget.sync import SyncUpdateManager
@@ -297,6 +304,83 @@ class HomeBudgetClient:
             manager = self._get_sync_manager()
             if manager:
                 manager.create_sync_record(record, "DeleteIncome")
+            return None
+
+        self._run_transaction(action)
+
+    def add_transfer(self, transfer: TransferDTO) -> TransferRecord:
+        """Add a transfer and return the created record."""
+
+        def action() -> TransferRecord:
+            record = self.repository.insert_transfer(transfer)
+            manager = self._get_sync_manager()
+            if manager:
+                manager.create_sync_record(record)
+            return record
+
+        return self._run_transaction(action)
+
+    def get_transfer(self, key: int) -> TransferRecord:
+        """Get a single transfer by key."""
+        return self.repository.get_transfer(key)
+
+    def list_transfers(
+        self,
+        start_date: dt.date | None = None,
+        end_date: dt.date | None = None,
+    ) -> list[TransferRecord]:
+        """List transfers within an optional date range."""
+        return self.repository.list_transfers(start_date=start_date, end_date=end_date)
+
+    def update_transfer(
+        self,
+        key: int,
+        amount: Decimal | str | int | float | None = None,
+        notes: str | None = None,
+        currency: str | None = None,
+        currency_amount: Decimal | str | int | float | None = None,
+        exchange_rate: Decimal | str | int | float | None = None,
+    ) -> TransferRecord:
+        """Update a transfer and return the latest record.
+        
+        Creates a separate SyncUpdate entry for each changed field to match
+        native app behavior where each field change generates its own sync event.
+        """
+
+        amount, currency, currency_amount = self._normalize_forex_inputs(
+            amount=amount,
+            currency=currency,
+            currency_amount=currency_amount,
+            exchange_rate=exchange_rate,
+            label="Transfer update",
+            allow_empty=notes is not None,
+        )
+
+        def action() -> TransferRecord:
+            record = self.repository.update_transfer(
+                key=key,
+                amount=amount,
+                notes=notes,
+                currency=currency,
+                currency_amount=currency_amount,
+            )
+            manager = self._get_sync_manager()
+            if manager:
+                changed = self._collect_changed_fields(amount, notes, currency, currency_amount)
+                manager.create_updates_for_changes(record, "UpdateTransfer", changed)
+            return record
+
+        return self._run_transaction(action)
+
+    def delete_transfer(self, key: int) -> None:
+        """Delete a transfer and record the sync update."""
+
+        def action() -> None:
+            record = self.repository.get_transfer(key)
+            self.repository.delete_transfer(key)
+            manager = self._get_sync_manager()
+            if manager:
+                manager.create_sync_record(record, "DeleteTransfer")
             return None
 
         self._run_transaction(action)

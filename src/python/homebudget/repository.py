@@ -8,7 +8,14 @@ from decimal import Decimal
 import sqlite3
 
 from homebudget.exceptions import DuplicateError, NotFoundError
-from homebudget.models import ExpenseDTO, ExpenseRecord, IncomeDTO, IncomeRecord
+from homebudget.models import (
+    ExpenseDTO,
+    ExpenseRecord,
+    IncomeDTO,
+    IncomeRecord,
+    TransferDTO,
+    TransferRecord,
+)
 from homebudget.persistence import PersistenceBackend
 from homebudget.schema import (
     DEFAULT_BILL_KEY,
@@ -611,6 +618,278 @@ class Repository(PersistenceBackend):
             (TRANSACTION_TYPES["income"], key),
         )
         self.connection.execute("DELETE FROM Income WHERE key = ?", (key,))
+
+    def insert_transfer(self, transfer: TransferDTO) -> TransferRecord:
+        """Insert a new transfer row and return the record."""
+        self._ensure_connection()
+        from_account = self._get_account(transfer.from_account)
+        to_account = self._get_account(transfer.to_account)
+
+        notes = transfer.notes or ""
+        amount = Decimal(transfer.amount)
+        currency = transfer.currency or from_account["currency"]
+        currency_amount = transfer.currency_amount or amount
+        device_id_key = self._get_primary_device_key()
+        device_key = self._get_next_device_key("Transfer")
+
+        duplicate = self.connection.execute(
+            """
+            SELECT key FROM Transfer
+            WHERE date = ?
+              AND fromAccount = ?
+              AND toAccount = ?
+              AND amount = ?
+              AND notes = ?
+            """,
+            (
+                transfer.date.isoformat(),
+                from_account["key"],
+                to_account["key"],
+                float(amount),
+                notes,
+            ),
+        ).fetchone()
+        if duplicate is not None:
+            raise DuplicateError(
+                "Duplicate transfer",
+                {
+                    "date": transfer.date.isoformat(),
+                    "from_account": transfer.from_account,
+                    "to_account": transfer.to_account,
+                    "amount": str(amount),
+                },
+            )
+
+        timestamp = dt.datetime.now().replace(microsecond=0)
+        cursor = self.connection.execute(
+            """
+            INSERT INTO Transfer (
+                date,
+                fromAccount,
+                toAccount,
+                amount,
+                notes,
+                deviceIdKey,
+                deviceKey,
+                timeStamp,
+                currency,
+                currencyAmount
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                transfer.date.isoformat(),
+                from_account["key"],
+                to_account["key"],
+                float(amount),
+                notes,
+                device_id_key,
+                device_key,
+                timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                currency,
+                str(currency_amount),
+            ),
+        )
+        transfer_key = int(cursor.lastrowid)
+
+        # Create transfer_out for from_account
+        self.connection.execute(
+            """
+            INSERT INTO AccountTrans (
+                accountKey,
+                timeStamp,
+                transType,
+                transKey,
+                transDate,
+                transAmount,
+                checked
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                from_account["key"],
+                timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                TRANSACTION_TYPES["transfer_out"],
+                transfer_key,
+                transfer.date.isoformat(),
+                float(amount),
+                DEFAULT_CHECKED,
+            ),
+        )
+
+        # Create transfer_in for to_account
+        self.connection.execute(
+            """
+            INSERT INTO AccountTrans (
+                accountKey,
+                timeStamp,
+                transType,
+                transKey,
+                transDate,
+                transAmount,
+                checked
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                to_account["key"],
+                timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                TRANSACTION_TYPES["transfer_in"],
+                transfer_key,
+                transfer.date.isoformat(),
+                float(amount),
+                DEFAULT_CHECKED,
+            ),
+        )
+
+        return TransferRecord(
+            key=transfer_key,
+            date=transfer.date,
+            from_account=transfer.from_account,
+            to_account=transfer.to_account,
+            amount=amount,
+            notes=transfer.notes,
+            currency=currency,
+            currency_amount=currency_amount,
+            time_stamp=timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        )
+
+    def get_transfer(self, key: int) -> TransferRecord:
+        """Fetch a single transfer by key."""
+        self._ensure_connection()
+        row = self.connection.execute(
+            """
+            SELECT
+                Transfer.key,
+                Transfer.date,
+                Transfer.amount,
+                Transfer.notes,
+                Transfer.currency,
+                Transfer.currencyAmount,
+                Transfer.timeStamp,
+                from_acct.name AS from_account,
+                to_acct.name AS to_account
+            FROM Transfer
+            JOIN Account AS from_acct ON from_acct.key = Transfer.fromAccount
+            JOIN Account AS to_acct ON to_acct.key = Transfer.toAccount
+            WHERE Transfer.key = ?
+            """,
+            (key,),
+        ).fetchone()
+        if row is None:
+            raise NotFoundError("Transfer not found")
+        return TransferRecord(
+            key=row["key"],
+            date=dt.date.fromisoformat(row["date"]),
+            from_account=row["from_account"],
+            to_account=row["to_account"],
+            amount=Decimal(str(row["amount"])),
+            notes=row["notes"],
+            currency=row["currency"],
+            currency_amount=Decimal(str(row["currencyAmount"]))
+            if row["currencyAmount"] is not None
+            else None,
+            time_stamp=row["timeStamp"],
+        )
+
+    def list_transfers(
+        self,
+        start_date: dt.date | None = None,
+        end_date: dt.date | None = None,
+    ) -> list[TransferRecord]:
+        """List transfers, optionally filtered by date range."""
+        self._ensure_connection()
+        query = """
+            SELECT
+                Transfer.key,
+                Transfer.date,
+                Transfer.amount,
+                Transfer.notes,
+                Transfer.currency,
+                Transfer.currencyAmount,
+                Transfer.timeStamp,
+                from_acct.name AS from_account,
+                to_acct.name AS to_account
+            FROM Transfer
+            JOIN Account AS from_acct ON from_acct.key = Transfer.fromAccount
+            JOIN Account AS to_acct ON to_acct.key = Transfer.toAccount
+            WHERE 1 = 1
+        """
+        params = []
+        if start_date is not None:
+            query += " AND Transfer.date >= ?"
+            params.append(start_date.isoformat())
+        if end_date is not None:
+            query += " AND Transfer.date <= ?"
+            params.append(end_date.isoformat())
+        query += " ORDER BY Transfer.date DESC"
+        
+        cursor = self.connection.execute(query, params)
+        rows = cursor.fetchall()
+        return [
+            TransferRecord(
+                key=row["key"],
+                date=dt.date.fromisoformat(row["date"]),
+                from_account=row["from_account"],
+                to_account=row["to_account"],
+                amount=Decimal(str(row["amount"])),
+                notes=row["notes"],
+                currency=row["currency"],
+                currency_amount=Decimal(str(row["currencyAmount"]))
+                if row["currencyAmount"] is not None
+                else None,
+                time_stamp=row["timeStamp"],
+            )
+            for row in rows
+        ]
+
+    def update_transfer(
+        self,
+        key: int,
+        amount: Decimal | None = None,
+        notes: str | None = None,
+        currency: str | None = None,
+        currency_amount: Decimal | None = None,
+    ) -> TransferRecord:
+        """Update a transfer and return the latest record."""
+        self._ensure_connection()
+        normalized_amount = None
+        updates = []
+        params = []
+        if amount is not None:
+            normalized_amount = Decimal(str(amount))
+            updates.append("amount = ?")
+            params.append(float(normalized_amount))
+        if notes is not None:
+            updates.append("notes = ?")
+            params.append(notes)
+        if currency is not None:
+            updates.append("currency = ?")
+            params.append(currency)
+        if currency_amount is not None:
+            normalized_currency_amount = Decimal(str(currency_amount))
+            updates.append("currencyAmount = ?")
+            params.append(str(normalized_currency_amount))
+        if not updates:
+            return self.get_transfer(key)
+        params.append(key)
+        self.connection.execute(
+            f"UPDATE Transfer SET {', '.join(updates)} WHERE key = ?",
+            params,
+        )
+        if normalized_amount is not None:
+            # Update both transfer_out and transfer_in amounts
+            self.connection.execute(
+                "UPDATE AccountTrans SET transAmount = ? WHERE transType IN (?, ?) AND transKey = ?",
+                (float(normalized_amount), TRANSACTION_TYPES["transfer_out"], TRANSACTION_TYPES["transfer_in"], key),
+            )
+        return self.get_transfer(key)
+
+    def delete_transfer(self, key: int) -> None:
+        """Delete a transfer record and related account transactions."""
+        self._ensure_connection()
+        self.connection.execute(
+            "DELETE FROM AccountTrans WHERE transType IN (?, ?) AND transKey = ?",
+            (TRANSACTION_TYPES["transfer_out"], TRANSACTION_TYPES["transfer_in"], key),
+        )
+        self.connection.execute("DELETE FROM Transfer WHERE key = ?", (key,))
 
     def _ensure_connection(self) -> None:
         """Ensure the connection is initialized before use."""

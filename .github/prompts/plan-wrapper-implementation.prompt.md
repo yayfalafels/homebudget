@@ -597,6 +597,15 @@ Follow same TDD workflow as 5.1:
 5. Validate auto + manual
 6. Review docs (user-guide.md, api-examples.md, cli-examples.md, methods.md)
 
+#### Design Pattern Review for Features 5.3-5.6
+
+For the remaining features, use this consolidated checklist to ensure consistency with patterns in 5.1-5.2 (reference: [docs/develop/python-design-guide.md](docs/develop/python-design-guide.md) and [docs/develop/sync-refactor-01-dry.md](docs/develop/sync-refactor-01-dry.md)):
+
+- **Separation of Concerns**: Identify which layer your feature belongs (presentation/CLI, orchestration/client, domain/models, persistence/repository). Verify responsibilities don't leak across layers. Example: SQL stays in repository, business logic stays in client.
+- **DRY - Reuse Patterns**: Before implementing, scan 5.1-5.2 code for shared patterns (validation helpers, error handling, sync coordination, output formatting). Reuse or extend existing code rather than reimplementing.
+- **No Magic Values**: Check 5.1-5.2 for centralized constants (schema.py, config dicts). Use the same constants—don't hardcode transaction types, field names, table columns, or CLI defaults.
+- **Encapsulation**: Hide implementation complexity behind clean interfaces. Complex operations (multi-step transactions, error aggregation, format parsing) should be private; expose only DTOs and result objects.
+
 #### Feature 5.3: Transfer CRUD
 
 Follow same TDD workflow as 5.1:
@@ -606,6 +615,7 @@ Follow same TDD workflow as 5.1:
 4. Build (client.py, repository.py transfer methods with dual AccountTrans)
 5. Validate auto + manual
 6. Review docs (user-guide.md, api-examples.md, cli-examples.md, methods.md)
+7. **Design Review**: Apply **Design Pattern Review for Features 5.3-5.6** checklist above.
 
 #### Feature 5.4: Reference Data
 
@@ -614,6 +624,7 @@ Follow same TDD workflow as 5.1:
 3. Build - Repository queries for accounts, categories, currencies
 4. Validate - pytest tests/integration/test_reference_data.py
 5. Review docs - Ensure query patterns and return types match implementation
+6. **Design Review**: Apply **Design Pattern Review for Features 5.3-5.6** checklist above.
 
 #### Feature 5.5: CLI Commands
 
@@ -622,6 +633,7 @@ Follow same TDD workflow as 5.1:
 3. Build - src/python/homebudget/cli/ structure
 4. Validate - Click test runner + manual CLI execution
 5. Review docs - Verify all CLI examples work as documented
+6. **Design Review**: Apply **Design Pattern Review for Features 5.3-5.6** checklist above.
 
 #### Feature 5.6: Batch Operations
 
@@ -631,8 +643,9 @@ Follow same TDD workflow as 5.1:
 4. Build - Batch add commands with CSV and JSON parsing
 5. Validate - Import 100 row test file
 6. Review docs - Check batch examples, error handling documentation, csv/json format specs
+7. **Design Review**: Apply **Design Pattern Review for Features 5.3-5.6** checklist above.
 
-Batch implementation notes
+Batch implementation notes:
 - Batch accepts resource and operation values and a list of records
 - Batch runs shared input validation per record
 - Batch delegates to lower level add methods with sync disabled
