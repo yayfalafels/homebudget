@@ -105,7 +105,22 @@ class HomeBudgetClient:
             return execute_transaction()
         
         # Use UI control: close UI, execute transaction, reopen UI
-        return HomeBudgetUIController.apply_changes_with_ui_control(execute_transaction)
+        # Close UI
+        close_success, close_msg = HomeBudgetUIController.close(verify=True)
+        if not close_success:
+            raise RuntimeError(f"Failed to close UI: {close_msg}")
+        
+        try:
+            # Execute database operation and capture result
+            result = execute_transaction()
+            return result
+        finally:
+            # Always reopen UI, even if transaction failed
+            open_success, open_msg = HomeBudgetUIController.open(verify=True)
+            if not open_success:
+                # Log warning but don't raise - UI may reopen on its own
+                import sys
+                print(f"[WARN] Failed to reopen UI: {open_msg}", file=sys.stderr)
 
     def _get_sync_manager(self) -> SyncUpdateManager | None:
         """Get sync manager if sync is enabled, else None."""
@@ -163,6 +178,7 @@ class HomeBudgetClient:
         notes: str | None = None,
         currency: str | None = None,
         currency_amount: Decimal | str | int | float | None = None,
+        exchange_rate: Decimal | str | int | float | None = None,
     ) -> ExpenseRecord:
         """Update an expense and return the latest record.
         
@@ -170,9 +186,22 @@ class HomeBudgetClient:
         native app behavior where each field change generates its own sync event.
         """
 
+        amount, currency, currency_amount = self._normalize_forex_inputs(
+            amount=amount,
+            currency=currency,
+            currency_amount=currency_amount,
+            exchange_rate=exchange_rate,
+            label="Expense update",
+            allow_empty=notes is not None,
+        )
+
         def action() -> ExpenseRecord:
             record = self.repository.update_expense(
-                key=key, amount=amount, notes=notes, currency=currency, currency_amount=currency_amount
+                key=key,
+                amount=amount,
+                notes=notes,
+                currency=currency,
+                currency_amount=currency_amount,
             )
             manager = self._get_sync_manager()
             if manager:
@@ -226,6 +255,7 @@ class HomeBudgetClient:
         notes: str | None = None,
         currency: str | None = None,
         currency_amount: Decimal | str | int | float | None = None,
+        exchange_rate: Decimal | str | int | float | None = None,
     ) -> IncomeRecord:
         """Update an income record and return the latest record.
         
@@ -233,9 +263,22 @@ class HomeBudgetClient:
         native app behavior where each field change generates its own sync event.
         """
 
+        amount, currency, currency_amount = self._normalize_forex_inputs(
+            amount=amount,
+            currency=currency,
+            currency_amount=currency_amount,
+            exchange_rate=exchange_rate,
+            label="Income update",
+            allow_empty=notes is not None,
+        )
+
         def action() -> IncomeRecord:
             record = self.repository.update_income(
-                key=key, amount=amount, notes=notes, currency=currency, currency_amount=currency_amount
+                key=key,
+                amount=amount,
+                notes=notes,
+                currency=currency,
+                currency_amount=currency_amount,
             )
             manager = self._get_sync_manager()
             if manager:
@@ -257,3 +300,54 @@ class HomeBudgetClient:
             return None
 
         self._run_transaction(action)
+
+    def _normalize_forex_inputs(
+        self,
+        *,
+        amount: Decimal | str | int | float | None,
+        currency: str | None,
+        currency_amount: Decimal | str | int | float | None,
+        exchange_rate: Decimal | str | int | float | None,
+        label: str,
+        allow_empty: bool,
+    ) -> tuple[Decimal | None, str | None, Decimal | None]:
+        """Normalize forex inputs for updates.
+
+        Rules:
+        - amount and currency_amount are mutually exclusive.
+        - currency_amount requires exchange_rate and currency.
+        - amount defaults currency_amount to amount.
+        """
+        if amount is not None and currency_amount is not None:
+            if exchange_rate is not None:
+                raise ValueError(
+                    f"{label}: provide amount or currency_amount with exchange_rate, not both"
+                )
+            amount_dec = Decimal(str(amount))
+            currency_amount_dec = Decimal(str(currency_amount))
+            if amount_dec != currency_amount_dec:
+                raise ValueError(
+                    f"{label}: provide amount or currency_amount with exchange_rate, not both"
+                )
+            currency_amount = amount_dec
+            amount = amount_dec
+
+        if currency_amount is not None:
+            if exchange_rate is None:
+                raise ValueError(f"{label}: exchange_rate is required with currency_amount")
+            if currency is None or not currency.strip():
+                raise ValueError(f"{label}: currency is required with currency_amount")
+            amount = Decimal(str(currency_amount)) * Decimal(str(exchange_rate))
+
+        if amount is None and currency_amount is None and not allow_empty:
+            raise ValueError(f"{label}: amount or currency_amount is required")
+
+        if amount is not None and currency_amount is None:
+            currency_amount = amount
+
+        if amount is None and currency_amount is None and (currency or exchange_rate):
+            raise ValueError(
+                f"{label}: amount or currency_amount is required when setting currency fields"
+            )
+
+        return amount, currency, currency_amount

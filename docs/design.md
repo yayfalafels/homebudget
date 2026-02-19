@@ -12,6 +12,7 @@
 - [Idempotency and conflict policy](#idempotency-and-conflict-policy)
 - [Sync update design](#sync-update-design)
 - [CLI design](#cli-design)
+- [Forex input rules](#forex-input-rules)
 - [Packaging and repository layout](#packaging-and-repository-layout)
 - [Testing and validation strategy](#testing-and-validation-strategy)
 - [Rollout plan and success metrics](#rollout-plan-and-success-metrics)
@@ -162,6 +163,24 @@ Mapping highlights
 - Output formats include table, json, and csv
 - Batch import supports csv and json files
 - Batch operations use JSON lists for records and sync once at the end
+
+## Forex input rules
+
+Forex inputs follow one of two paths for expenses, income, and transfers.
+
+Base currency path
+- Provide amount only
+- Currency defaults to the account currency
+- Currency amount is set to amount for base currency updates
+- Exchange rate is treated as 1.0
+
+Foreign currency path
+- Provide currency, currency amount, and exchange rate
+- Amount is calculated as currency amount times exchange rate
+
+Do not provide amount and currency amount together, except when they are equal for base currency updates.
+
+CLI and client methods enforce these rules to prevent ambiguous inputs.
 
 ## Packaging and repository layout
 

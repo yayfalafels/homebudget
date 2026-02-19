@@ -331,6 +331,10 @@ class Repository(PersistenceBackend):
             updates.append("currencyAmount = ?")
             normalized_currency_amount = Decimal(str(currency_amount))
             params.append(str(normalized_currency_amount))
+        elif normalized_amount is not None:
+            updates.append("currencyAmount = ?")
+            normalized_currency_amount = normalized_amount
+            params.append(str(normalized_currency_amount))
         if not updates:
             return self.get_expense(key)
         params.append(key)
@@ -580,6 +584,10 @@ class Repository(PersistenceBackend):
         if currency_amount is not None:
             updates.append("currencyAmount = ?")
             normalized_currency_amount = Decimal(str(currency_amount))
+            params.append(str(normalized_currency_amount))
+        elif normalized_amount is not None:
+            updates.append("currencyAmount = ?")
+            normalized_currency_amount = normalized_amount
             params.append(str(normalized_currency_amount))
         if not updates:
             return self.get_income(key)

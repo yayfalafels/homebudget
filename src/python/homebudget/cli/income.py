@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import click
 
-from homebudget.cli.common import get_client, parse_date, parse_decimal
+from homebudget.cli.common import get_client, parse_date, parse_decimal, resolve_forex_inputs
 from homebudget.models import IncomeDTO
 
 
@@ -16,28 +16,40 @@ def income() -> None:
 @income.command("add")
 @click.option("--date", "date_value", required=True, help="Income date in YYYY-MM-DD.")
 @click.option("--name", required=True, help="Income name.")
-@click.option("--amount", "amount_value", required=True, help="Income amount.")
+@click.option("--amount", "amount_value", default=None, help="Income amount.")
 @click.option("--account", required=True, help="Account name.")
 @click.option("--notes", default=None, help="Notes for the income.")
 @click.option("--currency", default=None, help="Currency code for the income.")
 @click.option("--currency-amount", default=None, help="Foreign currency amount.")
+@click.option("--exchange-rate", default=None, help="Foreign exchange rate to base currency.")
 @click.pass_context
 def add_income(
     ctx: click.Context,
     date_value: str,
     name: str,
-    amount_value: str,
+    amount_value: str | None,
     account: str,
     notes: str | None,
     currency: str | None,
     currency_amount: str | None,
+    exchange_rate: str | None,
 ) -> None:
     """Add income."""
     date = parse_date(date_value, "--date")
     amount = parse_decimal(amount_value, "--amount")
     foreign_amount = parse_decimal(currency_amount, "--currency-amount")
-    if date is None or amount is None:
-        raise click.ClickException("Date and amount are required.")
+    rate = parse_decimal(exchange_rate, "--exchange-rate")
+    if date is None:
+        raise click.ClickException("Date is required.")
+    amount, currency, foreign_amount = resolve_forex_inputs(
+        amount=amount,
+        currency=currency,
+        currency_amount=foreign_amount,
+        exchange_rate=rate,
+        default_currency_amount=True,
+        allow_empty=False,
+        label="Income add",
+    )
     income_dto = IncomeDTO(
         date=date,
         name=name,
@@ -102,6 +114,7 @@ def get_income(ctx: click.Context, key: int) -> None:
 @click.option("--notes", default=None, help="Updated notes.")
 @click.option("--currency", default=None, help="Updated currency code.")
 @click.option("--currency-amount", default=None, help="Updated foreign currency amount.")
+@click.option("--exchange-rate", default=None, help="Foreign exchange rate to base currency.")
 @click.pass_context
 def update_income(
     ctx: click.Context,
@@ -110,12 +123,27 @@ def update_income(
     notes: str | None,
     currency: str | None,
     currency_amount: str | None,
+    exchange_rate: str | None,
 ) -> None:
     """Update income."""
     if amount_value is None and notes is None and currency is None and currency_amount is None:
         raise click.UsageError("Provide --amount, --notes, --currency, or --currency-amount.")
     amount = parse_decimal(amount_value, "--amount")
     foreign_amount = parse_decimal(currency_amount, "--currency-amount")
+    rate = parse_decimal(exchange_rate, "--exchange-rate")
+    if amount is None and foreign_amount is None and (currency is not None or rate is not None):
+        raise click.UsageError(
+            "Income update: Provide --amount or --currency-amount with --exchange-rate."
+        )
+    amount, currency, foreign_amount = resolve_forex_inputs(
+        amount=amount,
+        currency=currency,
+        currency_amount=foreign_amount,
+        exchange_rate=rate,
+        default_currency_amount=False,
+        allow_empty=notes is not None,
+        label="Income update",
+    )
     with get_client(ctx) as client:
         record = client.update_income(
             key=key, amount=amount, notes=notes, currency=currency, currency_amount=foreign_amount

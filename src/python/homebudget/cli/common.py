@@ -30,6 +30,49 @@ def parse_decimal(value: str | None, field_name: str) -> Decimal | None:
         raise click.BadParameter("Use a valid decimal value.", param_hint=field_name) from exc
 
 
+def resolve_forex_inputs(
+    *,
+    amount: Decimal | None,
+    currency: str | None,
+    currency_amount: Decimal | None,
+    exchange_rate: Decimal | None,
+    default_currency_amount: bool,
+    allow_empty: bool,
+    label: str,
+) -> tuple[Decimal | None, str | None, Decimal | None]:
+    """Resolve forex inputs into amount and currency_amount.
+
+    Rules:
+    - Either amount or currency_amount is required, unless allow_empty is True.
+    - If currency_amount is provided, exchange_rate and currency are required.
+    - amount and currency_amount are mutually exclusive.
+    - When amount is provided, currency_amount defaults to amount.
+    """
+    if amount is not None and currency_amount is not None:
+        raise click.UsageError(
+            f"{label}: Provide --amount or --currency-amount with --exchange-rate, not both."
+        )
+
+    if currency_amount is not None:
+        if exchange_rate is None:
+            raise click.UsageError(
+                f"{label}: --exchange-rate is required when --currency-amount is provided."
+            )
+        if not currency or not currency.strip():
+            raise click.UsageError(
+                f"{label}: --currency is required when --currency-amount is provided."
+            )
+        amount = currency_amount * exchange_rate
+
+    if amount is None and currency_amount is None and not allow_empty:
+        raise click.UsageError(f"{label}: Provide --amount or --currency-amount.")
+
+    if amount is not None and currency_amount is None and default_currency_amount:
+        currency_amount = amount
+
+    return amount, currency, currency_amount
+
+
 def get_client(ctx: click.Context) -> HomeBudgetClient:
     """Build a HomeBudget client from Click context.
     

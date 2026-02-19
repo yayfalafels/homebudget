@@ -100,9 +100,14 @@ Override database path (instead of using config file).
 
 When sync is enabled, the HomeBudget UI is automatically managed during database operations to ensure consistency.
 
-```bash
+## Expense commands
 
-Add an expense.
+Forex rule
+- Provide amount only for base currency
+- Provide currency, currency amount, and exchange rate for foreign currency
+- For base currency updates, currency amount matches amount
+
+Add an expense using the account default currency.
 
 ```bash
 homebudget expense add \
@@ -110,6 +115,20 @@ homebudget expense add \
   --category Dining \
   --subcategory Restaurant \
   --amount 25.50 \
+  --account Wallet \
+  --notes "Lunch"
+```
+
+Add an expense using a foreign currency and exchange rate.
+
+```bash
+homebudget expense add \
+  --date 2026-02-16 \
+  --category Dining \
+  --subcategory Restaurant \
+  --currency EUR \
+  --currency-amount 12.00 \
+  --exchange-rate 1.10 \
   --account Wallet \
   --notes "Lunch"
 ```
@@ -130,11 +149,21 @@ Get a single expense by key.
 homebudget expense get 13074
 ```
 
-Update an expense.
+Update an expense using the account default currency.
 
 ```bash
 homebudget expense update 13074 \
   --amount 27.50 \
+  --notes "Lunch with tip"
+```
+
+Update an expense using a foreign currency and exchange rate.
+
+```bash
+homebudget expense update 13074 \
+  --currency EUR \
+  --currency-amount 15.00 \
+  --exchange-rate 1.08 \
   --notes "Lunch with tip"
 ```
 
@@ -158,13 +187,31 @@ homebudget expense delete 13074 --yes
 
 ## Income commands
 
-Add income.
+Forex rule
+- Provide amount only for base currency
+- Provide currency, currency amount, and exchange rate for foreign currency
+- For base currency updates, currency amount matches amount
+
+Add income using the account default currency.
 
 ```bash
 homebudget income add \
   --date 2026-02-28 \
   --name "Salary" \
   --amount 5000.00 \
+  --account Bank \
+  --notes "February salary"
+```
+
+Add income using a foreign currency and exchange rate.
+
+```bash
+homebudget income add \
+  --date 2026-02-28 \
+  --name "Salary" \
+  --currency EUR \
+  --currency-amount 4200.00 \
+  --exchange-rate 1.19 \
   --account Bank \
   --notes "February salary"
 ```
@@ -177,10 +224,20 @@ homebudget income list \
   --end-date 2026-02-28
 ```
 
-Update income.
+Update income using the account default currency.
 
 ```bash
 homebudget income update 14021 \
+  --notes "Updated notes"
+```
+
+Update income using a foreign currency and exchange rate.
+
+```bash
+homebudget income update 14021 \
+  --currency EUR \
+  --currency-amount 4500.00 \
+  --exchange-rate 1.17 \
   --notes "Updated notes"
 ```
 
@@ -192,6 +249,11 @@ homebudget income delete 14021 --yes
 
 ## Transfer commands
 
+Forex rule
+- Provide amount only for base currency
+- Provide currency, currency amount, and exchange rate for foreign currency
+- For base currency updates, currency amount matches amount
+
 Add a transfer.
 
 ```bash
@@ -200,6 +262,19 @@ homebudget transfer add \
   --from-account Bank \
   --to-account Wallet \
   --amount 200.00 \
+  --notes "Cash withdrawal"
+```
+
+Add a transfer using a foreign currency and exchange rate.
+
+```bash
+homebudget transfer add \
+  --date 2026-02-20 \
+  --from-account Bank \
+  --to-account Wallet \
+  --currency EUR \
+  --currency-amount 150.00 \
+  --exchange-rate 1.25 \
   --notes "Cash withdrawal"
 ```
 
@@ -215,6 +290,16 @@ Update a transfer.
 
 ```bash
 homebudget transfer update 15008 \
+  --notes "Updated notes"
+```
+
+Update a transfer using a foreign currency and exchange rate.
+
+```bash
+homebudget transfer update 15008 \
+  --currency EUR \
+  --currency-amount 160.00 \
+  --exchange-rate 1.20 \
   --notes "Updated notes"
 ```
 

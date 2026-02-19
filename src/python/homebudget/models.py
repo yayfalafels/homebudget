@@ -62,13 +62,14 @@ class ExpenseDTO:
         """Validate currency fields."""
         if self.currency_amount is None and self.currency is None:
             return
-        if self.currency is None or not self.currency.strip():
-            raise ValueError("Currency is required when currency_amount is set")
-        if self.currency_amount is None:
+        if self.currency is not None and not self.currency.strip():
+            raise ValueError("Currency must not be empty when provided")
+        if self.currency is not None and self.currency_amount is None:
             raise ValueError("currency_amount is required when currency is set")
-        object.__setattr__(
-            self, "currency_amount", _ensure_decimal(self.currency_amount, "currency_amount")
-        )
+        if self.currency_amount is not None:
+            object.__setattr__(
+                self, "currency_amount", _ensure_decimal(self.currency_amount, "currency_amount")
+            )
 
 
 @dataclass(frozen=True)
@@ -109,13 +110,14 @@ class IncomeDTO:
         """Validate currency fields."""
         if self.currency_amount is None and self.currency is None:
             return
-        if self.currency is None or not self.currency.strip():
-            raise ValueError("Currency is required when currency_amount is set")
-        if self.currency_amount is None:
+        if self.currency is not None and not self.currency.strip():
+            raise ValueError("Currency must not be empty when provided")
+        if self.currency is not None and self.currency_amount is None:
             raise ValueError("currency_amount is required when currency is set")
-        object.__setattr__(
-            self, "currency_amount", _ensure_decimal(self.currency_amount, "currency_amount")
-        )
+        if self.currency_amount is not None:
+            object.__setattr__(
+                self, "currency_amount", _ensure_decimal(self.currency_amount, "currency_amount")
+            )
 
 
 @dataclass(frozen=True)
@@ -160,13 +162,14 @@ class TransferDTO:
         """Validate currency fields."""
         if self.currency_amount is None and self.currency is None:
             return
-        if self.currency is None or not self.currency.strip():
-            raise ValueError("Currency is required when currency_amount is set")
-        if self.currency_amount is None:
+        if self.currency is not None and not self.currency.strip():
+            raise ValueError("Currency must not be empty when provided")
+        if self.currency is not None and self.currency_amount is None:
             raise ValueError("currency_amount is required when currency is set")
-        object.__setattr__(
-            self, "currency_amount", _ensure_decimal(self.currency_amount, "currency_amount")
-        )
+        if self.currency_amount is not None:
+            object.__setattr__(
+                self, "currency_amount", _ensure_decimal(self.currency_amount, "currency_amount")
+            )
 
 
 @dataclass(frozen=True)

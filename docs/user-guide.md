@@ -6,6 +6,7 @@
 - [Installation](#installation)
 - [Basic usage](#basic-usage)
 - [Entry points](#entry-points)
+- [Forex input rules](#forex-input-rules)
 - [Working with expenses](#working-with-expenses)
 - [Configuration](#configuration)
 - [Common workflows](#common-workflows)
@@ -101,6 +102,22 @@ Use `--no-sync` to disable sync updates:
 homebudget --no-sync expense add [options]
 ```
 
+## Forex input rules
+
+Forex inputs use one of two paths for expenses, income, and transfers.
+
+Base currency path
+- Provide amount only
+- Currency defaults to the account currency
+- Currency amount is set to amount for base currency updates
+- Exchange rate is treated as 1.0
+
+Foreign currency path
+- Provide currency, currency amount, and exchange rate
+- Amount is calculated as currency amount times exchange rate
+
+Do not provide amount and currency amount together, except when they are equal for base currency updates.
+
 ### UI Control (Automatic)
 
 When you run a write command with sync enabled (the default), the HomeBudget UI is **automatically closed** during the database operation and **automatically reopened** when complete.
@@ -180,6 +197,20 @@ homebudget expense add \
   --category Dining \
   --subcategory Restaurant \
   --amount 25.50 \
+  --account Wallet \
+  --notes "Lunch"
+```
+
+Add an expense with a foreign currency and exchange rate.
+
+```bash
+homebudget expense add \
+  --date 2026-02-16 \
+  --category Dining \
+  --subcategory Restaurant \
+  --currency EUR \
+  --currency-amount 12.00 \
+  --exchange-rate 1.10 \
   --account Wallet \
   --notes "Lunch"
 ```

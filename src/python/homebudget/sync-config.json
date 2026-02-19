@@ -22,7 +22,7 @@
             {"name": "receiptImageNeedsSaving", "type": "constant", "value": "False"},
             {"name": "currency", "type": "field", "source": "currency_or_account_currency"},
             {"name": "categoryDeviceKey", "type": "entity_device_key", "entity": "Category", "source": "category"},
-            {"name": "amount", "type": "field", "source": "amount", "format": "float"},
+            {"name": "amount", "type": "field", "source": "amount", "format": "string"},
             {"name": "accountDeviceId", "type": "entity_device_id", "entity": "Account", "source": "account"},
             {"name": "notesString", "type": "field", "source": "notes", "default": ""},
             {"name": "payeeDeviceKey", "type": "constant", "value": 0},
