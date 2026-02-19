@@ -11,7 +11,7 @@ import zlib
 from pathlib import Path
 from typing import Any
 
-from homebudget.models import ExpenseRecord, IncomeRecord
+from homebudget.models import ExpenseRecord, IncomeRecord, TransferRecord
 from homebudget.schema import FLAG_Y
 
 # SyncUpdate payload encoding constants
@@ -58,9 +58,10 @@ class SyncUpdateManager:
         self._resource_map = {
             "ExpenseRecord": "expense",
             "IncomeRecord": "income",
+            "TransferRecord": "transfer",
         }
 
-    def _get_resource_type(self, record: ExpenseRecord | IncomeRecord) -> str:
+    def _get_resource_type(self, record: ExpenseRecord | IncomeRecord | TransferRecord) -> str:
         """Determine resource type from record class name."""
         class_name = type(record).__name__
         resource_type = self._resource_map.get(class_name)
@@ -70,7 +71,7 @@ class SyncUpdateManager:
 
     def _build_payload(
         self,
-        record: ExpenseRecord | IncomeRecord,
+        record: ExpenseRecord | IncomeRecord | TransferRecord,
         operation: str,
     ) -> dict[str, Any]:
         """Build sync payload from configuration.
@@ -144,7 +145,7 @@ class SyncUpdateManager:
 
     def _get_field_value(
         self,
-        record: ExpenseRecord | IncomeRecord,
+        record: ExpenseRecord | IncomeRecord | TransferRecord,
         source: str,
         entity_cache: dict[str, dict],
     ) -> Any:
@@ -185,7 +186,7 @@ class SyncUpdateManager:
 
     def create_sync_record(
         self,
-        record: ExpenseRecord | IncomeRecord,
+        record: ExpenseRecord | IncomeRecord | TransferRecord,
         operation: str | None = None,
     ) -> int:
         """Create a SyncUpdate entry for any resource operation.
@@ -199,7 +200,7 @@ class SyncUpdateManager:
                       If not provided, defaults to "Add{ResourceType}"
         
         Returns:
-            The SyncUpdate key that was created
+            The SyncUpdate key that was created, or 0 if sync is not supported for this resource
             
         Raises:
             TypeError: If record type is not supported
@@ -222,6 +223,12 @@ class SyncUpdateManager:
             resource_type = self._get_resource_type(record)
             operation = f"Add{resource_type.capitalize()}"
         
+        # Check if this resource type is configured for sync
+        resource_type = self._get_resource_type(record)
+        if resource_type not in self.config["resources"]:
+            # Skip sync creation for unconfigured resource types (e.g., transfers)
+            return 0
+        
         # Build payload from configuration
         payload = self._build_payload(record, operation)
         
@@ -235,7 +242,7 @@ class SyncUpdateManager:
 
     def create_updates_for_changes(
         self,
-        record: ExpenseRecord | IncomeRecord,
+        record: ExpenseRecord | IncomeRecord | TransferRecord,
         operation: str,
         changed_fields: dict[str, object],
     ) -> list[int]:
@@ -264,7 +271,7 @@ class SyncUpdateManager:
     def _encode_payload(
         self,
         payload: dict,
-        record: ExpenseRecord | IncomeRecord,
+        record: ExpenseRecord | IncomeRecord | TransferRecord,
         operation: str,
     ) -> str:
         """Encode operation dictionary to HomeBudget SyncUpdate payload format.

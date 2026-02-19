@@ -635,7 +635,7 @@ class Repository(PersistenceBackend):
         duplicate = self.connection.execute(
             """
             SELECT key FROM Transfer
-            WHERE date = ?
+            WHERE transferDate = ?
               AND fromAccount = ?
               AND toAccount = ?
               AND amount = ?
@@ -664,17 +664,16 @@ class Repository(PersistenceBackend):
         cursor = self.connection.execute(
             """
             INSERT INTO Transfer (
-                date,
+                transferDate,
                 fromAccount,
                 toAccount,
                 amount,
                 notes,
                 deviceIdKey,
                 deviceKey,
-                timeStamp,
                 currency,
                 currencyAmount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 transfer.date.isoformat(),
@@ -684,7 +683,6 @@ class Repository(PersistenceBackend):
                 notes,
                 device_id_key,
                 device_key,
-                timestamp.strftime("%Y-%m-%d %H:%M:%S"),
                 currency,
                 str(currency_amount),
             ),
@@ -758,12 +756,11 @@ class Repository(PersistenceBackend):
             """
             SELECT
                 Transfer.key,
-                Transfer.date,
+                Transfer.transferDate AS date,
                 Transfer.amount,
                 Transfer.notes,
                 Transfer.currency,
                 Transfer.currencyAmount,
-                Transfer.timeStamp,
                 from_acct.name AS from_account,
                 to_acct.name AS to_account
             FROM Transfer
@@ -786,7 +783,7 @@ class Repository(PersistenceBackend):
             currency_amount=Decimal(str(row["currencyAmount"]))
             if row["currencyAmount"] is not None
             else None,
-            time_stamp=row["timeStamp"],
+            time_stamp=None,
         )
 
     def list_transfers(
@@ -799,12 +796,11 @@ class Repository(PersistenceBackend):
         query = """
             SELECT
                 Transfer.key,
-                Transfer.date,
+                Transfer.transferDate AS date,
                 Transfer.amount,
                 Transfer.notes,
                 Transfer.currency,
                 Transfer.currencyAmount,
-                Transfer.timeStamp,
                 from_acct.name AS from_account,
                 to_acct.name AS to_account
             FROM Transfer
@@ -814,12 +810,12 @@ class Repository(PersistenceBackend):
         """
         params = []
         if start_date is not None:
-            query += " AND Transfer.date >= ?"
+            query += " AND Transfer.transferDate >= ?"
             params.append(start_date.isoformat())
         if end_date is not None:
-            query += " AND Transfer.date <= ?"
+            query += " AND Transfer.transferDate <= ?"
             params.append(end_date.isoformat())
-        query += " ORDER BY Transfer.date DESC"
+        query += " ORDER BY Transfer.transferDate DESC"
         
         cursor = self.connection.execute(query, params)
         rows = cursor.fetchall()
@@ -835,7 +831,7 @@ class Repository(PersistenceBackend):
                 currency_amount=Decimal(str(row["currencyAmount"]))
                 if row["currencyAmount"] is not None
                 else None,
-                time_stamp=row["timeStamp"],
+                time_stamp=None,
             )
             for row in rows
         ]

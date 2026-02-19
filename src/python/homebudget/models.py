@@ -183,4 +183,4 @@ class TransferRecord:
     notes: str | None
     currency: str | None
     currency_amount: Decimal | None
-    time_stamp: str
+    time_stamp: str | None

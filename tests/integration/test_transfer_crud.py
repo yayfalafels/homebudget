@@ -21,8 +21,8 @@ def _get_connection(db_path: str) -> sqlite3.Connection:
 def _make_transfer() -> TransferDTO:
     return TransferDTO(
         date=dt.date(2026, 2, 20),
-        from_account="Bank TWH SGD",
-        to_account="Wallet",
+        from_account="TWH - Personal",
+        to_account="30 CC Hashemis",
         amount=Decimal("200.00"),
         notes="TDD Test Transfer",
     )

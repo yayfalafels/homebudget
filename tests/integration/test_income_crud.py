@@ -210,11 +210,14 @@ def test_update_income_currency(test_db_path) -> None:
         updated = client.update_income(
             saved.key,
             currency="SGD",
-            currency_amount=Decimal("3000.00"),
+            currency_amount=Decimal("3125.00"),
+            exchange_rate=Decimal("0.8"),
         )
 
     assert updated.currency == "SGD"
-    assert updated.currency_amount == Decimal("3000.00")
+    assert updated.currency_amount == Decimal("3125.00")
+    # Amount is calculated: 3125.00 * 0.8 = 2500.00 (matches original amount)
+    assert updated.amount == Decimal("2500.00")
 
 
 @pytest.mark.sit
