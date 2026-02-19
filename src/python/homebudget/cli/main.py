@@ -9,6 +9,7 @@ import click
 from homebudget.__version__ import __version__
 from homebudget.cli.expense import expense
 from homebudget.cli.income import income
+from homebudget.cli.ui import ui
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -31,6 +32,7 @@ def main(ctx: click.Context, db_path: Path | None, no_sync: bool) -> None:
 
 main.add_command(expense)
 main.add_command(income)
+main.add_command(ui)
 
 
 if __name__ == "__main__":
