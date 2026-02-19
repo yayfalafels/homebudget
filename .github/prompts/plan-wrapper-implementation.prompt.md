@@ -441,13 +441,14 @@ Each feature follows this workflow:
 **Feature workflow template**
 1. **Document** - Update user-guide.md with feature description
 2. **Test (Manual)** - Create manual test procedure in tests/manual/
-3. **Test (Auto)** - Write unit and integration tests (failing)
-4. **Build** - Implement feature to pass tests
-5. **Validate (Auto)** - Run pytest, achieve 100% pass
-6. **Validate (Manual)** - Execute manual procedure, get user feedback
-7. **Review Docs** - Update relevant documentation based on implementation and validation results
-8. **Refactor** - Clean up based on results
-9. **Commit** - Mark feature complete, move to next
+3. **Inspect fixtures** - Query test_database.db and sync_test.db to verify available data (accounts, categories, etc.) before writing tests
+4. **Test (Auto)** - Write unit and integration tests (failing) using verified fixture data
+5. **Build** - Implement feature to pass tests
+6. **Validate (Auto)** - Run pytest, achieve 100% pass
+7. **Validate (Manual)** - Execute manual procedure, get user feedback
+8. **Review Docs** - Update relevant documentation based on implementation and validation results
+9. **Refactor** - Clean up based on results
+10. **Commit** - Mark feature complete, move to next
 
 #### Feature 5.1: Expense CRUD
 

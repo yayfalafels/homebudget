@@ -7,7 +7,7 @@
       "steps": [
         {
           "kind": "user",
-          "label": "Record expense count from both Windows and mobile apps, ensure mobile is on WiFi"
+          "label": "Record expense count from both Windows and mobile apps, ensure mobile is on WiFi. NOTE: HomeBudget UI will close automatically during each CLI operation and reopen when complete."
         },
         {
           "kind": "auto",
@@ -78,26 +78,26 @@
       "steps": [
         {
           "kind": "user",
-          "label": "Record income count from both Windows and mobile apps, ensure mobile is on WiFi"
+          "label": "Record income count from both Windows and mobile apps, ensure mobile is on WiFi. NOTE: HomeBudget UI will close automatically during each CLI operation and reopen when complete."
         },
         {
           "kind": "auto",
           "label": "Create test income",
-          "command": "hb income add --date 2026-02-17 --category Salary --amount 1000.00 --account \"TWH - Personal\" --notes \"UAT Income Create 01\""
+          "command": "hb income add --date 2026-02-17 --name \"Profit and Loss\" --amount 1000.00 --account \"TWH IB USD\" --notes UAT_Income_Create_01"
         },
         {
           "kind": "auto",
-          "label": "Verify SyncUpdate created",
+          "label": "Verify SyncUpdate created with AddIncome operation",
           "command": "python tests/manual/verify_syncupdate.py"
         },
         {
           "kind": "user",
-          "label": "Verify: New income appears in Windows app AND mobile app"
+          "label": "Verify: New income (1000 USD) appears in Windows app AND mobile app"
         },
         {
           "kind": "auto",
           "label": "List incomes to get key",
-          "command": "hb income list --start-date 2026-02-17 --end-date 2026-02-17 --account \"TWH - Personal\" --limit 5"
+          "command": "hb income list --start-date 2026-02-17 --end-date 2026-02-17 --limit 5"
         },
         {
           "kind": "user",
@@ -115,7 +115,7 @@
         {
           "kind": "auto",
           "label": "Update income",
-          "command_template": "hb income update {income_key} --amount 1050.00 --notes \"UAT Income Updated 01\""
+          "command_template": "hb income update {income_key} --amount 1050.00 --notes UAT_Income_Updated_01"
         },
         {
           "kind": "auto",
@@ -272,7 +272,7 @@
     },
     {
       "id": "uat_income_currency_usd",
-      "title": "UAT: Income CRUD with USD foreign currency",
+      "title": "UAT: Income CRUD with SGD foreign currency (forex)",
       "resource": "income_currency",
       "steps": [
         {
@@ -281,49 +281,49 @@
         },
         {
           "kind": "auto",
-          "label": "Create income in USD foreign currency",
-          "command": "hb income add --date 2026-02-17 --name \"USD Salary\" --amount 1000.00 --currency USD --currency-amount 1100.00 --account \"TWH - Personal\" --notes \"UAT Currency Test 01 - USD 1100.00\""
+          "label": "Create income in SGD foreign currency with conversion",
+          "command": "hb income add --date 2026-02-17 --name \"Profit and Loss\" --amount 2000.00 --currency SGD --currency-amount 2700.00 --account \"TWH IB USD\" --notes SGD_conversion"
         },
         {
           "kind": "auto",
-          "label": "Verify SyncUpdate created",
+          "label": "Verify SyncUpdate created with forex fields",
           "command": "python tests/manual/verify_syncupdate.py"
         },
         {
           "kind": "user",
-          "label": "Verify: New income appears in Windows app with currency info AND appears on mobile app"
+          "label": "Verify: New income appears in Windows app with currency conversion (2000 SGD, 2700 USD) AND appears on mobile app"
         },
         {
           "kind": "auto",
           "label": "List incomes to get key",
-          "command": "hb income list --start-date 2026-02-17 --end-date 2026-02-17 --account \"TWH - Personal\" --limit 5"
+          "command": "hb income list --start-date 2026-02-17 --end-date 2026-02-17 --limit 5"
         },
         {
           "kind": "user",
-          "label": "Record the currency income key"
+          "label": "Record the forex income key"
         },
         {
           "kind": "auto",
-          "label": "Read income and verify currency fields",
+          "label": "Read forex income and verify currency fields",
           "command_template": "hb income get {income_key}"
         },
         {
           "kind": "user",
-          "label": "Verify: Currency=USD and currencyAmount=1100.00 are preserved in the record"
+          "label": "Verify: Currency=SGD, amount=2000.00, currencyAmount=2700.00 are preserved in the record"
         },
         {
           "kind": "auto",
-          "label": "Delete currency income",
+          "label": "Delete forex income",
           "command_template": "hb income delete {income_key} --yes"
         },
         {
           "kind": "auto",
-          "label": "Verify SyncUpdate created for delete",
+          "label": "Verify SyncUpdate created for forex delete",
           "command": "python tests/manual/verify_syncupdate.py"
         },
         {
           "kind": "user",
-          "label": "Verify: Currency income removed from Windows app AND mobile app"
+          "label": "Verify: Forex income removed from Windows app AND mobile app"
         }
       ]
     },

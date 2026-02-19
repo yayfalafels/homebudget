@@ -1,49 +1,46 @@
-"""Expense CLI commands."""
+"""Income CLI commands."""
 
 from __future__ import annotations
 
 import click
 
 from homebudget.cli.common import get_client, parse_date, parse_decimal
-from homebudget.models import ExpenseDTO
+from homebudget.models import IncomeDTO
 
 
 @click.group()
-def expense() -> None:
-    """Expense commands."""
+def income() -> None:
+    """Income commands."""
 
 
-@expense.command("add")
-@click.option("--date", "date_value", required=True, help="Expense date in YYYY-MM-DD.")
-@click.option("--category", required=True, help="Expense category.")
-@click.option("--subcategory", required=True, help="Expense subcategory.")
-@click.option("--amount", "amount_value", required=True, help="Expense amount.")
+@income.command("add")
+@click.option("--date", "date_value", required=True, help="Income date in YYYY-MM-DD.")
+@click.option("--name", required=True, help="Income name.")
+@click.option("--amount", "amount_value", required=True, help="Income amount.")
 @click.option("--account", required=True, help="Account name.")
-@click.option("--notes", default=None, help="Notes for the expense.")
-@click.option("--currency", default=None, help="Currency code for the expense.")
+@click.option("--notes", default=None, help="Notes for the income.")
+@click.option("--currency", default=None, help="Currency code for the income.")
 @click.option("--currency-amount", default=None, help="Foreign currency amount.")
 @click.pass_context
-def add_expense(
+def add_income(
     ctx: click.Context,
     date_value: str,
-    category: str,
-    subcategory: str,
+    name: str,
     amount_value: str,
     account: str,
     notes: str | None,
     currency: str | None,
     currency_amount: str | None,
 ) -> None:
-    """Add an expense."""
+    """Add income."""
     date = parse_date(date_value, "--date")
     amount = parse_decimal(amount_value, "--amount")
     foreign_amount = parse_decimal(currency_amount, "--currency-amount")
     if date is None or amount is None:
         raise click.ClickException("Date and amount are required.")
-    expense_dto = ExpenseDTO(
+    income_dto = IncomeDTO(
         date=date,
-        category=category,
-        subcategory=subcategory,
+        name=name,
         amount=amount,
         account=account,
         notes=notes,
@@ -51,28 +48,28 @@ def add_expense(
         currency_amount=foreign_amount,
     )
     with get_client(ctx) as client:
-        record = client.add_expense(expense_dto)
-    click.echo(f"Added expense {record.key}")
+        record = client.add_income(income_dto)
+    click.echo(f"Added income {record.key}")
 
 
-@expense.command("list")
+@income.command("list")
 @click.option("--start-date", default=None, help="Start date in YYYY-MM-DD.")
 @click.option("--end-date", default=None, help="End date in YYYY-MM-DD.")
 @click.option("--account", default=None, help="Filter by account name.")
 @click.option("--limit", type=int, default=None, help="Limit results.")
 @click.pass_context
-def list_expenses(
+def list_incomes(
     ctx: click.Context,
     start_date: str | None,
     end_date: str | None,
     account: str | None,
     limit: int | None,
 ) -> None:
-    """List expenses."""
+    """List income records."""
     start = parse_date(start_date, "--start-date")
     end = parse_date(end_date, "--end-date")
     with get_client(ctx) as client:
-        records = client.list_expenses(start_date=start, end_date=end)
+        records = client.list_incomes(start_date=start, end_date=end)
     if account:
         records = [record for record in records if record.account == account]
     if limit is not None:
@@ -81,32 +78,32 @@ def list_expenses(
         notes = record.notes or ""
         click.echo(
             f"{record.key}\t{record.date.isoformat()}\t{record.amount}"
-            f"\t{record.account}\t{record.category}\t{record.subcategory}\t{notes}"
+            f"\t{record.account}\t{record.name}\t{notes}"
         )
 
 
-@expense.command("get")
+@income.command("get")
 @click.argument("key", type=int)
 @click.pass_context
-def get_expense(ctx: click.Context, key: int) -> None:
-    """Get an expense by key."""
+def get_income(ctx: click.Context, key: int) -> None:
+    """Get an income record by key."""
     with get_client(ctx) as client:
-        record = client.get_expense(key)
+        record = client.get_income(key)
     notes = record.notes or ""
     click.echo(
-        f"{record.key}\t{record.date.isoformat()}\t{record.amount}\t"
-        f"{record.account}\t{record.category}\t{record.subcategory}\t{notes}"
+        f"{record.key}\t{record.date.isoformat()}\t{record.amount}"
+        f"\t{record.account}\t{record.name}\t{notes}"
     )
 
 
-@expense.command("update")
+@income.command("update")
 @click.argument("key", type=int)
 @click.option("--amount", "amount_value", default=None, help="Updated amount.")
 @click.option("--notes", default=None, help="Updated notes.")
 @click.option("--currency", default=None, help="Updated currency code.")
 @click.option("--currency-amount", default=None, help="Updated foreign currency amount.")
 @click.pass_context
-def update_expense(
+def update_income(
     ctx: click.Context,
     key: int,
     amount_value: str | None,
@@ -114,29 +111,29 @@ def update_expense(
     currency: str | None,
     currency_amount: str | None,
 ) -> None:
-    """Update an expense."""
+    """Update income."""
     if amount_value is None and notes is None and currency is None and currency_amount is None:
         raise click.UsageError("Provide --amount, --notes, --currency, or --currency-amount.")
     amount = parse_decimal(amount_value, "--amount")
     foreign_amount = parse_decimal(currency_amount, "--currency-amount")
     with get_client(ctx) as client:
-        record = client.update_expense(
+        record = client.update_income(
             key=key, amount=amount, notes=notes, currency=currency, currency_amount=foreign_amount
         )
-    click.echo(f"Updated expense {record.key}")
+    click.echo(f"Updated income {record.key}")
 
 
-@expense.command("delete")
+@income.command("delete")
 @click.argument("key", type=int)
 @click.option("--yes", is_flag=True, help="Skip delete confirmation.")
 @click.pass_context
-def delete_expense(ctx: click.Context, key: int, yes: bool) -> None:
-    """Delete an expense."""
+def delete_income(ctx: click.Context, key: int, yes: bool) -> None:
+    """Delete income."""
     if not yes:
-        confirm = click.confirm("Delete expense?", default=False)
+        confirm = click.confirm("Delete income?", default=False)
         if not confirm:
             click.echo("Delete cancelled.")
             return
     with get_client(ctx) as client:
-        client.delete_expense(key)
-    click.echo(f"Deleted expense {key}")
+        client.delete_income(key)
+    click.echo(f"Deleted income {key}")

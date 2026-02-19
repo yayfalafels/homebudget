@@ -1,3 +1,5 @@
+"""HomeBudget CLI entry point."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,6 +8,7 @@ import click
 
 from homebudget.__version__ import __version__
 from homebudget.cli.expense import expense
+from homebudget.cli.income import income
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -27,6 +30,7 @@ def main(ctx: click.Context, db_path: Path | None, no_sync: bool) -> None:
 
 
 main.add_command(expense)
+main.add_command(income)
 
 
 if __name__ == "__main__":

@@ -26,6 +26,7 @@ class ManualTest:
     test_id: str
     title: str
     steps: list[ManualStep]
+    resource: str | None = None
 
 
 class ManualTestRunner:
@@ -53,6 +54,7 @@ class ManualTestRunner:
                     test_id=item.get("id", ""),
                     title=item.get("title", ""),
                     steps=steps,
+                    resource=item.get("resource"),
                 )
             )
         return tests
@@ -124,16 +126,13 @@ class ManualTestRunner:
                 status = self._prompt_choice("Result", ["pass", "fail", "skip"])
                 if status == "pass" and "Record" in step.label and "key" in step.label.lower():
                     # Prompt for variable input if this is a recording step
-                    key_input = input("Enter the value: ").strip()
-                    if key_input:
-                        variables["expense_key"] = key_input
-                        print(f"Recorded: expense_key = {key_input}")
-                notes = input("Notes (optional): ").strip()
-                results.append(self._format_result(index, step, status, notes))
-
-        overall = self._prompt_choice("Overall result", ["pass", "fail", "incomplete"])
-        overall_notes = input("Overall notes (optional): ").strip()
-        self._write_report(output_path, test, results, overall, overall_notes)
+                        # Support multiple key types: expense_key, income_key, transfer_key
+                        key_input = input("Enter the value: ").strip()
+                        if key_input:
+                            # Determine key type from test resource or step label
+                            key_type = self._determine_key_type(step.label, test.resource)
+                            variables[key_type] = key_input
+                            print(f"Recorded: {key_type} = {key_input}")
         print(f"\nWrote results to {output_path}")
         return output_path
 
@@ -209,6 +208,27 @@ class ManualTestRunner:
                 if min_value <= value <= max_value:
                     return value
             print(f"Enter a number between {min_value} and {max_value}.")
+
+    @staticmethod
+    def _determine_key_type(label: str, resource: str) -> str:
+        """Determine the key variable name based on resource type or label."""
+        # Check resource first
+        if resource == "expense":
+            return "expense_key"
+        elif resource == "income":
+            return "income_key"
+        elif resource == "transfer":
+            return "transfer_key"
+        # Fallback: check label
+        label_lower = label.lower()
+        if "expense" in label_lower:
+            return "expense_key"
+        elif "income" in label_lower:
+            return "income_key"
+        elif "transfer" in label_lower:
+            return "transfer_key"
+        # Default fallback
+        return "key"
 
 
 def parse_args() -> argparse.Namespace:

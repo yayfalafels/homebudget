@@ -90,6 +90,22 @@ pytest tests/unit/test_models.py
 
 Manual tests verify wrapper functionality interactively. The test runner automates CLI operations and prompts you to verify UI changes.
 
+#### UI Control During Manual Tests
+
+When manual tests execute CLI commands with sync enabled (default):
+- **HomeBudget UI automatically closes** before each database operation
+- Database changes are applied atomically while UI is closed
+- **HomeBudget UI automatically reopens** after the operation completes
+- This ensures data consistency and prevents incomplete state reads
+
+You may notice the HomeBudget application window briefly disappear and reappear during automated test steps. This is expected behavior and indicates UI control is working correctly.
+
+**Observing UI Control:**
+1. Watch the HomeBudget window during automated steps
+2. You'll see it close, database operation execute, then reopen
+3. This typically takes 6-11 seconds depending on application startup speed
+4. No manual intervention is needed; it's automatic
+
 #### List Available SIT Tests
 
 ```bash

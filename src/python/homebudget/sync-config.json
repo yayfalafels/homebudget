@@ -1,0 +1,163 @@
+{
+  "$schema": "sync-config-schema.json",
+  "description": "HomeBudget SyncUpdate payload configuration for all resource types and operations",
+  "version": "1.0.0",
+  "resources": {
+    "expense": {
+      "record_class": "ExpenseRecord",
+      "operations": {
+        "AddExpense": {
+          "key_field": "expenseDeviceKeys",
+          "key_format": "array",
+          "fields": [
+            {"name": "periods", "type": "constant", "value": 1},
+            {"name": "Operation", "type": "operation"},
+            {"name": "accountDeviceKey", "type": "entity_device_key", "entity": "Account", "source": "account"},
+            {"name": "timeStamp", "type": "field", "source": "time_stamp"},
+            {"name": "expenseDeviceKeys", "type": "key_array"},
+            {"name": "currencyAmount", "type": "field", "source": "currency_amount_or_amount", "format": "string"},
+            {"name": "billDeviceKey", "type": "constant", "value": 0},
+            {"name": "billDeviceId", "type": "constant", "value": ""},
+            {"name": "expenseDateString", "type": "field", "source": "date", "format": "isoformat"},
+            {"name": "receiptImageNeedsSaving", "type": "constant", "value": "False"},
+            {"name": "currency", "type": "field", "source": "currency_or_account_currency"},
+            {"name": "categoryDeviceKey", "type": "entity_device_key", "entity": "Category", "source": "category"},
+            {"name": "amount", "type": "field", "source": "amount", "format": "float"},
+            {"name": "accountDeviceId", "type": "entity_device_id", "entity": "Account", "source": "account"},
+            {"name": "notesString", "type": "field", "source": "notes", "default": ""},
+            {"name": "payeeDeviceKey", "type": "constant", "value": 0},
+            {"name": "payeeDeviceId", "type": "constant", "value": ""},
+            {"name": "recurringKey", "type": "constant", "value": 0},
+            {"name": "subcategoryDeviceId", "type": "entity_device_id", "entity": "SubCategory", "source": "subcategory"},
+            {"name": "subcategoryDeviceKey", "type": "entity_device_key", "entity": "SubCategory", "source": "subcategory"},
+            {"name": "deviceId", "type": "primary_device_id"},
+            {"name": "categoryDeviceId", "type": "entity_device_id", "entity": "Category", "source": "category"}
+          ],
+          "compression": {
+            "min_size": 512,
+            "pad_if_smaller": false
+          }
+        },
+        "UpdateExpense": {
+          "key_field": "expenseDeviceKey",
+          "key_format": "singular",
+          "fields": [
+            {"name": "Operation", "type": "operation"},
+            {"name": "accountDeviceKey", "type": "entity_device_key", "entity": "Account", "source": "account"},
+            {"name": "timeStamp", "type": "field", "source": "time_stamp"},
+            {"name": "expenseDeviceKey", "type": "key_singular"},
+            {"name": "currencyAmount", "type": "field", "source": "currency_amount_or_amount", "format": "string"},
+            {"name": "expenseDateString", "type": "field", "source": "date", "format": "isoformat"},
+            {"name": "receiptImageNeedsSaving", "type": "constant", "value": "False"},
+            {"name": "currency", "type": "field", "source": "currency_or_account_currency"},
+            {"name": "categoryDeviceKey", "type": "entity_device_key", "entity": "Category", "source": "category"},
+            {"name": "amount", "type": "field", "source": "amount", "format": "float"},
+            {"name": "accountDeviceId", "type": "entity_device_id", "entity": "Account", "source": "account"},
+            {"name": "notesString", "type": "field", "source": "notes", "default": ""},
+            {"name": "payeeDeviceKey", "type": "constant", "value": 0},
+            {"name": "payeeDeviceId", "type": "constant", "value": ""},
+            {"name": "subcategoryDeviceId", "type": "entity_device_id", "entity": "SubCategory", "source": "subcategory"},
+            {"name": "subcategoryDeviceKey", "type": "entity_device_key", "entity": "SubCategory", "source": "subcategory"},
+            {"name": "deviceId", "type": "primary_device_id"},
+            {"name": "categoryDeviceId", "type": "entity_device_id", "entity": "Category", "source": "category"}
+          ],
+          "compression": {
+            "min_size": 512,
+            "pad_if_smaller": false
+          }
+        },
+        "DeleteExpense": {
+          "key_field": "expenseDeviceKey",
+          "key_format": "singular",
+          "fields": [
+            {"name": "Operation", "type": "operation"},
+            {"name": "expenseDeviceKey", "type": "key_singular"},
+            {"name": "deviceId", "type": "primary_device_id"}
+          ],
+          "compression": {
+            "min_size": 512,
+            "pad_if_smaller": true
+          }
+        }
+      }
+    },
+    "income": {
+      "record_class": "IncomeRecord",
+      "operations": {
+        "AddIncome": {
+          "key_field": "deviceKey",
+          "key_format": "singular",
+          "fields": [
+            {"name": "Operation", "type": "operation"},
+            {"name": "accountDeviceId", "type": "entity_device_id", "entity": "Account", "source": "account"},
+            {"name": "accountDeviceKey", "type": "entity_device_key", "entity": "Account", "source": "account"},
+            {"name": "amount", "type": "field", "source": "amount", "format": "string"},
+            {"name": "currency", "type": "field", "source": "currency_or_account_currency"},
+            {"name": "currencyAmount", "type": "field", "source": "currency_amount_or_amount", "format": "string"},
+            {"name": "deviceId", "type": "primary_device_id"},
+            {"name": "deviceKey", "type": "key_singular"},
+            {"name": "incomeText", "type": "field", "source": "date", "format": "isoformat"},
+            {"name": "name", "type": "field", "source": "name"},
+            {"name": "notes", "type": "field", "source": "notes", "default": ""},
+            {"name": "recurringKey", "type": "constant", "value": 0},
+            {"name": "timeStamp", "type": "field", "source": "time_stamp"}
+          ],
+          "compression": {
+            "min_size": 512,
+            "pad_if_smaller": true
+          }
+        },
+        "UpdateIncome": {
+          "key_field": "deviceKey",
+          "key_format": "singular",
+          "fields": [
+            {"name": "Operation", "type": "operation"},
+            {"name": "accountDeviceId", "type": "entity_device_id", "entity": "Account", "source": "account"},
+            {"name": "accountDeviceKey", "type": "entity_device_key", "entity": "Account", "source": "account"},
+            {"name": "amount", "type": "field", "source": "amount", "format": "string"},
+            {"name": "currency", "type": "field", "source": "currency_or_account_currency"},
+            {"name": "currencyAmount", "type": "field", "source": "currency_amount_or_amount", "format": "string"},
+            {"name": "deviceId", "type": "primary_device_id"},
+            {"name": "deviceKey", "type": "key_singular"},
+            {"name": "incomeText", "type": "field", "source": "date", "format": "isoformat"},
+            {"name": "name", "type": "field", "source": "name"},
+            {"name": "notes", "type": "field", "source": "notes", "default": ""},
+            {"name": "timeStamp", "type": "field", "source": "time_stamp"}
+          ],
+          "compression": {
+            "min_size": 512,
+            "pad_if_smaller": true
+          }
+        },
+        "DeleteIncome": {
+          "key_field": "deviceKey",
+          "key_format": "singular",
+          "fields": [
+            {"name": "Operation", "type": "operation"},
+            {"name": "deviceKey", "type": "key_singular"},
+            {"name": "deviceId", "type": "primary_device_id"}
+          ],
+          "compression": {
+            "min_size": 512,
+            "pad_if_smaller": true
+          }
+        }
+      }
+    }
+  },
+  "field_types": {
+    "constant": "Fixed value specified in config",
+    "operation": "The operation name (e.g., AddExpense)",
+    "field": "Direct field from record",
+    "key_singular": "Record key as integer",
+    "key_array": "Record key wrapped in array [key]",
+    "entity_device_key": "Device key for related entity (Account, Category, etc.)",
+    "entity_device_id": "Device ID for related entity",
+    "primary_device_id": "Primary device ID from DeviceInfo"
+  },
+  "format_types": {
+    "string": "Convert to string",
+    "float": "Convert to float",
+    "isoformat": "Convert date to ISO format string"
+  }
+}

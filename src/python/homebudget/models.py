@@ -1,3 +1,5 @@
+"""Domain models and data transfer objects."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,6 +9,7 @@ from typing import Any
 
 
 def _ensure_date(value: dt.date | dt.datetime) -> dt.date:
+    """Normalize a date or datetime to a date."""
     if isinstance(value, dt.datetime):
         return value.date()
     if isinstance(value, dt.date):
@@ -15,12 +18,14 @@ def _ensure_date(value: dt.date | dt.datetime) -> dt.date:
 
 
 def _ensure_non_empty(value: str, field_name: str) -> str:
+    """Validate required text fields."""
     if not value or not value.strip():
         raise ValueError(f"{field_name} is required")
     return value.strip()
 
 
 def _ensure_decimal(value: Decimal | str | int | float, field_name: str) -> Decimal:
+    """Parse and validate positive decimal values."""
     try:
         amount = value if isinstance(value, Decimal) else Decimal(str(value))
     except Exception as exc:
@@ -32,6 +37,7 @@ def _ensure_decimal(value: Decimal | str | int | float, field_name: str) -> Deci
 
 @dataclass(frozen=True)
 class ExpenseDTO:
+    """Validated expense input for persistence."""
     date: dt.date
     category: str
     subcategory: str
@@ -53,6 +59,7 @@ class ExpenseDTO:
         self._validate_currency()
 
     def _validate_currency(self) -> None:
+        """Validate currency fields."""
         if self.currency_amount is None and self.currency is None:
             return
         if self.currency is None or not self.currency.strip():
@@ -66,6 +73,7 @@ class ExpenseDTO:
 
 @dataclass(frozen=True)
 class ExpenseRecord:
+    """Persisted expense record from storage."""
     key: int
     date: dt.date
     category: str
@@ -81,6 +89,7 @@ class ExpenseRecord:
 
 @dataclass(frozen=True)
 class IncomeDTO:
+    """Validated income input for persistence."""
     date: dt.date
     name: str
     amount: Decimal
@@ -97,6 +106,7 @@ class IncomeDTO:
         self._validate_currency()
 
     def _validate_currency(self) -> None:
+        """Validate currency fields."""
         if self.currency_amount is None and self.currency is None:
             return
         if self.currency is None or not self.currency.strip():
@@ -109,7 +119,22 @@ class IncomeDTO:
 
 
 @dataclass(frozen=True)
+class IncomeRecord:
+    """Persisted income record from storage."""
+    key: int
+    date: dt.date
+    name: str
+    amount: Decimal
+    account: str
+    notes: str | None
+    currency: str | None
+    currency_amount: Decimal | None
+    time_stamp: str
+
+
+@dataclass(frozen=True)
 class TransferDTO:
+    """Validated transfer input for persistence."""
     date: dt.date
     from_account: str
     to_account: str
@@ -132,6 +157,7 @@ class TransferDTO:
         self._validate_currency()
 
     def _validate_currency(self) -> None:
+        """Validate currency fields."""
         if self.currency_amount is None and self.currency is None:
             return
         if self.currency is None or not self.currency.strip():
@@ -141,3 +167,17 @@ class TransferDTO:
         object.__setattr__(
             self, "currency_amount", _ensure_decimal(self.currency_amount, "currency_amount")
         )
+
+
+@dataclass(frozen=True)
+class TransferRecord:
+    """Persisted transfer record from storage."""
+    key: int
+    date: dt.date
+    from_account: str
+    to_account: str
+    amount: Decimal
+    notes: str | None
+    currency: str | None
+    currency_amount: Decimal | None
+    time_stamp: str

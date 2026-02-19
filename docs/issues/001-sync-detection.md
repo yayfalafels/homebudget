@@ -1,37 +1,29 @@
 # Issue 001: Sync Detection
 
-## Status: RESOLVED
+## Status
 
-**Resolution date**: 2026-02-17
+Resolved on 2026-02-17
 
-**Root cause**: Wrapper failed to create SyncUpdate entries with correctly formatted payloads
+## Summary
 
-**Solution**: Implemented SyncUpdate payload generation matching native app format:
-- Full zlib compression with header (wbits=15)
-- URL-safe base64 encoding
-- Fixed 660-byte padding before base64 encoding (produces 880-char strings)
+Wrapper created expenses but mobile devices did not receive updates. Sync detection is driven by SyncUpdate entries, so missing entries and mismatched payload encoding prevented the sync service from accepting wrapper changes.
 
-**Validation**: Mobile sync confirmed working with corrected payload format
+## Resolution
 
-## Situation
+- Added SyncUpdate creation for each operation
+- Aligned payload JSON structure with native app rules per operation
+- Corrected encoding to use full zlib format, URL safe base64, and operation specific padding rules
+- Confirmed mobile sync success after applying fixes
 
-After adding new expenses via the HB Wrapper v1.0, the changes are not synced to all devices.
+## Diagnostics findings
 
-## Steps to reproduce
+- Sync detection is driven by the SyncUpdate table in SQLite
+- SyncInfo and DeviceInfo do not trigger sync and remained unchanged during tests
+- Payloads must match native app structure for each operation, including key field formats
+- Encoding must use full zlib format and URL safe base64 with trailing padding removed
+- Update operations emit one sync entry per changed attribute
 
-1. add expenses via the HB Wrapper v1.0 on desktop
-2. verify expenses added on desktop
-3. observe changes not synced to mobile app
-4. verify changes reflected via manual restore
+## References
 
-## Diagnostics
-
-**diagnostic questions**
-
-1. is the sync detection logic represented in the sqlite database, or a process in the HomeBudget application?
-2. if the sync is represented in the sqlite database, which tables and columns indicate a new change pending sync?
-
-**Answers**:
-
-1. Sync detection is driven by the SyncUpdate table in the SQLite database
-2. Each transaction requires a SyncUpdate entry with a base64-encoded, zlib-compressed JSON payload containing the operation details and device identifiers
+- [Issue 001 Sync Detection Diagnostics](001-sync-detection-diagnostics.md)
+- [Sync Update Mechanism](../sync-update.md)

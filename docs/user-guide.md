@@ -89,13 +89,48 @@ CLI entry point
 - Use `homebudget` or `hb` for the command line interface
 - Provide `--db` for the database path and `--format` for output control
 
-Sync behavior
-- Sync updates are enabled by default for write commands
-- Use `--no-sync` to disable sync updates for batch work
+### Sync behavior
 
-Batch behavior
+Sync updates are enabled by default for write commands, which:
+- Creates SyncUpdate records in the database
+- Enables mobile and other HomeBudget clients to synchronize changes
+- Automatically manages the HomeBudget UI to maintain data consistency (Feature 001)
+
+Use `--no-sync` to disable sync updates:
+```bash
+homebudget --no-sync expense add [options]
+```
+
+### UI Control (Automatic)
+
+When you run a write command with sync enabled (the default), the HomeBudget UI is **automatically closed** during the database operation and **automatically reopened** when complete.
+
+**Why this happens:**
+- Ensures the UI doesn't read incomplete data during database changes
+- Prevents database locks that occur while the UI reads during sync operations
+- Atomic database transactions are guaranteed without UI interference
+
+**What you'll observe:**
+- The HomeBudget application window will briefly close and reopen
+- The entire operation (close → change → reopen) typically takes 6-11 seconds
+- No manual intervention is needed; it's completely automated
+
+**Disabling UI control:**
+Use `--no-sync` to disable both sync and UI control:
+```bash
+homebudget --no-sync expense add --date 2026-02-17 --category "Food" --amount 25.50 --account "Wallet"
+```
+
+This is useful for:
+- Maintenance tasks where sync should not happen
+- Testing without affecting mobile devices
+- Batch operations where you want to manage UI control manually
+
+### Batch behavior
+
 - Use HomeBudgetClient batch for bulk add operations with a list of records
 - Batch runs validation per record and performs sync once after the batch completes
+- UI control is applied once around the entire batch operation
 
 ## Working with expenses
 

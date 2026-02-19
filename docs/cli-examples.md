@@ -2,6 +2,8 @@
 
 ## Table of contents
 
+- [Overview](#overview)
+- [UI Control Behavior](#ui-control-behavior)
 - [Setup](#setup)
 - [Configuration](#configuration)
 - [Global options](#global-options)
@@ -11,6 +13,39 @@
 - [Reference data commands](#reference-data-commands)
 - [Batch import](#batch-import)
 - [Output formats](#output-formats)
+
+## Overview
+
+The HomeBudget CLI provides access to database operations via command-line interface. All write operations (add, update, delete) automatically manage the HomeBudget UI to ensure data consistency.
+
+## UI Control Behavior
+
+**When sync is enabled (default):**
+- HomeBudget UI automatically closes before database operations
+- Database changes are applied atomically while UI is closed
+- HomeBudget UI automatically reopens after operations complete
+- This prevents data inconsistency and database locks during updates
+
+Example sequence:
+```
+$ hb expense add --date 2026-02-17 --category "Food" --amount 25.50 --account "Wallet"
+[UI closes] 
+→ Database operation executes
+→ SyncUpdate records created
+[UI reopens]
+Added expense 12345
+```
+
+**To disable sync (and UI control):**
+```bash
+homebudget --no-sync expense add [options]
+```
+
+When `--no-sync` is used:
+- No SyncUpdate records are created
+- UI control is disabled
+- Database changes are applied without UI management
+- Useful for maintenance and testing without affecting mobile devices
 
 ## Setup
 
@@ -51,10 +86,21 @@ homebudget --db C:/path/to/homebudget.db expense list --limit 5
 ## Global options
 
 ```bash
-homebudget --format table --verbose
+homebudget --db "C:/path/to/homebudget.db" expense list
 ```
 
-## Expense commands
+Override database path (instead of using config file).
+
+### Sync Control
+
+| Flag | Default | Effect |
+|------|---------|--------|
+| (no flag) | sync enabled | Enables SyncUpdate and automatic UI control |
+| `--no-sync` | N/A | Disables SyncUpdate and automatic UI control |
+
+When sync is enabled, the HomeBudget UI is automatically managed during database operations to ensure consistency.
+
+```bash
 
 Add an expense.
 
