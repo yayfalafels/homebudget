@@ -71,7 +71,7 @@ def test_add_transfer_creates_syncupdate(sync_test_db_path) -> None:
     assert row is not None
     payload = decode_sync_payload(row["payload"])
     assert_operation(payload, "AddTransfer")
-    assert saved.key in payload["transferDeviceKeys"]
+    assert payload["deviceKey"] == saved.key
 
 
 @pytest.mark.sit

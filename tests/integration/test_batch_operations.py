@@ -65,7 +65,7 @@ class TestBatchExpenseOperations:
             ExpenseDTO(
                 date=dt.date(2026, 2, 2),
                 category="Transport",
-                subcategory="Fuel",
+                subcategory="Gas",
                 amount=Decimal("60.00"),
                 account="TWH - Personal",
                 notes="Batch expense 2",
@@ -101,7 +101,7 @@ class TestBatchExpenseOperations:
             ExpenseDTO(
                 date=dt.date(2026, 2, 2),
                 category="InvalidCategory",
-                subcategory="",
+                subcategory="Groceries",
                 amount=Decimal("60.00"),
                 account="TWH - Personal",
                 notes="Invalid category",
@@ -137,7 +137,7 @@ class TestBatchExpenseOperations:
             ExpenseDTO(
                 date=dt.date(2026, 2, 2),
                 category="InvalidCategory",
-                subcategory="",
+                subcategory="Groceries",
                 amount=Decimal("60.00"),
                 account="TWH - Personal",
                 notes="Invalid category",
@@ -170,7 +170,7 @@ class TestBatchExpenseOperations:
             ExpenseDTO(
                 date=dt.date(2026, 2, 2),
                 category="Transport",
-                subcategory="Fuel",
+                subcategory="Gas",
                 amount=Decimal("60.00"),
                 account="TWH - Personal",
                 notes="Batch expense 2",

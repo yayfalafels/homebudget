@@ -1,21 +1,21 @@
 [
   {
     "date": "2026-02-01",
-    "name": "Salary",
+    "name": "Salary and Wages",
     "amount": "5000.00",
     "account": "TWH - Personal",
     "notes": "Monthly salary"
   },
   {
     "date": "2026-02-15",
-    "name": "Interest",
+    "name": "Interest Income",
     "amount": "25.50",
     "account": "TWH - Personal",
     "notes": "Savings interest"
   },
   {
     "date": "2026-02-20",
-    "name": "Freelance",
+    "name": "Other Income",
     "amount": "1200.00",
     "account": "TWH - Personal",
     "notes": "Project payment"
