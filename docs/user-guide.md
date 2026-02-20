@@ -7,6 +7,7 @@
 - [Basic usage](#basic-usage)
 - [Entry points](#entry-points)
 - [Forex input rules](#forex-input-rules)
+- [Currency matching constraints](#currency-matching-constraints)
 - [Working with expenses](#working-with-expenses)
 - [Working with income](#working-with-income)
 - [Working with transfers](#working-with-transfers)
@@ -119,6 +120,27 @@ Foreign currency path
 - Amount is calculated as currency amount times exchange rate
 
 Do not provide amount and currency amount together, except when they are equal for base currency updates.
+
+### Currency matching constraints
+
+When adding or updating transactions (expense, income, transfer), the currency you specify must match the account's base currency rules:
+
+**For expenses and income:**
+- **Cannot add base currency transactions to non-base currency accounts**: If an account's currency is non-base (e.g., USD account "TWH IB USD"), you cannot add a transaction in the system's base currency (SGD). The account will reject base currency inputs.
+- **Can add foreign currency transactions to base currency accounts**: If an account's currency is the system base (SGD), you can add transactions in foreign currencies (USD, EUR, GEL, etc.) by specifying `--currency`, `--currency-amount`, and `--exchange-rate`.
+
+**Examples:**
+- ✓ VALID: Add USD expense to "TWH - Personal" (SGD base) with `--currency USD --currency-amount 27.50 --exchange-rate 0.9273`
+- ✗ INVALID: Add SGD income to "TWH IB USD" (USD base) - account does not accept base currency
+- ✓ VALID: Add USD income to "DBS Multi" (SGD base) with `--currency USD --currency-amount 2700 --exchange-rate 0.7407`
+
+**For transfers between mixed-currency accounts:**
+- You can specify the currency amount and exchange rate for **either the source or destination account's currency**, but not both
+- Examples:
+  - ✓ VALID: Transfer from "TWH - Personal" (SGD) to "TWH IB USD" (USD) specifying USD: `--currency USD --currency-amount 110 --exchange-rate 0.9091`
+  - ✓ VALID: Same transfer specifying SGD: `--currency SGD --currency-amount 121 --exchange-rate 0.826`
+  - ✗ INVALID: Mix both currencies in a single transfer - choose one accounts currency
+  - ✗ INVALID: Specify a third currency (e.g., EUR) that does not match either account's currency
 
 ### UI Control (Automatic)
 

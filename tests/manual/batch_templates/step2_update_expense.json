@@ -1,0 +1,10 @@
+[
+  {
+    "resource": "expense",
+    "operation": "update",
+    "parameters": {
+      "key": "{EXPENSE_KEY}",
+      "notes": "UAT Batch Step2 Expense Update"
+    }
+  }
+]

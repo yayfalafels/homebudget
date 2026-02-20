@@ -20,6 +20,8 @@ class ManualStep:
     label: str
     command: str | None = None
     command_template: str | None = None
+    template: str | None = None
+    template_command: str | None = None
 
 
 @dataclass
@@ -47,6 +49,8 @@ class ManualTestRunner:
                     label=step.get("label", ""),
                     command=step.get("command"),
                     command_template=step.get("command_template"),
+                    template=step.get("template"),
+                    template_command=step.get("template_command"),
                 )
                 for step in item.get("steps", [])
             ]
@@ -74,6 +78,171 @@ class ManualTestRunner:
         choice = self._prompt_int("Select a test", 1, len(tests))
         return tests[choice - 1]
 
+    def _extract_error_message(self, stderr: str) -> str:
+        """Extract the meaningful error message from stderr output.
+        
+        Handles Click ClickException output format which typically ends with:
+        Error: <message>
+        """
+        lines = stderr.strip().split('\n')
+        # Look for ClickException messages (lines starting with "Error:")
+        for line in reversed(lines):
+            if line.startswith('Error:'):
+                return line[7:].strip()  # Remove "Error: " prefix
+            if 'NotFoundError' in line:
+                # Extract meaningful error from exception message
+                if ':' in line:
+                    return line.split(':', 1)[1].strip()
+        # Fall back to last non-empty line
+        return lines[-1] if lines else "Unknown error"
+
+    def _load_batch_operations(self, batch_file: str, variables: dict[str, str]) -> str:
+        """Load batch template JSON and substitute variable placeholders.
+        
+        Supports expansion of {TRANSFER_KEYS} into multiple delete operations.
+        When {TRANSFER_KEYS} contains comma-separated values, creates individual
+        delete operations for each key.
+        
+        Args:
+            batch_file: Path to batch template JSON file (can be relative to tests/manual/
+                       or fully qualified from workspace root)
+            variables: Dict of variables to substitute (e.g., {EXPENSE_KEY} -> value)
+            
+        Returns:
+            Path to temporary JSON file with substituted variables
+        """
+        # Handle both formats: "batch_templates/..." and "tests/manual/batch_templates/..."
+        if batch_file.startswith("tests/manual/"):
+            batch_path = Path(batch_file)
+        else:
+            batch_path = Path("tests/manual") / batch_file
+        
+        if not batch_path.exists():
+            raise ValueError(f"Batch template file not found: {batch_path}")
+        
+        # Load original operations from template
+        with batch_path.open("r", encoding="utf-8") as handle:
+            operations = json.load(handle)
+        
+        # Handle TRANSFER_KEYS expansion: split comma-separated values into multiple delete operations
+        transfer_keys = variables.get("transfer_keys", "")
+        if transfer_keys:
+            # Parse comma-separated transfer keys
+            keys_list = [k.strip() for k in transfer_keys.split(",") if k.strip()]
+            
+            # Expand operations: for each transfer delete operation with {TRANSFER_KEYS},
+            # create one operation per key
+            expanded_operations = []
+            for op in operations:
+                if (op.get("resource") == "transfer" and 
+                    op.get("operation") == "delete" and
+                    op.get("parameters", {}).get("key") == "{TRANSFER_KEYS}"):
+                    # Create individual delete operations for each key
+                    for key in keys_list:
+                        expanded_operations.append({
+                            "resource": "transfer",
+                            "operation": "delete",
+                            "parameters": {"key": key}
+                        })
+                else:
+                    expanded_operations.append(op)
+            operations = expanded_operations
+        
+        # Substitute other variables in all parameter values
+        operations_str = json.dumps(operations)
+        for var_name, var_value in variables.items():
+            if var_name == "transfer_keys":
+                # Transfer keys were already expanded above
+                continue
+            placeholder = f"{{{var_name.upper()}}}"
+            operations_str = operations_str.replace(placeholder, str(var_value))
+        
+        # Write substituted operations to temporary file
+        temp_path = self.output_dir / f"batch_temp_{len(variables)}.json"
+        with temp_path.open("w", encoding="utf-8") as handle:
+            handle.write(operations_str)
+        
+        return str(temp_path)
+
+    def _extract_keys_from_batch_output(self, output: str) -> dict[str, str]:
+        """Extract record keys from batch operation output.
+        
+        Batch operations return JSON with successful records containing their keys.
+        Example: {"successful": [{"key": 123, ...}, ...]}
+        
+        Returns:
+            Dict mapping key_type (expense_key, income_key, transfer_key) to value
+        """
+        keys: dict[str, str] = {}
+        try:
+            # Try to parse as JSON
+            result = json.loads(output)
+            if not isinstance(result, dict):
+                return keys
+            
+            successful = result.get("successful", [])
+            if not successful:
+                return keys
+            
+            # Determine key types from resource field if available
+            for record in successful:
+                if isinstance(record, dict) and "key" in record:
+                    resource = record.get("resource", "")
+                    key_value = str(record["key"])
+                    
+                    if resource == "expense":
+                        keys["expense_key"] = key_value
+                    elif resource == "income":
+                        keys["income_key"] = key_value
+                    elif resource == "transfer":
+                        keys["transfer_key"] = key_value
+        except (json.JSONDecodeError, AttributeError, TypeError):
+            pass
+        
+        return keys
+
+    def _process_batch_command(self, command: str, variables: dict[str, str]) -> str:
+        """Process a command that references a batch template file.
+        
+        Only processes template files that contain variable placeholders ({VARIABLE_NAME}).
+        For files without placeholders, returns the command unchanged.
+        """
+        # Check if command has --file with batch_templates path
+        match = re.search(r'--file\s+((?:tests/manual/)?batch_templates/\S+\.json)', command)
+        if not match:
+            return command
+        
+        batch_file_relative = match.group(1)
+        
+        # Handle both formats: "batch_templates/..." and "tests/manual/batch_templates/..."
+        if batch_file_relative.startswith("tests/manual/"):
+            batch_path = Path(batch_file_relative)
+        else:
+            batch_path = Path("tests/manual") / batch_file_relative
+        
+        if not batch_path.exists():
+            return command
+        
+        # Check if file contains placeholders before processing
+        try:
+            with batch_path.open("r", encoding="utf-8") as handle:
+                content = handle.read()
+            # Look for placeholder pattern {WORD} or transfer_keys expansion needed
+            has_placeholder = bool(re.search(r'\{[A-Z_]+\}', content))
+            needs_transfer_expansion = "transfer_keys" in variables
+            
+            if not has_placeholder and not needs_transfer_expansion:
+                return command
+        except (OSError, UnicodeDecodeError):
+            return command
+        
+        # Load and substitute variables
+        batch_json = self._load_batch_operations(batch_file_relative, variables)
+        
+        # Replace the original batch template file path with temp file path
+        new_command = command.replace(batch_file_relative, batch_json)
+        return new_command
+
     def run(self, test: ManualTest) -> Path:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -94,9 +263,33 @@ class ManualTestRunner:
             print(f"Step {index}: {step.label}")
             if step.kind == "auto":
                 # Execute auto step
-                command = step.command
-                if step.command_template:
+                command = None
+                
+                # Determine the command to run
+                if step.command:
+                    command = step.command
+                elif step.command_template:
                     command = step.command_template.format(**variables)
+                
+                if not command:
+                    print("Warning: auto step has no command or command_template", file=sys.stderr)
+                    continue
+                
+                # Process template if specified - expands variables and writes temp file
+                if step.template:
+                    temp_json = self._load_batch_operations(step.template, variables)
+                    # Use template_command as the base (e.g., "hb batch run --file")
+                    # and append the temp file path
+                    if step.template_command:
+                        command = f"{step.template_command} {temp_json}"
+                    else:
+                        # Fallback: extract base command from original command
+                        match = re.search(r'hb batch run --file', command)
+                        if match:
+                            command = f"hb batch run --file {temp_json}"
+                
+                # Process batch commands (substitute {PLACEHOLDER} and handle --file)
+                command = self._process_batch_command(command, variables)
                 
                 print(f"Command: {command}")
                 try:
@@ -109,12 +302,18 @@ class ManualTestRunner:
                     )
                     print(f"Output:\n{result.stdout}")
                     if result.returncode != 0:
-                        print(f"Error:\n{result.stderr}", file=sys.stderr)
+                        error_msg = self._extract_error_message(result.stderr)
+                        print(f"Error: {error_msg}", file=sys.stderr)
                         status = "fail"
-                        notes = f"Command failed: {result.stderr[:200]}"
+                        notes = f"Command failed: {error_msg[:200]}"
                     else:
                         status = "pass"
                         notes = ""
+                        # Extract keys from batch output for next operations
+                        new_keys = self._extract_keys_from_batch_output(result.stdout)
+                        variables.update(new_keys)
+                        if new_keys:
+                            notes = f"Keys recorded: {', '.join(new_keys.keys())}"
                     
                     # After showing output, allow user to rerun list commands with different limit
                     if status == "pass" and "list" in command and "--limit" in command:
@@ -134,7 +333,8 @@ class ManualTestRunner:
                                 )
                                 print(f"Output:\n{result.stdout}")
                                 if result.returncode != 0:
-                                    print(f"Error:\n{result.stderr}", file=sys.stderr)
+                                    error_msg = self._extract_error_message(result.stderr)
+                                    print(f"Error: {error_msg}", file=sys.stderr)
                                 else:
                                     command = new_command  # Update command for results
                 
@@ -153,14 +353,24 @@ class ManualTestRunner:
                 
                 # Prompt for variable input if this is a recording step
                 if status == "pass" and "Record" in step.label and "key" in step.label.lower():
-                    # Support multiple key types: expense_key, income_key, transfer_key
-                    key_input = input("Enter the value: ").strip()
-                    if key_input:
-                        # Determine key type from test resource or step label
-                        key_type = self._determine_key_type(step.label, test.resource)
-                        variables[key_type] = key_input
-                        notes = f"Recorded: {key_type} = {key_input}"
-                        print(notes)
+                    # Support multiple key types: expense_key, income_key, transfer_key(s)
+                    # Check if this is requesting multiple keys (transfer_keys for comma-separated input)
+                    if "transfer" in step.label.lower() and "keys" in step.label.lower():
+                        # Multiple transfer keys (comma-separated)
+                        key_input = input("Enter the values (comma-separated, e.g., 11457,11458): ").strip()
+                        if key_input:
+                            variables["transfer_keys"] = key_input
+                            notes = f"Recorded: transfer_keys = {key_input}"
+                            print(notes)
+                    else:
+                        # Single key (expense_key, income_key, or singular transfer_key)
+                        key_input = input("Enter the value: ").strip()
+                        if key_input:
+                            # Determine key type from test resource or step label
+                            key_type = self._determine_key_type(step.label, test.resource)
+                            variables[key_type] = key_input
+                            notes = f"Recorded: {key_type} = {key_input}"
+                            print(notes)
                 
                 results.append(self._format_result(index, step, status, notes))
         

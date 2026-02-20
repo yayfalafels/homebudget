@@ -12,6 +12,7 @@ import click
 
 from homebudget.cli.common import get_client, parse_date, parse_decimal, resolve_forex_inputs
 from homebudget.models import ExpenseDTO
+from homebudget.exceptions import NotFoundError
 
 
 @click.group()
@@ -69,7 +70,13 @@ def add_expense(
         currency_amount=foreign_amount,
     )
     with get_client(ctx) as client:
-        record = client.add_expense(expense_dto)
+        try:
+            record = client.add_expense(expense_dto)
+        except NotFoundError as e:
+            raise click.ClickException(
+                f"Expense add failed: {account!r} account, {category!r} category, or {subcategory!r} subcategory not found. "
+                "Check the names and try again."
+            )
     click.echo(f"Added expense {record.key}")
 
 

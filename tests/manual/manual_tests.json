@@ -225,7 +225,7 @@
         {
           "kind": "auto",
           "label": "Create expense in USD foreign currency",
-          "command": "hb expense add --date 2026-02-17 --category \"Food (Basic)\" --subcategory \"Cheap restaurant\" --amount 25.50 --currency USD --currency-amount 27.50 --account \"TWH - Personal\" --notes \"UAT Currency Test 01 - USD 27.50\""
+          "command": "hb expense add --date 2026-02-17 --category \"Food (Basic)\" --subcategory \"Cheap restaurant\" --currency-amount 27.50 --exchange-rate 0.9273 --currency USD --account \"TWH - Personal\" --notes \"UAT Currency Test 01 - USD 27.50\""
         },
         {
           "kind": "auto",
@@ -272,7 +272,7 @@
     },
     {
       "id": "uat_income_currency_usd",
-      "title": "UAT: Income CRUD with SGD foreign currency (forex)",
+      "title": "UAT: Income CRUD with USD foreign currency",
       "resource": "income_currency",
       "steps": [
         {
@@ -281,8 +281,8 @@
         },
         {
           "kind": "auto",
-          "label": "Create income in SGD foreign currency with conversion",
-          "command": "hb income add --date 2026-02-17 --name \"Profit and Loss\" --amount 2000.00 --currency SGD --currency-amount 2700.00 --account \"TWH IB USD\" --notes SGD_conversion"
+          "label": "Create income in USD foreign currency with conversion",
+          "command": "hb income add --date 2026-02-17 --name \"Profit and Loss\" --currency-amount 2700.00 --exchange-rate 0.7407 --currency USD --account \"TWH DBS Multi SGD\" --notes USD_conversion"
         },
         {
           "kind": "auto",
@@ -309,7 +309,7 @@
         },
         {
           "kind": "user",
-          "label": "Verify: Currency=SGD, amount=2000.00, currencyAmount=2700.00 are preserved in the record"
+          "label": "Verify: Currency=USD, amount=2000.00, currencyAmount=2700.00 are preserved in the record"
         },
         {
           "kind": "auto",
@@ -339,7 +339,7 @@
         {
           "kind": "auto",
           "label": "Create transfer in USD foreign currency",
-          "command": "hb transfer add --date 2026-02-17 --from-account \"TWH - Personal\" --to-account \"30 CC Hashemis\" --amount 100.00 --currency USD --currency-amount 110.00 --notes \"UAT Currency Test 01 - USD 110.00\""
+          "command": "hb transfer add --date 2026-02-17 --from-account \"TWH - Personal\" --to-account \"30 CC Hashemis\" --currency-amount 110.00 --exchange-rate 0.9091 --currency USD --notes \"UAT Currency Test 01 - USD 110.00\""
         },
         {
           "kind": "auto",
@@ -390,13 +390,8 @@
       "steps": [
         {
           "kind": "auto",
-          "label": "Build batch step 1 file for single expense add",
-          "command": "python tests/manual/build_batch_operations.py --mode step1 --output tests/manual/results/batch_step1.json"
-        },
-        {
-          "kind": "auto",
-          "label": "Run batch step 1",
-          "command": "hb sync batch --file tests/manual/results/batch_step1.json"
+          "label": "Run batch step 1 - add expense",
+          "command": "hb batch run --file tests/manual/batch_templates/step1_add_expense.json"
         },
         {
           "kind": "user",
@@ -413,13 +408,10 @@
         },
         {
           "kind": "auto",
-          "label": "Build batch step 2 file for expense update",
-          "command_template": "python tests/manual/build_batch_operations.py --mode step2 --expense-key {expense_key} --output tests/manual/results/batch_step2.json"
-        },
-        {
-          "kind": "auto",
-          "label": "Run batch step 2",
-          "command": "hb sync batch --file tests/manual/results/batch_step2.json"
+          "label": "Run batch step 2 - update expense",
+          "template": "batch_templates/step2_update_expense.json",
+          "template_command": "hb batch run --file",
+          "command": "hb batch run --file tests/manual/results/batch_step2.json"
         },
         {
           "kind": "user",
@@ -427,17 +419,14 @@
         },
         {
           "kind": "auto",
-          "label": "Build batch step 3 file for expense delete and add income and transfer",
-          "command_template": "python tests/manual/build_batch_operations.py --mode step3 --expense-key {expense_key} --output tests/manual/results/batch_step3.json"
-        },
-        {
-          "kind": "auto",
-          "label": "Run batch step 3",
-          "command": "hb sync batch --file tests/manual/results/batch_step3.json"
+          "label": "Run batch step 3 - delete expense, add income and transfers",
+          "template": "batch_templates/step3_mixed_operations.json",
+          "template_command": "hb batch run --file",
+          "command": "hb batch run --file tests/manual/results/batch_step3.json"
         },
         {
           "kind": "user",
-          "label": "Verify batch step 3 (delete expense, add income, add transfer) completed successfully in both apps"
+          "label": "Verify batch step 3 (delete expense, add income, add 2 transfers) completed successfully in both apps"
         },
         {
           "kind": "auto",
@@ -450,22 +439,19 @@
         },
         {
           "kind": "auto",
-          "label": "List transfers to get key",
-          "command": "hb transfer list --start-date 2026-02-20 --end-date 2026-02-20 --limit 5"
+          "label": "List transfers to get keys",
+          "command": "hb transfer list --start-date 2026-02-20 --end-date 2026-02-20 --limit 10"
         },
         {
           "kind": "user",
-          "label": "Record the transfer key"
+          "label": "Record transfer keys (comma-separated, e.g., 11457,11458)"
         },
         {
           "kind": "auto",
-          "label": "Build rollback batch file for income and transfer",
-          "command_template": "python tests/manual/build_batch_operations.py --mode rollback --income-key {income_key} --transfer-key {transfer_key} --output tests/manual/results/batch_rollback.json"
-        },
-        {
-          "kind": "auto",
-          "label": "Run rollback batch",
-          "command": "hb sync batch --file tests/manual/results/batch_rollback.json"
+          "label": "Run rollback batch - remove income and transfers",
+          "template": "batch_templates/rollback_operations.json",
+          "template_command": "hb batch run --file",
+          "command": "hb batch run --file tests/manual/results/batch_rollback.json"
         },
         {
           "kind": "user",

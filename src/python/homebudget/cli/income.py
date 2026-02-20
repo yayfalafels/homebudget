@@ -12,6 +12,7 @@ import click
 
 from homebudget.cli.common import get_client, parse_date, parse_decimal, resolve_forex_inputs
 from homebudget.models import IncomeDTO
+from homebudget.exceptions import NotFoundError
 
 
 @click.group()
@@ -66,7 +67,12 @@ def add_income(
         currency_amount=foreign_amount,
     )
     with get_client(ctx) as client:
-        record = client.add_income(income_dto)
+        try:
+            record = client.add_income(income_dto)
+        except NotFoundError as e:
+            raise click.ClickException(
+                f"Income add failed: {account!r} account not found. Check the account name and try again."
+            )
     click.echo(f"Added income {record.key}")
 
 

@@ -1,0 +1,1 @@
+[{"resource": "income", "operation": "delete", "parameters": {"key": "1497"}}, {"resource": "transfer", "operation": "delete", "parameters": {"key": "11724"}}, {"resource": "transfer", "operation": "delete", "parameters": {"key": "11725"}}]

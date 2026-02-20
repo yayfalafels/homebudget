@@ -135,6 +135,97 @@ class HomeBudgetClient:
                 import sys
                 print(f"[WARN] Failed to reopen UI: {open_msg}", file=sys.stderr)
 
+    def _execute_create_transaction(
+        self,
+        insert_func: Callable[[object], T],
+        record_dto: object,
+        validators: list[Callable[[], None]] | None = None,
+        sync_operation: str | None = None,
+    ) -> T:
+        """Execute a create operation with validation and sync.
+        
+        Base method consolidating the pattern: validate → insert → sync → return
+        
+        Args:
+            insert_func: Repository insert method (e.g., insert_expense)
+            record_dto: DTO to insert (ExpenseDTO, IncomeDTO, TransferDTO)
+            validators: List of validation callables to run before insert
+            sync_operation: Operation name for sync (e.g., "AddExpense")
+            
+        Returns:
+            Created record from insert operation
+        """
+        # Run validators (e.g., currency validation)
+        if validators:
+            for validator in validators:
+                validator()
+        
+        def action() -> T:
+            record = insert_func(record_dto)
+            manager = self._get_sync_manager()
+            if manager and sync_operation:
+                manager.create_sync_record(record, sync_operation)
+            return record
+        
+        return self._run_transaction(action)
+
+    def _execute_update_transaction(
+        self,
+        update_func: Callable,
+        key: int,
+        normalized_params: dict[str, object],
+        sync_operation: str | None = None,
+    ) -> T:
+        """Execute an update operation with field tracking and sync.
+        
+        Base method consolidating the pattern: update → collect changes → sync → return
+        
+        Args:
+            update_func: Repository update method (e.g., update_expense)
+            key: Record key to update
+            normalized_params: Normalized parameters for update (amount, currency, etc.)
+            sync_operation: Operation name for sync (e.g., "UpdateExpense")
+            
+        Returns:
+            Updated record
+        """
+        def action() -> T:
+            record = update_func(key, **normalized_params)
+            manager = self._get_sync_manager()
+            if manager and sync_operation:
+                changed = self._collect_changed_fields(**normalized_params)
+                manager.create_updates_for_changes(record, sync_operation, changed)
+            return record
+        
+        return self._run_transaction(action)
+
+    def _execute_delete_transaction(
+        self,
+        get_func: Callable[[int], T],
+        delete_func: Callable[[int], None],
+        key: int,
+        sync_operation: str | None = None,
+    ) -> None:
+        """Execute a delete operation with sync.
+        
+        Base method consolidating the pattern: get → delete → sync
+        
+        Args:
+            get_func: Repository get method (e.g., get_expense)
+            delete_func: Repository delete method (e.g., delete_expense)
+            key: Record key to delete
+            sync_operation: Operation name for sync (e.g., "DeleteExpense")
+        """
+        def action() -> None:
+            record = get_func(key)
+            delete_func(key)
+            manager = self._get_sync_manager()
+            if manager and sync_operation:
+                manager.create_sync_record(record, sync_operation)
+            return None
+        
+        return self._run_transaction(action)
+
     def _get_sync_manager(self) -> SyncUpdateManager | None:
         """Get sync manager if sync is enabled, else None."""
         if not self.enable_sync:
@@ -160,17 +251,236 @@ class HomeBudgetClient:
             changed["currency_amount"] = currency_amount
         return changed
 
+    def _get_base_currency(self) -> str:
+        """Get the system base currency from Settings table."""
+        row = self.repository.connection.execute(
+            "SELECT currency FROM Settings LIMIT 1"
+        ).fetchone()
+        if row is None or not row["currency"]:
+            return "SGD"  # Default fallback
+        return row["currency"]
+
+    def _validate_currency_for_account(
+        self,
+        account_name: str,
+        transaction_currency: str | None,
+        transaction_type: str,
+    ) -> None:
+        """Validate that transaction currency is compatible with account.
+        
+        Rules:
+        - Cannot add base currency (SGD) to non-base currency accounts (e.g., USD accounts)
+        - Can add foreign currencies (USD, EUR, etc.) to base currency accounts
+        
+        Args:
+            account_name: Name of the account
+            transaction_currency: Currency code of the transaction (None for base currency)
+            transaction_type: Type of transaction ('expense', 'income', 'transfer_from', 'transfer_to')
+            
+        Raises:
+            ValueError: If currency is incompatible with account
+        """
+        # If no currency specified, transaction is in base currency
+        if transaction_currency is None:
+            transaction_currency = self._get_base_currency()
+        
+        # Get account currency
+        try:
+            row = self.repository.connection.execute(
+                "SELECT currency FROM Account WHERE name = ?",
+                (account_name,),
+            ).fetchone()
+            if row is None:
+                # Let repository handle NotFoundError
+                return
+            account_currency = row["currency"] or self._get_base_currency()
+        except Exception:
+            # If lookup fails, let it propagate as normal error
+            return
+        
+        base_currency = self._get_base_currency()
+        
+        # Rule: Cannot add base currency to non-base currency accounts
+        if transaction_currency == base_currency and account_currency != base_currency:
+            raise ValueError(
+                f"Cannot add {base_currency} (base currency) to {account_name!r} account "
+                f"(which uses {account_currency}). Add a foreign currency transaction instead."
+            )
+
+    def _validate_expense_currency(self, expense: ExpenseDTO) -> None:
+        """Validate expense currency compatibility with account.
+        
+        Pre-operation validator for expense creation/update.
+        """
+        self._validate_currency_for_account(
+            account_name=expense.account,
+            transaction_currency=expense.currency,
+            transaction_type="expense",
+        )
+
+    def _validate_income_currency(self, income: IncomeDTO) -> None:
+        """Validate income currency compatibility with account.
+        
+        Pre-operation validator for income creation/update.
+        """
+        self._validate_currency_for_account(
+            account_name=income.account,
+            transaction_currency=income.currency,
+            transaction_type="income",
+        )
+
+    def _infer_currency_for_expense(self, expense: ExpenseDTO) -> ExpenseDTO:
+        """Infer currency for expense on non-base accounts.
+        
+        For non-base currency accounts (USD, RUB, GEL, etc.), if --amount is provided
+        without --currency, automatically infer:
+        - currency = account currency
+        - currency_amount = amount (same as what user provided)
+        - This implies exchange_rate = 1.0
+        
+        Args:
+            expense: ExpenseDTO to potentially modify
+            
+        Returns:
+            Modified ExpenseDTO with inferred currency if applicable
+        """
+        # Skip if currency was explicitly specified
+        if expense.currency is not None:
+            return expense
+        
+        # Get account currency
+        try:
+            row = self.repository.connection.execute(
+                "SELECT currency FROM Account WHERE name = ?",
+                (expense.account,),
+            ).fetchone()
+            if row is None:
+                return expense
+            account_currency = row["currency"]
+        except Exception:
+            return expense
+        
+        base_currency = self._get_base_currency()
+        
+        # If account is non-base and amount is provided, infer currency
+        if account_currency and account_currency != base_currency and expense.amount:
+            return ExpenseDTO(
+                date=expense.date,
+                category=expense.category,
+                subcategory=expense.subcategory,
+                amount=expense.amount,
+                account=expense.account,
+                notes=expense.notes,
+                currency=account_currency,
+                currency_amount=expense.amount,
+            )
+        
+        return expense
+
+    def _infer_currency_for_income(self, income: IncomeDTO) -> IncomeDTO:
+        """Infer currency for income on non-base accounts.
+        
+        For non-base currency accounts (USD, RUB, GEL, etc.), if --amount is provided
+        without --currency, automatically infer:
+        - currency = account currency
+        - currency_amount = amount (same as what user provided)
+        - This implies exchange_rate = 1.0
+        
+        Args:
+            income: IncomeDTO to potentially modify
+            
+        Returns:
+            Modified IncomeDTO with inferred currency if applicable
+        """
+        # Skip if currency was explicitly specified
+        if income.currency is not None:
+            return income
+        
+        # Get account currency
+        try:
+            row = self.repository.connection.execute(
+                "SELECT currency FROM Account WHERE name = ?",
+                (income.account,),
+            ).fetchone()
+            if row is None:
+                return income
+            account_currency = row["currency"]
+        except Exception:
+            return income
+        
+        base_currency = self._get_base_currency()
+        
+        # If account is non-base and amount is provided, infer currency
+        if account_currency and account_currency != base_currency and income.amount:
+            return IncomeDTO(
+                date=income.date,
+                name=income.name,
+                amount=income.amount,
+                account=income.account,
+                notes=income.notes,
+                currency=account_currency,
+                currency_amount=income.amount,
+            )
+        
+        return income
+
+    def _infer_currency_for_transfer(self, transfer: TransferDTO) -> TransferDTO:
+        """Infer currency for transfer from from_account.
+        
+        For mixed-currency transfers (from SGD to USD), if no currency is specified,
+        default to the from_account's currency.
+        
+        Args:
+            transfer: TransferDTO to potentially modify
+            
+        Returns:
+            Modified TransferDTO with inferred currency if applicable
+        """
+        # Skip if currency was explicitly specified
+        if transfer.currency is not None:
+            return transfer
+        
+        # Get from_account currency
+        try:
+            row = self.repository.connection.execute(
+                "SELECT currency FROM Account WHERE name = ?",
+                (transfer.from_account,),
+            ).fetchone()
+            if row is None:
+                return transfer
+            from_currency = row["currency"] or self._get_base_currency()
+        except Exception:
+            return transfer
+        
+        # If from_account is non-base and amount is provided, infer currency
+        if from_currency != self._get_base_currency() and transfer.amount:
+            return TransferDTO(
+                date=transfer.date,
+                from_account=transfer.from_account,
+                to_account=transfer.to_account,
+                amount=transfer.amount,
+                notes=transfer.notes,
+                currency=from_currency,
+                currency_amount=transfer.amount,
+            )
+        
+        return transfer
+
     def add_expense(self, expense: ExpenseDTO) -> ExpenseRecord:
-        """Add an expense and return the created record."""
-
-        def action() -> ExpenseRecord:
-            record = self.repository.insert_expense(expense)
-            manager = self._get_sync_manager()
-            if manager:
-                manager.create_sync_record(record)
-            return record
-
-        return self._run_transaction(action)
+        """Add an expense and return the created record.
+        
+        For non-base currency accounts, automatically infers currency from account
+        if only amount is provided. Automatically creates a sync record if enabled.
+        """
+        # Infer currency for non-base accounts
+        expense = self._infer_currency_for_expense(expense)
+        
+        return self._execute_create_transaction(
+            insert_func=self.repository.insert_expense,
+            record_dto=expense,
+            validators=None,
+            sync_operation="AddExpense",
+        )
 
     def get_expense(self, key: int) -> ExpenseRecord:
         """Get a single expense by key."""
@@ -198,7 +508,6 @@ class HomeBudgetClient:
         Creates a separate SyncUpdate entry for each changed field to match
         native app behavior where each field change generates its own sync event.
         """
-
         amount, currency, currency_amount = self._normalize_forex_inputs(
             amount=amount,
             currency=currency,
@@ -207,47 +516,43 @@ class HomeBudgetClient:
             label="Expense update",
             allow_empty=notes is not None,
         )
-
-        def action() -> ExpenseRecord:
-            record = self.repository.update_expense(
-                key=key,
-                amount=amount,
-                notes=notes,
-                currency=currency,
-                currency_amount=currency_amount,
-            )
-            manager = self._get_sync_manager()
-            if manager:
-                changed = self._collect_changed_fields(amount, notes, currency, currency_amount)
-                manager.create_updates_for_changes(record, "UpdateExpense", changed)
-            return record
-
-        return self._run_transaction(action)
+        
+        return self._execute_update_transaction(
+            update_func=self.repository.update_expense,
+            key=key,
+            normalized_params={
+                "amount": amount,
+                "notes": notes,
+                "currency": currency,
+                "currency_amount": currency_amount,
+            },
+            sync_operation="UpdateExpense",
+        )
 
     def delete_expense(self, key: int) -> None:
         """Delete an expense and record the sync update."""
-
-        def action() -> None:
-            record = self.repository.get_expense(key)
-            self.repository.delete_expense(key)
-            manager = self._get_sync_manager()
-            if manager:
-                manager.create_sync_record(record, "DeleteExpense")
-            return None
-
-        self._run_transaction(action)
+        return self._execute_delete_transaction(
+            get_func=self.repository.get_expense,
+            delete_func=self.repository.delete_expense,
+            key=key,
+            sync_operation="DeleteExpense",
+        )
 
     def add_income(self, income: IncomeDTO) -> IncomeRecord:
-        """Add an income record and return the created record."""
-
-        def action() -> IncomeRecord:
-            record = self.repository.insert_income(income)
-            manager = self._get_sync_manager()
-            if manager:
-                manager.create_sync_record(record)
-            return record
-
-        return self._run_transaction(action)
+        """Add an income record and return the created record.
+        
+        For non-base currency accounts, automatically infers currency from account
+        if only amount is provided. Automatically creates a sync record if enabled.
+        """
+        # Infer currency for non-base accounts
+        income = self._infer_currency_for_income(income)
+        
+        return self._execute_create_transaction(
+            insert_func=self.repository.insert_income,
+            record_dto=income,
+            validators=None,
+            sync_operation="AddIncome",
+        )
 
     def get_income(self, key: int) -> IncomeRecord:
         """Get a single income record by key."""
@@ -275,7 +580,6 @@ class HomeBudgetClient:
         Creates a separate SyncUpdate entry for each changed field to match
         native app behavior where each field change generates its own sync event.
         """
-
         amount, currency, currency_amount = self._normalize_forex_inputs(
             amount=amount,
             currency=currency,
@@ -285,46 +589,42 @@ class HomeBudgetClient:
             allow_empty=notes is not None,
         )
 
-        def action() -> IncomeRecord:
-            record = self.repository.update_income(
-                key=key,
-                amount=amount,
-                notes=notes,
-                currency=currency,
-                currency_amount=currency_amount,
-            )
-            manager = self._get_sync_manager()
-            if manager:
-                changed = self._collect_changed_fields(amount, notes, currency, currency_amount)
-                manager.create_updates_for_changes(record, "UpdateIncome", changed)
-            return record
-
-        return self._run_transaction(action)
+        return self._execute_update_transaction(
+            update_func=self.repository.update_income,
+            key=key,
+            normalized_params={
+                "amount": amount,
+                "notes": notes,
+                "currency": currency,
+                "currency_amount": currency_amount,
+            },
+            sync_operation="UpdateIncome",
+        )
 
     def delete_income(self, key: int) -> None:
         """Delete an income record and record the sync update."""
-
-        def action() -> None:
-            record = self.repository.get_income(key)
-            self.repository.delete_income(key)
-            manager = self._get_sync_manager()
-            if manager:
-                manager.create_sync_record(record, "DeleteIncome")
-            return None
-
-        self._run_transaction(action)
+        return self._execute_delete_transaction(
+            get_func=self.repository.get_income,
+            delete_func=self.repository.delete_income,
+            key=key,
+            sync_operation="DeleteIncome",
+        )
 
     def add_transfer(self, transfer: TransferDTO) -> TransferRecord:
-        """Add a transfer and return the created record."""
-
-        def action() -> TransferRecord:
-            record = self.repository.insert_transfer(transfer)
-            manager = self._get_sync_manager()
-            if manager:
-                manager.create_sync_record(record)
-            return record
-
-        return self._run_transaction(action)
+        """Add a transfer and return the created record.
+        
+        For mixed-currency transfers, defaults to from_account's currency if not specified.
+        Automatically creates a sync record if sync is enabled.
+        """
+        # Infer currency from from_account for non-base accounts
+        transfer = self._infer_currency_for_transfer(transfer)
+        
+        return self._execute_create_transaction(
+            insert_func=self.repository.insert_transfer,
+            record_dto=transfer,
+            validators=None,
+            sync_operation="AddTransfer",
+        )
 
     def get_transfer(self, key: int) -> TransferRecord:
         """Get a single transfer by key."""
@@ -352,7 +652,6 @@ class HomeBudgetClient:
         Creates a separate SyncUpdate entry for each changed field to match
         native app behavior where each field change generates its own sync event.
         """
-
         amount, currency, currency_amount = self._normalize_forex_inputs(
             amount=amount,
             currency=currency,
@@ -362,34 +661,26 @@ class HomeBudgetClient:
             allow_empty=notes is not None,
         )
 
-        def action() -> TransferRecord:
-            record = self.repository.update_transfer(
-                key=key,
-                amount=amount,
-                notes=notes,
-                currency=currency,
-                currency_amount=currency_amount,
-            )
-            manager = self._get_sync_manager()
-            if manager:
-                changed = self._collect_changed_fields(amount, notes, currency, currency_amount)
-                manager.create_updates_for_changes(record, "UpdateTransfer", changed)
-            return record
-
-        return self._run_transaction(action)
+        return self._execute_update_transaction(
+            update_func=self.repository.update_transfer,
+            key=key,
+            normalized_params={
+                "amount": amount,
+                "notes": notes,
+                "currency": currency,
+                "currency_amount": currency_amount,
+            },
+            sync_operation="UpdateTransfer",
+        )
 
     def delete_transfer(self, key: int) -> None:
         """Delete a transfer and record the sync update."""
-
-        def action() -> None:
-            record = self.repository.get_transfer(key)
-            self.repository.delete_transfer(key)
-            manager = self._get_sync_manager()
-            if manager:
-                manager.create_sync_record(record, "DeleteTransfer")
-            return None
-
-        self._run_transaction(action)
+        return self._execute_delete_transaction(
+            get_func=self.repository.get_transfer,
+            delete_func=self.repository.delete_transfer,
+            key=key,
+            sync_operation="DeleteTransfer",
+        )
 
     def _normalize_forex_inputs(
         self,
@@ -790,6 +1081,59 @@ class HomeBudgetClient:
                 self.enable_sync = original_sync_setting
 
         return self._run_transaction(action)
+    def _execute_batch_create_transaction(
+        self,
+        items: list[object],
+        insert_func: Callable,
+        sync_operation_name: str,
+        continue_on_error: bool = True,
+    ) -> BatchResult:
+        """Execute a batch create operation with consolidated sync.
+        
+        Base method for add_*_batch operations consolidating the pattern:
+        - Disable sync during individual inserts
+        - Process each item and collect successful/failed
+        - Re-enable sync and create batch sync records
+        
+        Args:
+            items: List of DTOs to insert (ExpenseDTO, IncomeDTO, TransferDTO)
+            insert_func: Repository insert method (e.g., insert_expense)
+            sync_operation_name: Operation name for sync (e.g., "AddExpense")
+            continue_on_error: If True, continue after errors; if False, raise on first
+            
+        Returns:
+            BatchResult with successful records and failures
+        """
+        successful: list[object] = []
+        failed: list[tuple[object, Exception]] = []
+        
+        def action() -> BatchResult:
+            original_sync_setting = self.enable_sync
+            self.enable_sync = False
+            
+            try:
+                for item in items:
+                    try:
+                        record = insert_func(item)
+                        successful.append(record)
+                    except Exception as exc:
+                        if not continue_on_error:
+                            raise
+                        failed.append((item, exc))
+                
+                self.enable_sync = original_sync_setting
+                if self.enable_sync:
+                    manager = self._get_sync_manager()
+                    if manager and successful:
+                        for record in successful:
+                            manager.create_sync_record(record, sync_operation_name)
+                
+                return BatchResult(successful=successful, failed=failed)
+            finally:
+                self.enable_sync = original_sync_setting
+        
+        return self._run_transaction(action)
+
     def add_expenses_batch(
         self,
         expenses: list[ExpenseDTO],
@@ -797,53 +1141,22 @@ class HomeBudgetClient:
     ) -> BatchResult:
         """Add multiple expenses in a batch operation.
         
-        Batch implementation disables sync during individual inserts and performs
-        a single sync operation after all successful inserts complete.
+        Disables sync during individual inserts and performs consolidated sync
+        after all successful inserts complete.
         
         Args:
             expenses: List of validated expense DTOs
-            continue_on_error: If True, continue processing after errors and collect
-                              failures. If False, raise on first error.
+            continue_on_error: If True, continue processing after errors; if False, raise on first
         
         Returns:
             BatchResult with successful records and any failures
-            
-        Raises:
-            Exception: If continue_on_error is False and any expense fails
         """
-        successful: list[ExpenseRecord] = []
-        failed: list[tuple[ExpenseDTO, Exception]] = []
-
-        def action() -> BatchResult:
-            # Disable sync temporarily
-            original_sync_setting = self.enable_sync
-            self.enable_sync = False
-
-            try:
-                # Process each expense
-                for expense in expenses:
-                    try:
-                        record = self.repository.insert_expense(expense)
-                        successful.append(record)
-                    except Exception as e:
-                        if not continue_on_error:
-                            raise
-                        failed.append((expense, e))
-
-                # Re-enable sync and create sync entries for successful records
-                self.enable_sync = original_sync_setting
-                if self.enable_sync:
-                    manager = self._get_sync_manager()
-                    if manager:
-                        for record in successful:
-                            manager.create_sync_record(record)
-
-                return BatchResult(successful=successful, failed=failed)
-            finally:
-                # Always restore original sync setting
-                self.enable_sync = original_sync_setting
-
-        return self._run_transaction(action)
+        return self._execute_batch_create_transaction(
+            items=expenses,
+            insert_func=self.repository.insert_expense,
+            sync_operation_name="AddExpense",
+            continue_on_error=continue_on_error,
+        )
 
     def add_incomes_batch(
         self,
@@ -852,53 +1165,22 @@ class HomeBudgetClient:
     ) -> BatchResult:
         """Add multiple income records in a batch operation.
         
-        Batch implementation disables sync during individual inserts and performs
-        a single sync operation after all successful inserts complete.
+        Disables sync during individual inserts and performs consolidated sync
+        after all successful inserts complete.
         
         Args:
             incomes: List of validated income DTOs
-            continue_on_error: If True, continue processing after errors and collect
-                              failures. If False, raise on first error.
+            continue_on_error: If True, continue processing after errors; if False, raise on first
         
         Returns:
             BatchResult with successful records and any failures
-            
-        Raises:
-            Exception: If continue_on_error is False and any income fails
         """
-        successful: list[IncomeRecord] = []
-        failed: list[tuple[IncomeDTO, Exception]] = []
-
-        def action() -> BatchResult:
-            # Disable sync temporarily
-            original_sync_setting = self.enable_sync
-            self.enable_sync = False
-
-            try:
-                # Process each income
-                for income in incomes:
-                    try:
-                        record = self.repository.insert_income(income)
-                        successful.append(record)
-                    except Exception as e:
-                        if not continue_on_error:
-                            raise
-                        failed.append((income, e))
-
-                # Re-enable sync and create sync entries for successful records
-                self.enable_sync = original_sync_setting
-                if self.enable_sync:
-                    manager = self._get_sync_manager()
-                    if manager:
-                        for record in successful:
-                            manager.create_sync_record(record)
-
-                return BatchResult(successful=successful, failed=failed)
-            finally:
-                # Always restore original sync setting
-                self.enable_sync = original_sync_setting
-
-        return self._run_transaction(action)
+        return self._execute_batch_create_transaction(
+            items=incomes,
+            insert_func=self.repository.insert_income,
+            sync_operation_name="AddIncome",
+            continue_on_error=continue_on_error,
+        )
 
     def add_transfers_batch(
         self,
@@ -907,50 +1189,19 @@ class HomeBudgetClient:
     ) -> BatchResult:
         """Add multiple transfers in a batch operation.
         
-        Batch implementation disables sync during individual inserts and performs
-        a single sync operation after all successful inserts complete.
+        Disables sync during individual inserts and performs consolidated sync
+        after all successful inserts complete.
         
         Args:
             transfers: List of validated transfer DTOs
-            continue_on_error: If True, continue processing after errors and collect
-                              failures. If False, raise on first error.
+            continue_on_error: If True, continue processing after errors; if False, raise on first
         
         Returns:
             BatchResult with successful records and any failures
-            
-        Raises:
-            Exception: If continue_on_error is False and any transfer fails
         """
-        successful: list[TransferRecord] = []
-        failed: list[tuple[TransferDTO, Exception]] = []
-
-        def action() -> BatchResult:
-            # Disable sync temporarily
-            original_sync_setting = self.enable_sync
-            self.enable_sync = False
-
-            try:
-                # Process each transfer
-                for transfer in transfers:
-                    try:
-                        record = self.repository.insert_transfer(transfer)
-                        successful.append(record)
-                    except Exception as e:
-                        if not continue_on_error:
-                            raise
-                        failed.append((transfer, e))
-
-                # Re-enable sync and create sync entries for successful records
-                self.enable_sync = original_sync_setting
-                if self.enable_sync:
-                    manager = self._get_sync_manager()
-                    if manager:
-                        for record in successful:
-                            manager.create_sync_record(record)
-
-                return BatchResult(successful=successful, failed=failed)
-            finally:
-                # Always restore original sync setting
-                self.enable_sync = original_sync_setting
-
-        return self._run_transaction(action)
+        return self._execute_batch_create_transaction(
+            items=transfers,
+            insert_func=self.repository.insert_transfer,
+            sync_operation_name="AddTransfer",
+            continue_on_error=continue_on_error,
+        )

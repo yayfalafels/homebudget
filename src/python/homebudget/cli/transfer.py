@@ -12,6 +12,7 @@ import click
 
 from homebudget.cli.common import get_client, parse_date, parse_decimal, resolve_forex_inputs
 from homebudget.models import TransferDTO
+from homebudget.exceptions import NotFoundError
 
 
 @click.group()
@@ -66,7 +67,13 @@ def add_transfer(
         currency_amount=foreign_amount,
     )
     with get_client(ctx) as client:
-        record = client.add_transfer(transfer_dto)
+        try:
+            record = client.add_transfer(transfer_dto)
+        except NotFoundError as e:
+            raise click.ClickException(
+                f"Transfer add failed: {from_account!r} or {to_account!r} account not found. "
+                "Check the account names and try again."
+            )
     click.echo(f"Added transfer {record.key}")
 
 
