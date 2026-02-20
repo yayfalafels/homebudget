@@ -143,6 +143,74 @@
           }
         }
       }
+    },
+    "transfer": {
+      "record_class": "TransferRecord",
+      "operations": {
+        "AddTransfer": {
+          "key_field": "deviceKey",
+          "key_format": "singular",
+          "fields": [
+            {"name": "amount", "type": "field", "source": "amount", "format": "string"},
+            {"name": "fromAccountDeviceId", "type": "entity_device_id", "entity": "Account", "source": "from_account"},
+            {"name": "Operation", "type": "operation"},
+            {"name": "fromAccountDeviceKey", "type": "entity_device_key", "entity": "Account", "source": "from_account"},
+            {"name": "transferDate", "type": "field", "source": "date", "format": "isoformat"},
+            {"name": "deviceKey", "type": "key_singular"},
+            {"name": "recurringKey", "type": "constant", "value": 0},
+            {"name": "currencyAmount", "type": "field", "source": "currency_amount_or_amount", "format": "string"},
+            {"name": "toAccountDeviceKey", "type": "entity_device_key", "entity": "Account", "source": "to_account"},
+            {"name": "billDeviceKey", "type": "constant", "value": 0},
+            {"name": "notes", "type": "field", "source": "notes", "default": ""},
+            {"name": "billDeviceId", "type": "constant", "value": ""},
+            {"name": "deviceId", "type": "primary_device_id"},
+            {"name": "currency", "type": "field", "source": "currency_or_account_currency"},
+            {"name": "toAccountDeviceId", "type": "entity_device_id", "entity": "Account", "source": "to_account"}
+          ],
+          "compression": {
+            "min_size": 512,
+            "pad_if_smaller": true
+          }
+        },
+        "UpdateTransfer": {
+          "key_field": "deviceKey",
+          "key_format": "singular",
+          "fields": [
+            {"name": "amount", "type": "field", "source": "amount", "format": "string"},
+            {"name": "fromAccountDeviceId", "type": "entity_device_id", "entity": "Account", "source": "from_account"},
+            {"name": "Operation", "type": "operation"},
+            {"name": "fromAccountDeviceKey", "type": "entity_device_key", "entity": "Account", "source": "from_account"},
+            {"name": "transferDate", "type": "field", "source": "date", "format": "isoformat"},
+            {"name": "deviceKey", "type": "key_singular"},
+            {"name": "recurringKey", "type": "constant", "value": 0},
+            {"name": "currencyAmount", "type": "field", "source": "currency_amount_or_amount", "format": "string"},
+            {"name": "toAccountDeviceKey", "type": "entity_device_key", "entity": "Account", "source": "to_account"},
+            {"name": "billDeviceKey", "type": "constant", "value": 0},
+            {"name": "notes", "type": "field", "source": "notes", "default": ""},
+            {"name": "billDeviceId", "type": "constant", "value": ""},
+            {"name": "deviceId", "type": "primary_device_id"},
+            {"name": "currency", "type": "field", "source": "currency_or_account_currency"},
+            {"name": "toAccountDeviceId", "type": "entity_device_id", "entity": "Account", "source": "to_account"}
+          ],
+          "compression": {
+            "min_size": 512,
+            "pad_if_smaller": true
+          }
+        },
+        "DeleteTransfer": {
+          "key_field": "deviceKey",
+          "key_format": "singular",
+          "fields": [
+            {"name": "Operation", "type": "operation"},
+            {"name": "deviceKey", "type": "key_singular"},
+            {"name": "deviceId", "type": "primary_device_id"}
+          ],
+          "compression": {
+            "min_size": 512,
+            "pad_if_smaller": true
+          }
+        }
+      }
     }
   },
   "field_types": {

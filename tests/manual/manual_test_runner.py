@@ -8,6 +8,7 @@ from datetime import datetime
 import argparse
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 from typing import Any
@@ -96,6 +97,7 @@ class ManualTestRunner:
                 command = step.command
                 if step.command_template:
                     command = step.command_template.format(**variables)
+                
                 print(f"Command: {command}")
                 try:
                     result = subprocess.run(
@@ -113,6 +115,29 @@ class ManualTestRunner:
                     else:
                         status = "pass"
                         notes = ""
+                    
+                    # After showing output, allow user to rerun list commands with different limit
+                    if status == "pass" and "list" in command and "--limit" in command:
+                        modify = input(f"\nRun again with different limit? [y/N]: ").strip().lower()
+                        if modify == "y":
+                            new_limit = input("Enter new limit (e.g., 10, 20): ").strip()
+                            if new_limit.isdigit():
+                                # Replace the limit value in the command
+                                new_command = re.sub(r'--limit\s+\d+', f'--limit {new_limit}', command)
+                                print(f"\nCommand: {new_command}")
+                                result = subprocess.run(
+                                    new_command,
+                                    shell=True,
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=30,
+                                )
+                                print(f"Output:\n{result.stdout}")
+                                if result.returncode != 0:
+                                    print(f"Error:\n{result.stderr}", file=sys.stderr)
+                                else:
+                                    command = new_command  # Update command for results
+                
                 except subprocess.TimeoutExpired:
                     status = "fail"
                     notes = "Command timeout"
@@ -124,15 +149,30 @@ class ManualTestRunner:
                 # User verification step
                 print("This step requires your manual verification.")
                 status = self._prompt_choice("Result", ["pass", "fail", "skip"])
+                notes = ""
+                
+                # Prompt for variable input if this is a recording step
                 if status == "pass" and "Record" in step.label and "key" in step.label.lower():
-                    # Prompt for variable input if this is a recording step
-                        # Support multiple key types: expense_key, income_key, transfer_key
-                        key_input = input("Enter the value: ").strip()
-                        if key_input:
-                            # Determine key type from test resource or step label
-                            key_type = self._determine_key_type(step.label, test.resource)
-                            variables[key_type] = key_input
-                            print(f"Recorded: {key_type} = {key_input}")
+                    # Support multiple key types: expense_key, income_key, transfer_key
+                    key_input = input("Enter the value: ").strip()
+                    if key_input:
+                        # Determine key type from test resource or step label
+                        key_type = self._determine_key_type(step.label, test.resource)
+                        variables[key_type] = key_input
+                        notes = f"Recorded: {key_type} = {key_input}"
+                        print(notes)
+                
+                results.append(self._format_result(index, step, status, notes))
+        
+        # Compute overall result
+        overall = "pass"
+        for result in results:
+            if "Status: fail" in result:
+                overall = "fail"
+                break
+        
+        # Write report
+        self._write_report(output_path, test, results, overall, "")
         print(f"\nWrote results to {output_path}")
         return output_path
 

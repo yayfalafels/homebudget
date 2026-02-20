@@ -155,8 +155,12 @@ class SyncUpdateManager:
         elif source == "currency_or_account_currency":
             if record.currency:
                 return record.currency
-            # Get account currency from entity cache
-            account_data = self._get_entity_device_cached("Account", record.account, entity_cache)
+            # For transfers, use from_account; for others use account
+            if hasattr(record, 'from_account'):
+                account_name = record.from_account
+            else:
+                account_name = record.account
+            account_data = self._get_entity_device_cached("Account", account_name, entity_cache)
             return account_data.get("currency", "")
         else:
             # Direct field access
