@@ -10,6 +10,7 @@ import json
 import os
 
 from homebudget.models import (
+    BatchResult,
     ExpenseDTO,
     ExpenseRecord,
     IncomeDTO,
@@ -435,3 +436,167 @@ class HomeBudgetClient:
             )
 
         return amount, currency, currency_amount
+    def add_expenses_batch(
+        self,
+        expenses: list[ExpenseDTO],
+        continue_on_error: bool = True,
+    ) -> BatchResult:
+        """Add multiple expenses in a batch operation.
+        
+        Batch implementation disables sync during individual inserts and performs
+        a single sync operation after all successful inserts complete.
+        
+        Args:
+            expenses: List of validated expense DTOs
+            continue_on_error: If True, continue processing after errors and collect
+                              failures. If False, raise on first error.
+        
+        Returns:
+            BatchResult with successful records and any failures
+            
+        Raises:
+            Exception: If continue_on_error is False and any expense fails
+        """
+        successful: list[ExpenseRecord] = []
+        failed: list[tuple[ExpenseDTO, Exception]] = []
+
+        def action() -> BatchResult:
+            # Disable sync temporarily
+            original_sync_setting = self.enable_sync
+            self.enable_sync = False
+
+            try:
+                # Process each expense
+                for expense in expenses:
+                    try:
+                        record = self.repository.insert_expense(expense)
+                        successful.append(record)
+                    except Exception as e:
+                        if not continue_on_error:
+                            raise
+                        failed.append((expense, e))
+
+                # Re-enable sync and create sync entries for successful records
+                self.enable_sync = original_sync_setting
+                if self.enable_sync:
+                    manager = self._get_sync_manager()
+                    if manager:
+                        for record in successful:
+                            manager.create_sync_record(record)
+
+                return BatchResult(successful=successful, failed=failed)
+            finally:
+                # Always restore original sync setting
+                self.enable_sync = original_sync_setting
+
+        return self._run_transaction(action)
+
+    def add_incomes_batch(
+        self,
+        incomes: list[IncomeDTO],
+        continue_on_error: bool = True,
+    ) -> BatchResult:
+        """Add multiple income records in a batch operation.
+        
+        Batch implementation disables sync during individual inserts and performs
+        a single sync operation after all successful inserts complete.
+        
+        Args:
+            incomes: List of validated income DTOs
+            continue_on_error: If True, continue processing after errors and collect
+                              failures. If False, raise on first error.
+        
+        Returns:
+            BatchResult with successful records and any failures
+            
+        Raises:
+            Exception: If continue_on_error is False and any income fails
+        """
+        successful: list[IncomeRecord] = []
+        failed: list[tuple[IncomeDTO, Exception]] = []
+
+        def action() -> BatchResult:
+            # Disable sync temporarily
+            original_sync_setting = self.enable_sync
+            self.enable_sync = False
+
+            try:
+                # Process each income
+                for income in incomes:
+                    try:
+                        record = self.repository.insert_income(income)
+                        successful.append(record)
+                    except Exception as e:
+                        if not continue_on_error:
+                            raise
+                        failed.append((income, e))
+
+                # Re-enable sync and create sync entries for successful records
+                self.enable_sync = original_sync_setting
+                if self.enable_sync:
+                    manager = self._get_sync_manager()
+                    if manager:
+                        for record in successful:
+                            manager.create_sync_record(record)
+
+                return BatchResult(successful=successful, failed=failed)
+            finally:
+                # Always restore original sync setting
+                self.enable_sync = original_sync_setting
+
+        return self._run_transaction(action)
+
+    def add_transfers_batch(
+        self,
+        transfers: list[TransferDTO],
+        continue_on_error: bool = True,
+    ) -> BatchResult:
+        """Add multiple transfers in a batch operation.
+        
+        Batch implementation disables sync during individual inserts and performs
+        a single sync operation after all successful inserts complete.
+        
+        Args:
+            transfers: List of validated transfer DTOs
+            continue_on_error: If True, continue processing after errors and collect
+                              failures. If False, raise on first error.
+        
+        Returns:
+            BatchResult with successful records and any failures
+            
+        Raises:
+            Exception: If continue_on_error is False and any transfer fails
+        """
+        successful: list[TransferRecord] = []
+        failed: list[tuple[TransferDTO, Exception]] = []
+
+        def action() -> BatchResult:
+            # Disable sync temporarily
+            original_sync_setting = self.enable_sync
+            self.enable_sync = False
+
+            try:
+                # Process each transfer
+                for transfer in transfers:
+                    try:
+                        record = self.repository.insert_transfer(transfer)
+                        successful.append(record)
+                    except Exception as e:
+                        if not continue_on_error:
+                            raise
+                        failed.append((transfer, e))
+
+                # Re-enable sync and create sync entries for successful records
+                self.enable_sync = original_sync_setting
+                if self.enable_sync:
+                    manager = self._get_sync_manager()
+                    if manager:
+                        for record in successful:
+                            manager.create_sync_record(record)
+
+                return BatchResult(successful=successful, failed=failed)
+            finally:
+                # Always restore original sync setting
+                self.enable_sync = original_sync_setting
+
+        return self._run_transaction(action)

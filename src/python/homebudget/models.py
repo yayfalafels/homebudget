@@ -184,3 +184,11 @@ class TransferRecord:
     currency: str | None
     currency_amount: Decimal | None
     time_stamp: str | None
+
+
+@dataclass(frozen=True)
+class BatchResult:
+    """Result of a batch operation."""
+    successful: list[ExpenseRecord | IncomeRecord | TransferRecord]
+    failed: list[tuple[ExpenseDTO | IncomeDTO | TransferDTO, Exception]]
+    operation_id: str | None = None

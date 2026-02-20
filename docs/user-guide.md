@@ -10,6 +10,7 @@
 - [Working with expenses](#working-with-expenses)
 - [Working with income](#working-with-income)
 - [Working with transfers](#working-with-transfers)
+- [Batch operations](#batch-operations)
 - [Configuration](#configuration)
 - [Common workflows](#common-workflows)
 - [Troubleshooting](#troubleshooting)
@@ -367,6 +368,161 @@ homebudget expense add \
   --notes "Lunch"
 ```
 
+## Batch operations
+
+Batch operations enable importing multiple transactions at once from CSV or JSON files. This is useful for statement-driven updates where you need to add many transactions efficiently.
+
+### Batch behavior
+
+- **Sync optimization**: Individual transactions are added without sync, then a single sync operation occurs after the batch completes
+- **Error handling**: By default, batch continues on error and reports failures at the end. Use `--stop-on-error` to halt on first failure
+- **Transaction atomicity**: Each individual transaction insert is atomic, but the batch as a whole may partially succeed
+- **Validation**: Each record is validated before insertion same as single-record operations
+
+### CSV format
+
+CSV files must include a header row with these columns:
+
+**Expense CSV columns:**
+- `date` (required): YYYY-MM-DD format
+- `category` (required): Category name
+- `subcategory` (optional): Subcategory name
+- `amount` (required): Decimal amount
+- `account` (required): Account name
+- `notes` (optional): Transaction notes
+- `currency` (optional): Currency code
+- `currency_amount` (optional): Foreign currency amount
+- `exchange_rate` (optional): Exchange rate to base currency
+
+**Income CSV columns:**
+- `date` (required): YYYY-MM-DD format
+- `name` (required): Income name
+- `amount` (required): Decimal amount
+- `account` (required): Account name
+- `notes` (optional): Transaction notes
+- `currency` (optional): Currency code
+- `currency_amount` (optional): Foreign currency amount
+- `exchange_rate` (optional): Exchange rate to base currency
+
+**Transfer CSV columns:**
+- `date` (required): YYYY-MM-DD format
+- `from_account` (required): Source account name
+- `to_account` (required): Destination account name
+- `amount` (required): Decimal amount
+- `notes` (optional): Transaction notes
+- `currency` (optional): Currency code
+- `currency_amount` (optional): Foreign currency amount
+- `exchange_rate` (optional): Exchange rate to base currency
+
+**CSV example** (expenses.csv):
+```csv
+date,category,subcategory,amount,account,notes
+2026-02-01,Food (Basic),Groceries,45.50,Wallet,Weekly groceries
+2026-02-03,Transport,Fuel,60.00,Credit Card,Gas station
+2026-02-05,Food (Basic),Cheap restaurant,15.75,Wallet,Lunch
+```
+
+### JSON format
+
+JSON files must contain an array of transaction objects with the same fields as CSV columns.
+
+**JSON example** (income.json):
+```json
+[
+  {
+    "date": "2026-02-01",
+    "name": "Salary",
+    "amount": "5000.00",
+    "account": "Checking",
+    "notes": "Monthly salary"
+  },
+  {
+    "date": "2026-02-15",
+    "name": "Freelance",
+    "amount": "1200.00",
+    "account": "Checking",
+    "notes": "Project payment"
+  }
+]
+```
+
+### API usage
+
+```python
+from homebudget import HomeBudgetClient
+from homebudget.models import ExpenseDTO
+from decimal import Decimal
+import datetime as dt
+
+with HomeBudgetClient() as client:
+    expenses = [
+        ExpenseDTO(
+            date=dt.date(2026, 2, 1),
+            category="Food (Basic)",
+            subcategory="Groceries",
+            amount=Decimal("45.50"),
+            account="Wallet",
+            notes="Weekly groceries"
+        ),
+        ExpenseDTO(
+            date=dt.date(2026, 2, 3),
+            category="Transport",
+            subcategory="Fuel",
+            amount=Decimal("60.00"),
+            account="Credit Card",
+            notes="Gas station"
+        )
+    ]
+    
+    result = client.add_expenses_batch(expenses)
+    print(f"Successful: {len(result.successful)}")
+    print(f"Failed: {len(result.failed)}")
+    for dto, error in result.failed:
+        print(f"  Failed: {dto.date} {dto.amount} - {error}")
+```
+
+### CLI usage
+
+**Import expenses from CSV:**
+```bash
+homebudget expense batch-import --file expenses.csv --format csv
+```
+
+**Import income from JSON:**
+```bash
+homebudget income batch-import --file income.json --format json
+```
+
+**Import with error report:**
+```bash
+homebudget expense batch-import --file expenses.csv --format csv --error-report errors.txt
+```
+
+**Stop on first error:**
+```bash
+homebudget transfer batch-import --file transfers.csv --format csv --stop-on-error
+```
+
+### Batch result output
+
+The CLI displays a summary of batch results:
+
+```
+Batch import completed
+=====================
+Total records: 25
+Successful: 23
+Failed: 2
+
+Failed records:
+  Row 15: 2026-02-10 45.50 - DuplicateError: Matching expense already exists
+  Row 22: 2026-02-18 invalid - ValueError: Invalid amount format
+
+Sync completed for 23 transactions
+```
+
+If `--error-report` is specified, failed records are written to the file with details.
+
 ## Common workflows
 
 The wrapper supports the same workflow used for financial statement updates.
@@ -416,6 +572,9 @@ Report update
 | Get transfer | HomeBudgetClient.get_transfer | homebudget transfer get |
 | Update transfer | HomeBudgetClient.update_transfer | homebudget transfer update |
 | Delete transfer | HomeBudgetClient.delete_transfer | homebudget transfer delete |
+| Batch add expenses | HomeBudgetClient.add_expenses_batch | homebudget expense batch-import |
+| Batch add income | HomeBudgetClient.add_incomes_batch | homebudget income batch-import |
+| Batch add transfers | HomeBudgetClient.add_transfers_batch | homebudget transfer batch-import |
 | Start UI | N/A | homebudget ui start |
 | Close UI | N/A | homebudget ui close |
 | Refresh UI | N/A | homebudget ui refresh |

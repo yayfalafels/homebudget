@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2026-02-01",
+    "name": "Salary",
+    "amount": "5000.00",
+    "account": "TWH - Personal",
+    "notes": "Monthly salary"
+  },
+  {
+    "date": "2026-02-15",
+    "name": "Interest",
+    "amount": "25.50",
+    "account": "TWH - Personal",
+    "notes": "Savings interest"
+  },
+  {
+    "date": "2026-02-20",
+    "name": "Freelance",
+    "amount": "1200.00",
+    "account": "TWH - Personal",
+    "notes": "Project payment"
+  }
+]
