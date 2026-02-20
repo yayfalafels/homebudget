@@ -19,7 +19,7 @@ New-Item -ItemType Directory -Force -Path $configDir
 Copy-Item config\hb-config.json.sample "$configDir\hb-config.json"
 ```
 
-Edit `%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json` to set the correct path to your operational homebudget.db file.
+Edit `%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json` to set the correct database path and base currency.
 
 **Option 2: Use the --db flag**
 
@@ -38,9 +38,15 @@ System integration tests (SIT) do not require hb-config.json. They use headless 
 ```json
 {
   "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db",
-  "sync_enabled": true
+  "sync_enabled": true,
+  "base_currency": "SGD",
+  "forex": {
+    "cache_ttl_hours": 1
+  }
 }
 ```
 
-- `db_path`: Absolute path to your operational HomeBudget database (typically in `%USERPROFILE%\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db`)
+- `db_path`: Absolute path to your operational HomeBudget database, typically in `%USERPROFILE%\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db`
 - `sync_enabled`: Enable sync payload creation (set to `true` for UAT)
+- `base_currency`: Base currency code for the database, such as SGD
+- `forex.cache_ttl_hours`: Cache validity in hours

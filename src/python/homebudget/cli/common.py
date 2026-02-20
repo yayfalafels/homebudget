@@ -86,4 +86,5 @@ def get_client(ctx: click.Context) -> HomeBudgetClient:
         db_path=payload.get("db_path"),
         enable_sync=enable_sync,
         enable_ui_control=enable_sync,  # UI control enabled when sync is enabled
+        enable_forex_rates=True,  # Enable forex rate inference for non-base accounts
     )

@@ -488,6 +488,188 @@
           "label": "Verify: All transactions appear in Windows app AND mobile app after sync"
         }
       ]
+    },
+    {
+      "id": "uat_forex_expense_amount_only",
+      "title": "UAT: Forex expense amount only with inferred rate",
+      "resource": "expense_forex",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is on WiFi and synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Create expense on USD account with amount only",
+          "command": "hb expense add --date 2026-02-20 --category \"Food (Basic)\" --subcategory \"Cheap restaurant\" --amount 25.50 --account \"TWH IB USD\" --notes \"UAT Forex Expense Amount Only\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Expense appears in Windows and mobile apps with currency USD, currency amount 25.50, and converted base amount"
+        },
+        {
+          "kind": "auto",
+          "label": "List expenses to get key",
+          "command": "hb expense list --start-date 2026-02-20 --end-date 2026-02-20 --account \"TWH IB USD\" --limit 5"
+        },
+        {
+          "kind": "user",
+          "label": "Record the forex expense key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read forex expense",
+          "command_template": "hb expense get {expense_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Currency fields are present and amount reflects conversion"
+        },
+        {
+          "kind": "auto",
+          "label": "Delete forex expense",
+          "command_template": "hb expense delete {expense_key} --yes"
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for delete",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Forex expense removed from Windows app and mobile app"
+        }
+      ]
+    },
+    {
+      "id": "uat_forex_income_amount_only",
+      "title": "UAT: Forex income amount only with inferred rate",
+      "resource": "income_forex",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is on WiFi and synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Create income on USD account with amount only",
+          "command": "hb income add --date 2026-02-20 --name \"Salary and Wages\" --amount 1000.00 --account \"TWH IB USD\" --notes \"UAT Forex Income Amount Only\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Income appears in Windows and mobile apps with currency USD, currency amount 1000.00, and converted base amount"
+        },
+        {
+          "kind": "auto",
+          "label": "List incomes to get key",
+          "command": "hb income list --start-date 2026-02-20 --end-date 2026-02-20 --limit 5"
+        },
+        {
+          "kind": "user",
+          "label": "Record the forex income key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read forex income",
+          "command_template": "hb income get {income_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Currency fields are present and amount reflects conversion"
+        },
+        {
+          "kind": "auto",
+          "label": "Delete forex income",
+          "command_template": "hb income delete {income_key} --yes"
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for delete",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Forex income removed from Windows app and mobile app"
+        }
+      ]
+    },
+    {
+      "id": "uat_forex_transfer_amount_only",
+      "title": "UAT: Forex transfer amount only with inferred rate",
+      "resource": "transfer_forex",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is on WiFi and synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Create transfer from base to USD account with amount only",
+          "command": "hb transfer add --date 2026-02-20 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --amount 100.00 --notes \"UAT Forex Transfer Amount Only\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Transfer appears in Windows and mobile apps with currency USD and calculated currency amount"
+        },
+        {
+          "kind": "auto",
+          "label": "List transfers to get key",
+          "command": "hb transfer list --start-date 2026-02-20 --end-date 2026-02-20 --limit 5"
+        },
+        {
+          "kind": "user",
+          "label": "Record the forex transfer key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read forex transfer",
+          "command_template": "hb transfer get {transfer_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Currency fields are present and currency amount is calculated"
+        },
+        {
+          "kind": "auto",
+          "label": "Delete forex transfer",
+          "command_template": "hb transfer delete {transfer_key} --yes"
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created for delete",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Forex transfer removed from Windows app and mobile app"
+        }
+      ]
+    },
+    {
+      "id": "uat_forex_base_account_validation",
+      "title": "UAT: Base account foreign transaction validation",
+      "resource": "forex_validation",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Attempt to add a base account transaction with currency set to USD and no currency amount, verify an error and no data written"
+        }
+      ]
     }
   ]
 }

@@ -1,4 +1,8 @@
 {
   "db_path": "%USERPROFILE%\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db",
-  "sync_enabled": true
+  "sync_enabled": true,
+  "base_currency": "SGD",
+  "forex": {
+    "cache_ttl_hours": 1
+  }
 }

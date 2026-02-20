@@ -45,7 +45,7 @@ def _make_forex_income() -> IncomeDTO:
 @pytest.mark.sit
 def test_add_income_basic(test_db_path) -> None:
     """Add income with required fields only."""
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_income())
 
     assert saved.key is not None
@@ -56,7 +56,7 @@ def test_add_income_basic(test_db_path) -> None:
 @pytest.mark.sit
 def test_add_income_creates_accounttrans(test_db_path) -> None:
     """Adding income creates AccountTrans entry with transType=income (2)."""
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_income())
 
     with _get_connection(str(test_db_path)) as connection:
@@ -71,7 +71,7 @@ def test_add_income_creates_accounttrans(test_db_path) -> None:
 @pytest.mark.sit
 def test_add_income_creates_syncupdate(sync_test_db_path) -> None:
     """Adding income creates SyncUpdate with valid AddIncome payload."""
-    with HomeBudgetClient(db_path=sync_test_db_path) as client:
+    with HomeBudgetClient(db_path=sync_test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_income())
 
     with _get_connection(str(sync_test_db_path)) as connection:
@@ -90,7 +90,7 @@ def test_add_income_creates_syncupdate(sync_test_db_path) -> None:
 @pytest.mark.sit
 def test_add_income_forex(sync_test_db_path) -> None:
     """Adding income with forex currency creates correct payload."""
-    with HomeBudgetClient(db_path=sync_test_db_path) as client:
+    with HomeBudgetClient(db_path=sync_test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_forex_income())
 
     with _get_connection(str(sync_test_db_path)) as connection:
@@ -109,7 +109,7 @@ def test_add_income_forex(sync_test_db_path) -> None:
 def test_add_duplicate_income_raises_error(test_db_path) -> None:
     """Adding duplicate income raises DuplicateError."""
     income = _make_income()
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         client.add_income(income)
         with pytest.raises(DuplicateError):
             client.add_income(income)
@@ -118,7 +118,7 @@ def test_add_duplicate_income_raises_error(test_db_path) -> None:
 @pytest.mark.sit
 def test_get_income_by_key(test_db_path) -> None:
     """Get income by key returns correct IncomeRecord."""
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_income())
         retrieved = client.get_income(saved.key)
 
@@ -130,7 +130,7 @@ def test_get_income_by_key(test_db_path) -> None:
 @pytest.mark.sit
 def test_list_incomes_all(test_db_path) -> None:
     """List all incomes returns all income records."""
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         saved1 = client.add_income(_make_income())
         income2 = IncomeDTO(
             date=dt.date(2026, 2, 17),
@@ -140,7 +140,7 @@ def test_list_incomes_all(test_db_path) -> None:
         )
         saved2 = client.add_income(income2)
 
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         all_incomes = client.list_incomes()
 
     assert len(all_incomes) >= 2
@@ -152,7 +152,7 @@ def test_list_incomes_all(test_db_path) -> None:
 @pytest.mark.sit
 def test_list_incomes_with_date_filter(test_db_path) -> None:
     """List incomes with date range filter returns filtered records."""
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         income1 = IncomeDTO(
             date=dt.date(2026, 2, 10),
             name="Early Income",
@@ -169,7 +169,7 @@ def test_list_incomes_with_date_filter(test_db_path) -> None:
         )
         saved2 = client.add_income(income2)
 
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         filtered = client.list_incomes(
             start_date=dt.date(2026, 2, 15),
             end_date=dt.date(2026, 2, 25),
@@ -183,7 +183,7 @@ def test_list_incomes_with_date_filter(test_db_path) -> None:
 @pytest.mark.sit
 def test_update_income_amount(test_db_path) -> None:
     """Update income amount and verify change."""
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_income())
         updated = client.update_income(saved.key, amount=Decimal("3000.00"))
 
@@ -195,7 +195,7 @@ def test_update_income_amount(test_db_path) -> None:
 @pytest.mark.sit
 def test_update_income_notes(test_db_path) -> None:
     """Update income notes and verify change."""
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_income())
         updated = client.update_income(saved.key, notes="Updated notes")
 
@@ -205,7 +205,7 @@ def test_update_income_notes(test_db_path) -> None:
 @pytest.mark.sit
 def test_update_income_currency(test_db_path) -> None:
     """Update income to add forex currency."""
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_income())
         updated = client.update_income(
             saved.key,
@@ -223,7 +223,7 @@ def test_update_income_currency(test_db_path) -> None:
 @pytest.mark.sit
 def test_update_income_creates_syncupdate(sync_test_db_path) -> None:
     """Updating income creates SyncUpdate with UpdateIncome operation."""
-    with HomeBudgetClient(db_path=sync_test_db_path) as client:
+    with HomeBudgetClient(db_path=sync_test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_income())
         client.update_income(saved.key, amount=Decimal("3000.00"))
 
@@ -242,7 +242,7 @@ def test_update_income_creates_syncupdate(sync_test_db_path) -> None:
 @pytest.mark.sit
 def test_delete_income_removes_accounttrans(test_db_path) -> None:
     """Deleting income removes AccountTrans entry."""
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_income())
         client.delete_income(saved.key)
 
@@ -258,7 +258,7 @@ def test_delete_income_removes_accounttrans(test_db_path) -> None:
 @pytest.mark.sit
 def test_delete_income_removes_income_record(test_db_path) -> None:
     """Deleting income removes Income record."""
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_income())
         client.delete_income(saved.key)
 
@@ -274,7 +274,7 @@ def test_delete_income_removes_income_record(test_db_path) -> None:
 @pytest.mark.sit
 def test_delete_income_creates_syncupdate(sync_test_db_path) -> None:
     """Deleting income creates SyncUpdate with DeleteIncome operation."""
-    with HomeBudgetClient(db_path=sync_test_db_path) as client:
+    with HomeBudgetClient(db_path=sync_test_db_path, enable_forex_rates=False) as client:
         saved = client.add_income(_make_income())
         client.delete_income(saved.key)
 
@@ -292,7 +292,7 @@ def test_delete_income_creates_syncupdate(sync_test_db_path) -> None:
 @pytest.mark.sit
 def test_income_crud_workflow(test_db_path) -> None:
     """Complete CRUD workflow: create, read, update, delete."""
-    with HomeBudgetClient(db_path=test_db_path) as client:
+    with HomeBudgetClient(db_path=test_db_path, enable_forex_rates=False) as client:
         # Create
         income = _make_income()
         saved = client.add_income(income)

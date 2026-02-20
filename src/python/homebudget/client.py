@@ -24,11 +24,16 @@ from homebudget.persistence import PersistenceBackend
 from homebudget.repository import Repository
 from homebudget.sync import SyncUpdateManager
 from homebudget.ui_control import HomeBudgetUIController
+from homebudget.forex import ForexRateManager
+from homebudget.exceptions import NotFoundError
 
 T = TypeVar("T")
 
 ALLOWED_BATCH_RESOURCES = {"expense", "income", "transfer"}
 ALLOWED_BATCH_OPERATIONS = {"add", "update", "delete"}
+DEFAULT_FOREX_TTL_HOURS = 1
+DEFAULT_FOREX_CACHE_NAME = "forex-rates.json"
+DECIMAL_PLACES = Decimal("0.01")
 
 
 class HomeBudgetClient:
@@ -40,6 +45,7 @@ class HomeBudgetClient:
         enable_sync: bool = True,
         enable_ui_control: bool = False,
         repository: PersistenceBackend | None = None,
+        enable_forex_rates: bool = True,
     ) -> None:
         """Initialize the client with a repository backend.
         
@@ -53,6 +59,14 @@ class HomeBudgetClient:
         self.enable_ui_control = enable_ui_control
         self.db_path = self._resolve_db_path(db_path, repository)
         self.repository = repository or Repository(self.db_path)
+        self.config = self._load_config()
+        self.enable_forex_rates = enable_forex_rates
+        self._forex_manager = None
+        if self.enable_forex_rates:
+            self._forex_manager = ForexRateManager(
+                config=self.config.get("forex", {"cache_ttl_hours": DEFAULT_FOREX_TTL_HOURS}),
+                cache_path=self._derive_cache_path(),
+            )
 
     def __enter__(self) -> "HomeBudgetClient":
         """Open the repository connection."""
@@ -88,6 +102,29 @@ class HomeBudgetClient:
         if not resolved:
             raise ValueError("db_path is missing in config file")
         return Path(resolved)
+
+    def _load_config(self) -> dict:
+        """Load config file if present, else return empty config."""
+        config_path = (
+            Path(os.environ.get("USERPROFILE", ""))
+            / "OneDrive"
+            / "Documents"
+            / "HomeBudgetData"
+            / "hb-config.json"
+        )
+        if not config_path.exists():
+            return {}
+        with config_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if not isinstance(payload, dict):
+            return {}
+        return payload
+
+    def _derive_cache_path(self) -> Path:
+        """Derive the forex cache path near the database file."""
+        if not self.db_path:
+            return Path(DEFAULT_FOREX_CACHE_NAME)
+        return Path(self.db_path).parent / DEFAULT_FOREX_CACHE_NAME
 
     def _run_transaction(self, action: Callable[[], T]) -> T:
         """Run repository work inside a transaction.
@@ -253,12 +290,34 @@ class HomeBudgetClient:
 
     def _get_base_currency(self) -> str:
         """Get the system base currency from Settings table."""
+        config_currency = self.config.get("base_currency")
+        if isinstance(config_currency, str) and config_currency.strip():
+            return config_currency.strip()
         row = self.repository.connection.execute(
             "SELECT currency FROM Settings LIMIT 1"
         ).fetchone()
         if row is None or not row["currency"]:
-            return "SGD"  # Default fallback
+            raise ValueError("Base currency not configured")
         return row["currency"]
+
+    def _get_account_currency(self, account_name: str) -> str:
+        """Get the currency for an account and enforce non null currency."""
+        row = self.repository.connection.execute(
+            "SELECT currency FROM Account WHERE name = ?",
+            (account_name,),
+        ).fetchone()
+        if row is None:
+            raise NotFoundError(f"Account {account_name} not found")
+        if not row["currency"]:
+            raise ValueError(f"Account {account_name} has no currency defined")
+        return row["currency"]
+
+    def _get_forex_rate(self, from_currency: str) -> float:
+        """Get forex rate from currency to base currency."""
+        if not self._forex_manager:
+            return 1.0
+        base_currency = self._get_base_currency()
+        return self._forex_manager.get_rate(from_currency, base_currency)
 
     def _validate_currency_for_account(
         self,
@@ -344,38 +403,28 @@ class HomeBudgetClient:
         Returns:
             Modified ExpenseDTO with inferred currency if applicable
         """
-        # Skip if currency was explicitly specified
-        if expense.currency is not None:
+        # Skip if currency or currency_amount was explicitly specified
+        if expense.currency is not None or expense.currency_amount is not None:
             return expense
-        
-        # Get account currency
-        try:
-            row = self.repository.connection.execute(
-                "SELECT currency FROM Account WHERE name = ?",
-                (expense.account,),
-            ).fetchone()
-            if row is None:
-                return expense
-            account_currency = row["currency"]
-        except Exception:
-            return expense
-        
+
+        account_currency = self._get_account_currency(expense.account)
         base_currency = self._get_base_currency()
-        
-        # If account is non-base and amount is provided, infer currency
-        if account_currency and account_currency != base_currency and expense.amount:
-            return ExpenseDTO(
-                date=expense.date,
-                category=expense.category,
-                subcategory=expense.subcategory,
-                amount=expense.amount,
-                account=expense.account,
-                notes=expense.notes,
-                currency=account_currency,
-                currency_amount=expense.amount,
-            )
-        
-        return expense
+
+        if account_currency == base_currency or not expense.amount:
+            return expense
+
+        rate = Decimal(str(self._get_forex_rate(account_currency)))
+        base_amount = (Decimal(str(expense.amount)) * rate).quantize(DECIMAL_PLACES)
+        return ExpenseDTO(
+            date=expense.date,
+            category=expense.category,
+            subcategory=expense.subcategory,
+            amount=base_amount,
+            account=expense.account,
+            notes=expense.notes,
+            currency=account_currency,
+            currency_amount=Decimal(str(expense.amount)),
+        )
 
     def _infer_currency_for_income(self, income: IncomeDTO) -> IncomeDTO:
         """Infer currency for income on non-base accounts.
@@ -392,37 +441,27 @@ class HomeBudgetClient:
         Returns:
             Modified IncomeDTO with inferred currency if applicable
         """
-        # Skip if currency was explicitly specified
-        if income.currency is not None:
+        # Skip if currency or currency_amount was explicitly specified
+        if income.currency is not None or income.currency_amount is not None:
             return income
-        
-        # Get account currency
-        try:
-            row = self.repository.connection.execute(
-                "SELECT currency FROM Account WHERE name = ?",
-                (income.account,),
-            ).fetchone()
-            if row is None:
-                return income
-            account_currency = row["currency"]
-        except Exception:
-            return income
-        
+
+        account_currency = self._get_account_currency(income.account)
         base_currency = self._get_base_currency()
-        
-        # If account is non-base and amount is provided, infer currency
-        if account_currency and account_currency != base_currency and income.amount:
-            return IncomeDTO(
-                date=income.date,
-                name=income.name,
-                amount=income.amount,
-                account=income.account,
-                notes=income.notes,
-                currency=account_currency,
-                currency_amount=income.amount,
-            )
-        
-        return income
+
+        if account_currency == base_currency or not income.amount:
+            return income
+
+        rate = Decimal(str(self._get_forex_rate(account_currency)))
+        base_amount = (Decimal(str(income.amount)) * rate).quantize(DECIMAL_PLACES)
+        return IncomeDTO(
+            date=income.date,
+            name=income.name,
+            amount=base_amount,
+            account=income.account,
+            notes=income.notes,
+            currency=account_currency,
+            currency_amount=Decimal(str(income.amount)),
+        )
 
     def _infer_currency_for_transfer(self, transfer: TransferDTO) -> TransferDTO:
         """Infer currency for transfer from from_account.
@@ -436,35 +475,35 @@ class HomeBudgetClient:
         Returns:
             Modified TransferDTO with inferred currency if applicable
         """
-        # Skip if currency was explicitly specified
-        if transfer.currency is not None:
+        # Skip if currency or currency_amount was explicitly specified
+        if transfer.currency is not None or transfer.currency_amount is not None:
             return transfer
-        
-        # Get from_account currency
-        try:
-            row = self.repository.connection.execute(
-                "SELECT currency FROM Account WHERE name = ?",
-                (transfer.from_account,),
-            ).fetchone()
-            if row is None:
-                return transfer
-            from_currency = row["currency"] or self._get_base_currency()
-        except Exception:
+
+        from_currency = self._get_account_currency(transfer.from_account)
+        to_currency = self._get_account_currency(transfer.to_account)
+        base_currency = self._get_base_currency()
+
+        if not transfer.amount:
             return transfer
-        
-        # If from_account is non-base and amount is provided, infer currency
-        if from_currency != self._get_base_currency() and transfer.amount:
-            return TransferDTO(
-                date=transfer.date,
-                from_account=transfer.from_account,
-                to_account=transfer.to_account,
-                amount=transfer.amount,
-                notes=transfer.notes,
-                currency=from_currency,
-                currency_amount=transfer.amount,
-            )
-        
-        return transfer
+
+        non_base_currencies = {
+            currency for currency in (from_currency, to_currency) if currency != base_currency
+        }
+        if len(non_base_currencies) != 1:
+            return transfer
+
+        non_base_currency = non_base_currencies.pop()
+        rate = Decimal(str(self._get_forex_rate(non_base_currency)))
+        currency_amount = Decimal(str(transfer.amount)) / rate
+        return TransferDTO(
+            date=transfer.date,
+            from_account=transfer.from_account,
+            to_account=transfer.to_account,
+            amount=transfer.amount,
+            notes=transfer.notes,
+            currency=non_base_currency,
+            currency_amount=currency_amount,
+        )
 
     def add_expense(self, expense: ExpenseDTO) -> ExpenseRecord:
         """Add an expense and return the created record.
@@ -714,11 +753,13 @@ class HomeBudgetClient:
             amount = amount_dec
 
         if currency_amount is not None:
-            if exchange_rate is None:
-                raise ValueError(f"{label}: exchange_rate is required with currency_amount")
             if currency is None or not currency.strip():
                 raise ValueError(f"{label}: currency is required with currency_amount")
-            amount = Decimal(str(currency_amount)) * Decimal(str(exchange_rate))
+            if exchange_rate is None:
+                exchange_rate = self._get_forex_rate(currency)
+            amount = (Decimal(str(currency_amount)) * Decimal(str(exchange_rate))).quantize(
+                DECIMAL_PLACES
+            )
 
         if amount is None and currency_amount is None and not allow_empty:
             raise ValueError(f"{label}: amount or currency_amount is required")

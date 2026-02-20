@@ -119,21 +119,14 @@ class TestTransferCurrencyConstraints:
         transfer = TransferDTO(
             date=dt.date(2026, 2, 16),
             from_account="Cash TWH SGD",
-            to_account="Bank Account",  # Another SGD account
+            to_account="TWH - Personal",  # Another SGD account
             amount=Decimal("100.00"),
             notes="Same currency transfer - should succeed",
         )
         
         with HomeBudgetClient(db_path=test_db_path, enable_sync=False) as client:
-            try:
-                saved = client.add_transfer(transfer)
-                assert saved.key is not None
-            except NotFoundError as e:
-                # If Bank Account doesn't exist, that's okay - not a currency constraint
-                if "Account" in str(e):
-                    pytest.skip(f"Test account not found: {e}")
-                else:
-                    raise
+            saved = client.add_transfer(transfer)
+            assert saved.key is not None
 
     @pytest.mark.sit
     def test_transfer_nonexistent_account_fails(self, test_db_path) -> None:
