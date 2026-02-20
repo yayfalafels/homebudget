@@ -9,6 +9,7 @@
 - [Global options](#global-options)
 - [Expense commands](#expense-commands)
 - [Income commands](#income-commands)
+- [Batch commands](#batch-commands)
 - [UI control commands](#ui-control-commands)
 
 ## Overview
@@ -241,6 +242,58 @@ Delete income.
 
 ```bash
 homebudget income delete 14021 --yes
+```
+
+## Batch commands
+
+The batch command accepts a JSON file list of CRUD operations on transactions (expense, income, transfer).
+
+Command
+
+```bash
+homebudget sync batch --file operations.json
+```
+
+JSON structure
+
+Each entry is a JSON object with these keys.
+
+- `resource` with values expense, income, or transfer
+- `operation` with values add, update, or delete
+- `parameters` with the same fields used by the single record CLI commands
+
+Example JSON
+
+```json
+[
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-02-16",
+      "category": "Dining",
+      "subcategory": "Restaurant",
+      "amount": "25.50",
+      "account": "Wallet",
+      "notes": "Lunch"
+    }
+  },
+  {
+    "resource": "income",
+    "operation": "update",
+    "parameters": {
+      "key": 14021,
+      "notes": "Updated notes"
+    }
+  },
+  {
+    "resource": "transfer",
+    "operation": "delete",
+    "parameters": {
+      "key": 21007
+    }
+  }
+]
 ```
 
 ## UI control commands

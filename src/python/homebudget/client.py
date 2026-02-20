@@ -11,6 +11,8 @@ import os
 
 from homebudget.models import (
     BatchResult,
+    BatchOperation,
+    BatchOperationResult,
     ExpenseDTO,
     ExpenseRecord,
     IncomeDTO,
@@ -24,6 +26,9 @@ from homebudget.sync import SyncUpdateManager
 from homebudget.ui_control import HomeBudgetUIController
 
 T = TypeVar("T")
+
+ALLOWED_BATCH_RESOURCES = {"expense", "income", "transfer"}
+ALLOWED_BATCH_OPERATIONS = {"add", "update", "delete"}
 
 
 class HomeBudgetClient:
@@ -436,6 +441,355 @@ class HomeBudgetClient:
             )
 
         return amount, currency, currency_amount
+
+    @staticmethod
+    def _parse_date(value: dt.date | str | None, label: str) -> dt.date:
+        """Parse a date value for batch operations."""
+        if value is None:
+            raise ValueError(f"{label} is required")
+        if isinstance(value, dt.date):
+            return value
+        try:
+            return dt.date.fromisoformat(str(value))
+        except ValueError as exc:
+            raise ValueError(f"{label} must be YYYY-MM-DD") from exc
+
+    @staticmethod
+    def _parse_decimal(value: object | None, label: str) -> Decimal | None:
+        """Parse a decimal value for batch operations."""
+        if value is None:
+            return None
+        try:
+            return Decimal(str(value))
+        except Exception as exc:
+            raise ValueError(f"{label} must be a decimal") from exc
+
+    @staticmethod
+    def _parse_key(value: object | None, label: str) -> int:
+        """Parse a key value for batch operations."""
+        if value is None:
+            raise ValueError(f"{label} is required")
+        try:
+            return int(value)
+        except Exception as exc:
+            raise ValueError(f"{label} must be an integer") from exc
+
+    def _resolve_batch_forex_add(
+        self,
+        *,
+        amount: Decimal | None,
+        currency: str | None,
+        currency_amount: Decimal | None,
+        exchange_rate: Decimal | None,
+        label: str,
+    ) -> tuple[Decimal, str | None, Decimal | None]:
+        """Resolve forex inputs for batch add operations."""
+        if amount is not None and currency_amount is not None:
+            raise ValueError(
+                f"{label}: provide amount or currency_amount with exchange_rate, not both"
+            )
+
+        if currency_amount is not None:
+            if exchange_rate is None:
+                raise ValueError(f"{label}: exchange_rate is required with currency_amount")
+            if currency is None or not currency.strip():
+                raise ValueError(f"{label}: currency is required with currency_amount")
+            amount = currency_amount * exchange_rate
+
+        if amount is None and currency_amount is None:
+            raise ValueError(f"{label}: amount or currency_amount is required")
+
+        if amount is not None and currency_amount is None:
+            currency_amount = amount
+
+        return amount, currency, currency_amount
+
+    def _build_expense_dto(self, parameters: dict[str, object]) -> ExpenseDTO:
+        """Build an ExpenseDTO from batch parameters."""
+        date = self._parse_date(parameters.get("date"), "Expense date")
+        amount = self._parse_decimal(parameters.get("amount"), "Expense amount")
+        currency_amount = self._parse_decimal(
+            parameters.get("currency_amount"), "Expense currency_amount"
+        )
+        exchange_rate = self._parse_decimal(
+            parameters.get("exchange_rate"), "Expense exchange_rate"
+        )
+        amount, currency, currency_amount = self._resolve_batch_forex_add(
+            amount=amount,
+            currency=str(parameters.get("currency")) if parameters.get("currency") else None,
+            currency_amount=currency_amount,
+            exchange_rate=exchange_rate,
+            label="Expense add",
+        )
+        return ExpenseDTO(
+            date=date,
+            category=str(parameters.get("category") or ""),
+            subcategory=str(parameters.get("subcategory") or ""),
+            amount=amount,
+            account=str(parameters.get("account") or ""),
+            notes=str(parameters.get("notes")) if parameters.get("notes") is not None else None,
+            currency=currency,
+            currency_amount=currency_amount,
+        )
+
+    def _build_income_dto(self, parameters: dict[str, object]) -> IncomeDTO:
+        """Build an IncomeDTO from batch parameters."""
+        date = self._parse_date(parameters.get("date"), "Income date")
+        amount = self._parse_decimal(parameters.get("amount"), "Income amount")
+        currency_amount = self._parse_decimal(
+            parameters.get("currency_amount"), "Income currency_amount"
+        )
+        exchange_rate = self._parse_decimal(
+            parameters.get("exchange_rate"), "Income exchange_rate"
+        )
+        amount, currency, currency_amount = self._resolve_batch_forex_add(
+            amount=amount,
+            currency=str(parameters.get("currency")) if parameters.get("currency") else None,
+            currency_amount=currency_amount,
+            exchange_rate=exchange_rate,
+            label="Income add",
+        )
+        return IncomeDTO(
+            date=date,
+            name=str(parameters.get("name") or ""),
+            amount=amount,
+            account=str(parameters.get("account") or ""),
+            notes=str(parameters.get("notes")) if parameters.get("notes") is not None else None,
+            currency=currency,
+            currency_amount=currency_amount,
+        )
+
+    def _build_transfer_dto(self, parameters: dict[str, object]) -> TransferDTO:
+        """Build a TransferDTO from batch parameters."""
+        date = self._parse_date(parameters.get("date"), "Transfer date")
+        amount = self._parse_decimal(parameters.get("amount"), "Transfer amount")
+        currency_amount = self._parse_decimal(
+            parameters.get("currency_amount"), "Transfer currency_amount"
+        )
+        exchange_rate = self._parse_decimal(
+            parameters.get("exchange_rate"), "Transfer exchange_rate"
+        )
+        amount, currency, currency_amount = self._resolve_batch_forex_add(
+            amount=amount,
+            currency=str(parameters.get("currency")) if parameters.get("currency") else None,
+            currency_amount=currency_amount,
+            exchange_rate=exchange_rate,
+            label="Transfer add",
+        )
+        return TransferDTO(
+            date=date,
+            from_account=str(parameters.get("from_account") or ""),
+            to_account=str(parameters.get("to_account") or ""),
+            amount=amount,
+            notes=str(parameters.get("notes")) if parameters.get("notes") is not None else None,
+            currency=currency,
+            currency_amount=currency_amount,
+        )
+
+    def _apply_batch_operation(
+        self, operation: BatchOperation
+    ) -> tuple[
+        ExpenseRecord | IncomeRecord | TransferRecord,
+        str,
+        dict[str, object] | None,
+    ]:
+        """Execute a single batch operation and return sync details."""
+        resource = operation.resource.strip().lower()
+        action = operation.operation.strip().lower()
+        parameters = operation.parameters
+
+        if resource not in ALLOWED_BATCH_RESOURCES:
+            raise ValueError(f"Unsupported batch resource: {operation.resource}")
+        if action not in ALLOWED_BATCH_OPERATIONS:
+            raise ValueError(f"Unsupported batch operation: {operation.operation}")
+
+        if resource == "expense":
+            if action == "add":
+                dto = self._build_expense_dto(parameters)
+                record = self.repository.insert_expense(dto)
+                return record, "AddExpense", None
+            if action == "update":
+                key = self._parse_key(parameters.get("key"), "Expense key")
+                amount = self._parse_decimal(parameters.get("amount"), "Expense amount")
+                currency_amount = self._parse_decimal(
+                    parameters.get("currency_amount"), "Expense currency_amount"
+                )
+                exchange_rate = self._parse_decimal(
+                    parameters.get("exchange_rate"), "Expense exchange_rate"
+                )
+                currency = parameters.get("currency")
+                notes = parameters.get("notes")
+                if amount is None and notes is None and currency is None and currency_amount is None:
+                    raise ValueError("Expense update requires at least one field")
+                normalized_currency = str(currency) if currency is not None else None
+                normalized_notes = str(notes) if notes is not None else None
+                amount, currency, currency_amount = self._normalize_forex_inputs(
+                    amount=amount,
+                    currency=normalized_currency,
+                    currency_amount=currency_amount,
+                    exchange_rate=exchange_rate,
+                    label="Expense update",
+                    allow_empty=notes is not None,
+                )
+                record = self.repository.update_expense(
+                    key=key,
+                    amount=amount,
+                    notes=normalized_notes,
+                    currency=normalized_currency,
+                    currency_amount=currency_amount,
+                )
+                changed = self._collect_changed_fields(
+                    amount, normalized_notes, normalized_currency, currency_amount
+                )
+                return record, "UpdateExpense", changed
+            key = self._parse_key(parameters.get("key"), "Expense key")
+            record = self.repository.get_expense(key)
+            self.repository.delete_expense(key)
+            return record, "DeleteExpense", None
+
+        if resource == "income":
+            if action == "add":
+                dto = self._build_income_dto(parameters)
+                record = self.repository.insert_income(dto)
+                return record, "AddIncome", None
+            if action == "update":
+                key = self._parse_key(parameters.get("key"), "Income key")
+                amount = self._parse_decimal(parameters.get("amount"), "Income amount")
+                currency_amount = self._parse_decimal(
+                    parameters.get("currency_amount"), "Income currency_amount"
+                )
+                exchange_rate = self._parse_decimal(
+                    parameters.get("exchange_rate"), "Income exchange_rate"
+                )
+                currency = parameters.get("currency")
+                notes = parameters.get("notes")
+                if amount is None and notes is None and currency is None and currency_amount is None:
+                    raise ValueError("Income update requires at least one field")
+                normalized_currency = str(currency) if currency is not None else None
+                normalized_notes = str(notes) if notes is not None else None
+                amount, currency, currency_amount = self._normalize_forex_inputs(
+                    amount=amount,
+                    currency=normalized_currency,
+                    currency_amount=currency_amount,
+                    exchange_rate=exchange_rate,
+                    label="Income update",
+                    allow_empty=notes is not None,
+                )
+                record = self.repository.update_income(
+                    key=key,
+                    amount=amount,
+                    notes=normalized_notes,
+                    currency=normalized_currency,
+                    currency_amount=currency_amount,
+                )
+                changed = self._collect_changed_fields(
+                    amount, normalized_notes, normalized_currency, currency_amount
+                )
+                return record, "UpdateIncome", changed
+            key = self._parse_key(parameters.get("key"), "Income key")
+            record = self.repository.get_income(key)
+            self.repository.delete_income(key)
+            return record, "DeleteIncome", None
+
+        if action == "add":
+            dto = self._build_transfer_dto(parameters)
+            record = self.repository.insert_transfer(dto)
+            return record, "AddTransfer", None
+        if action == "update":
+            key = self._parse_key(parameters.get("key"), "Transfer key")
+            amount = self._parse_decimal(parameters.get("amount"), "Transfer amount")
+            currency_amount = self._parse_decimal(
+                parameters.get("currency_amount"), "Transfer currency_amount"
+            )
+            exchange_rate = self._parse_decimal(
+                parameters.get("exchange_rate"), "Transfer exchange_rate"
+            )
+            currency = parameters.get("currency")
+            notes = parameters.get("notes")
+            if amount is None and notes is None and currency is None and currency_amount is None:
+                raise ValueError("Transfer update requires at least one field")
+            normalized_currency = str(currency) if currency is not None else None
+            normalized_notes = str(notes) if notes is not None else None
+            amount, currency, currency_amount = self._normalize_forex_inputs(
+                amount=amount,
+                currency=normalized_currency,
+                currency_amount=currency_amount,
+                exchange_rate=exchange_rate,
+                label="Transfer update",
+                allow_empty=notes is not None,
+            )
+            record = self.repository.update_transfer(
+                key=key,
+                amount=amount,
+                notes=normalized_notes,
+                currency=normalized_currency,
+                currency_amount=currency_amount,
+            )
+            changed = self._collect_changed_fields(
+                amount, normalized_notes, normalized_currency, currency_amount
+            )
+            return record, "UpdateTransfer", changed
+        key = self._parse_key(parameters.get("key"), "Transfer key")
+        record = self.repository.get_transfer(key)
+        self.repository.delete_transfer(key)
+        return record, "DeleteTransfer", None
+
+    def batch(
+        self,
+        operations: list[BatchOperation],
+        continue_on_error: bool = True,
+    ) -> BatchOperationResult:
+        """Run mixed batch operations across resources.
+
+        Args:
+            operations: Batch operations to execute in order
+            continue_on_error: If True, continue processing after errors and collect
+                failures. If False, raise on the first error.
+
+        Returns:
+            BatchOperationResult with successful records and any failures
+
+        Raises:
+            Exception: If continue_on_error is False and any operation fails
+        """
+        successful: list[ExpenseRecord | IncomeRecord | TransferRecord] = []
+        failed: list[tuple[BatchOperation, Exception]] = []
+        sync_actions: list[tuple[ExpenseRecord | IncomeRecord | TransferRecord, str, dict[str, object] | None]] = []
+
+        def action() -> BatchOperationResult:
+            original_sync_setting = self.enable_sync
+            self.enable_sync = False
+
+            try:
+                for operation in operations:
+                    try:
+                        record, sync_operation, changed_fields = self._apply_batch_operation(
+                            operation
+                        )
+                        successful.append(record)
+                        sync_actions.append((record, sync_operation, changed_fields))
+                    except Exception as exc:
+                        if not continue_on_error:
+                            raise
+                        failed.append((operation, exc))
+
+                self.enable_sync = original_sync_setting
+                if self.enable_sync:
+                    manager = self._get_sync_manager()
+                    if manager:
+                        for record, sync_operation, changed_fields in sync_actions:
+                            if sync_operation.startswith("Update") and changed_fields:
+                                manager.create_updates_for_changes(
+                                    record, sync_operation, changed_fields
+                                )
+                            else:
+                                manager.create_sync_record(record, sync_operation)
+
+                return BatchOperationResult(successful=successful, failed=failed)
+            finally:
+                self.enable_sync = original_sync_setting
+
+        return self._run_transaction(action)
     def add_expenses_batch(
         self,
         expenses: list[ExpenseDTO],

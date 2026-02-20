@@ -1,0 +1,32 @@
+[
+  {
+    "resource": "income",
+    "operation": "update",
+    "parameters": {
+      "key": 1497,
+      "notes": "UAT Batch Rollback Income Update"
+    }
+  },
+  {
+    "resource": "income",
+    "operation": "delete",
+    "parameters": {
+      "key": 1497
+    }
+  },
+  {
+    "resource": "transfer",
+    "operation": "update",
+    "parameters": {
+      "key": 11724,
+      "notes": "UAT Batch Rollback Transfer Update"
+    }
+  },
+  {
+    "resource": "transfer",
+    "operation": "delete",
+    "parameters": {
+      "key": 11724
+    }
+  }
+]

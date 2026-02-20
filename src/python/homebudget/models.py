@@ -187,6 +187,21 @@ class TransferRecord:
 
 
 @dataclass(frozen=True)
+class BatchOperation:
+    """Single batch operation for mixed resource workflows."""
+    resource: str
+    operation: str
+    parameters: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class BatchOperationResult:
+    """Result of a mixed batch operation run."""
+    successful: list[ExpenseRecord | IncomeRecord | TransferRecord]
+    failed: list[tuple[BatchOperation, Exception]]
+
+
+@dataclass(frozen=True)
 class BatchResult:
     """Result of a batch operation."""
     successful: list[ExpenseRecord | IncomeRecord | TransferRecord]

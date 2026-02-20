@@ -52,10 +52,10 @@ pip install -e src/python
 Create the user config JSON once during setup. A sample config is provided in `config/hb-config.json.sample`.
 
 Config file path
-- %USER_PROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json
+- %USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json
 
 Default database path
-- %USER_PROFILE%\OneDrive\Documents\HomeBudgetData\Data\homebudget.db
+- %USERPROFILE%\OneDrive\Documents\HomeBudgetData\Data\homebudget.db
 
 Setup instructions
 
@@ -370,7 +370,7 @@ homebudget expense add \
 
 ## Batch operations
 
-Batch operations enable importing multiple transactions at once from CSV or JSON files. This is useful for statement-driven updates where you need to add many transactions efficiently.
+Batch operations support two paths. Use batch import for single resource files, or use the mixed operation JSON format to combine resources and operations in one run.
 
 ### Batch behavior
 
@@ -384,37 +384,37 @@ Batch operations enable importing multiple transactions at once from CSV or JSON
 CSV files must include a header row with these columns:
 
 **Expense CSV columns:**
-- `date` (required): YYYY-MM-DD format
-- `category` (required): Category name
-- `subcategory` (optional): Subcategory name
-- `amount` (required): Decimal amount
-- `account` (required): Account name
-- `notes` (optional): Transaction notes
-- `currency` (optional): Currency code
-- `currency_amount` (optional): Foreign currency amount
-- `exchange_rate` (optional): Exchange rate to base currency
+- `date` required: YYYY-MM-DD format
+- `category` required: Category name
+- `subcategory` optional: Subcategory name
+- `amount` required: Decimal amount
+- `account` required: Account name
+- `notes` optional: Transaction notes
+- `currency` optional: Currency code
+- `currency_amount` optional: Foreign currency amount
+- `exchange_rate` optional: Exchange rate to base currency
 
 **Income CSV columns:**
-- `date` (required): YYYY-MM-DD format
-- `name` (required): Income name
-- `amount` (required): Decimal amount
-- `account` (required): Account name
-- `notes` (optional): Transaction notes
-- `currency` (optional): Currency code
-- `currency_amount` (optional): Foreign currency amount
-- `exchange_rate` (optional): Exchange rate to base currency
+- `date` required: YYYY-MM-DD format
+- `name` required: Income name
+- `amount` required: Decimal amount
+- `account` required: Account name
+- `notes` optional: Transaction notes
+- `currency` optional: Currency code
+- `currency_amount` optional: Foreign currency amount
+- `exchange_rate` optional: Exchange rate to base currency
 
 **Transfer CSV columns:**
-- `date` (required): YYYY-MM-DD format
-- `from_account` (required): Source account name
-- `to_account` (required): Destination account name
-- `amount` (required): Decimal amount
-- `notes` (optional): Transaction notes
-- `currency` (optional): Currency code
-- `currency_amount` (optional): Foreign currency amount
-- `exchange_rate` (optional): Exchange rate to base currency
+- `date` required: YYYY-MM-DD format
+- `from_account` required: Source account name
+- `to_account` required: Destination account name
+- `amount` required: Decimal amount
+- `notes` optional: Transaction notes
+- `currency` optional: Currency code
+- `currency_amount` optional: Foreign currency amount
+- `exchange_rate` optional: Exchange rate to base currency
 
-**CSV example** (expenses.csv):
+**CSV example** for expenses.csv:
 ```csv
 date,category,subcategory,amount,account,notes
 2026-02-01,Food (Basic),Groceries,45.50,Wallet,Weekly groceries
@@ -426,7 +426,7 @@ date,category,subcategory,amount,account,notes
 
 JSON files must contain an array of transaction objects with the same fields as CSV columns.
 
-**JSON example** (income.json):
+**JSON example** for income.json:
 ```json
 [
   {
@@ -442,6 +442,50 @@ JSON files must contain an array of transaction objects with the same fields as 
     "amount": "1200.00",
     "account": "Checking",
     "notes": "Project payment"
+  }
+]
+```
+
+### Mixed operation JSON format
+
+Use this format to batch a mix of resources and CRUD operations in one file.
+
+Each entry is a JSON object with these keys.
+
+- `resource` with values expense, income, or transfer
+- `operation` with values add, update, or delete
+- `parameters` with the same fields used by the single record CLI commands
+
+Example JSON for operations.json:
+
+```json
+[
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-02-16",
+      "category": "Dining",
+      "subcategory": "Restaurant",
+      "amount": "25.50",
+      "account": "Wallet",
+      "notes": "Lunch"
+    }
+  },
+  {
+    "resource": "income",
+    "operation": "update",
+    "parameters": {
+      "key": 14021,
+      "notes": "Updated notes"
+    }
+  },
+  {
+    "resource": "transfer",
+    "operation": "delete",
+    "parameters": {
+      "key": 21007
+    }
   }
 ]
 ```
@@ -501,6 +545,11 @@ homebudget expense batch-import --file expenses.csv --format csv --error-report 
 **Stop on first error:**
 ```bash
 homebudget transfer batch-import --file transfers.csv --format csv --stop-on-error
+```
+
+**Run mixed batch operations:**
+```bash
+homebudget sync batch --file operations.json
 ```
 
 ### Batch result output

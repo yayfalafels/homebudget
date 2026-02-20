@@ -9,6 +9,7 @@ import click
 from homebudget.__version__ import __version__
 from homebudget.cli.expense import expense
 from homebudget.cli.income import income
+from homebudget.cli.sync import sync
 from homebudget.cli.transfer import transfer
 from homebudget.cli.ui import ui
 
@@ -33,6 +34,7 @@ def main(ctx: click.Context, db_path: Path | None, no_sync: bool) -> None:
 
 main.add_command(expense)
 main.add_command(income)
+main.add_command(sync)
 main.add_command(transfer)
 main.add_command(ui)
 
