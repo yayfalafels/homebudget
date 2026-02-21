@@ -242,7 +242,7 @@ def batch_import_transfers(
                         date=dt.datetime.strptime(item["date"], "%Y-%m-%d").date(),
                         from_account=item["from_account"],
                         to_account=item["to_account"],
-                        amount=Decimal(item["amount"]),
+                        amount=Decimal(item["amount"]) if item.get("amount") else None,
                         notes=item.get("notes") or None,
                         currency=item.get("currency") or None,
                         currency_amount=Decimal(item["currency_amount"]) if item.get("currency_amount") else None,
@@ -257,11 +257,17 @@ def batch_import_transfers(
             click.echo("No transfers to import")
             return
         
-        if errors and not transfers:
-            click.echo(f"Failed to parse any transfers. {len(errors)} errors.")
+        # Always display parsing errors if any occurred
+        if errors:
+            click.echo(f"\n{len(errors)} parsing error(s) occurred:")
+            for error in errors:
+                click.echo(f"  {error}")
             if error_report:
                 error_report.write_text("\n".join(errors), encoding="utf-8")
                 click.echo(f"Error details written to {error_report}")
+        
+        # If no transfers were successfully parsed, stop here
+        if not transfers:
             return
         
         # Import batch
@@ -276,7 +282,7 @@ def batch_import_transfers(
         if result.failed:
             click.echo("\nFailed records:")
             for transfer_dto, exception in result.failed:
-                click.echo(f"  {transfer_dto.date} {transfer_dto.from_account} → {transfer_dto.to_account}: {exception}")
+                click.echo(f"  {transfer_dto.date} {transfer_dto.from_account} -> {transfer_dto.to_account}: {exception}")
         
         # Write error report if requested
         if error_report and (errors or result.failed):

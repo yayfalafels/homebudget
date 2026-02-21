@@ -670,6 +670,615 @@
           "label": "Attempt to add a base account transaction with currency set to USD and no currency amount, verify an error and no data written"
         }
       ]
+    },
+    {
+      "id": "uat_transfer_amount_only_base_to_foreign",
+      "title": "UAT: Transfer amount only - Base (SGD) to Foreign (USD)",
+      "resource": "transfer_amount_only",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Create transfer SGD→USD with amount only",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --amount 250.00 --notes \"UAT: Base→Foreign Amount Only\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Record transfer key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read transfer",
+          "command_template": "hb transfer get {transfer_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: currency=SGD, currency_amount=250, amount=~185 (250/1.35), different amounts in both currencies"
+        },
+        {
+          "kind": "auto",
+          "label": "Cleanup: Delete transfer",
+          "command_template": "hb transfer delete {transfer_key} --yes"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_amount_only_foreign_to_base",
+      "title": "UAT: Transfer amount only - Foreign (USD) to Base (SGD)",
+      "resource": "transfer_amount_only",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Create transfer USD→SGD with amount only in base (receive SGD)",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH IB USD\" --to-account \"TWH - Personal\" --amount 300.00 --notes \"UAT: Foreign→Base Amount Only\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Record transfer key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read transfer",
+          "command_template": "hb transfer get {transfer_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: currency=USD, currency_amount=~222 (300/1.35), amount=300, different amounts in both currencies"
+        },
+        {
+          "kind": "auto",
+          "label": "Cleanup: Delete transfer",
+          "command_template": "hb transfer delete {transfer_key} --yes"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_amount_only_foreign_to_foreign",
+      "title": "UAT: Transfer amount only - Foreign (USD) to Foreign (EUR)",
+      "resource": "transfer_amount_only",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure TWH EUR account exists in app, mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Create transfer USD→EUR with amount only",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH IB USD\" --to-account \"TWH EUR\" --amount 150.00 --notes \"UAT: Foreign→Foreign Amount Only\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Record transfer key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read transfer",
+          "command_template": "hb transfer get {transfer_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: currency=USD, currency_amount=150, amount calculated using cross-rate, different amounts"
+        },
+        {
+          "kind": "auto",
+          "label": "Cleanup: Delete transfer",
+          "command_template": "hb transfer delete {transfer_key} --yes"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_same_currency_both_sides",
+      "title": "UAT: Transfer same currency - Base (SGD) to Base (SGD)",
+      "resource": "transfer_same_currency",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure TWH Personal SGD and TWH Savings SGD accounts exist, mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Create transfer SGD→SGD with amount only",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH Savings\" --amount 500.00 --notes \"UAT: Same Currency\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Record transfer key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read transfer",
+          "command_template": "hb transfer get {transfer_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: currency=SGD, currency_amount=500, amount=500 (1:1, no forex)"
+        },
+        {
+          "kind": "auto",
+          "label": "Cleanup: Delete transfer",
+          "command_template": "hb transfer delete {transfer_key} --yes"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_full_spec_base_to_foreign",
+      "title": "UAT: Transfer fully specified (amount+currency_amount+rate) - Base to Foreign",
+      "resource": "transfer_full_spec",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Create transfer SGD→USD with full specification",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --amount 100.00 --currency SGD --currency-amount 100.00 --exchange-rate 1.35 --notes \"UAT: Full Spec Base→Foreign\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Record transfer key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read transfer",
+          "command_template": "hb transfer get {transfer_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: currency=SGD, currency_amount=100, amount=~74 (100/1.35)"
+        },
+        {
+          "kind": "auto",
+          "label": "Cleanup: Delete transfer",
+          "command_template": "hb transfer delete {transfer_key} --yes"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_full_spec_foreign_to_base",
+      "title": "UAT: Transfer fully specified - Foreign to Base",
+      "resource": "transfer_full_spec",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Create transfer USD→SGD with full specification",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH IB USD\" --to-account \"TWH - Personal\" --currency-amount 75.00 --currency USD --amount 100.00 --exchange-rate 1.35 --notes \"UAT: Full Spec Foreign→Base\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Record transfer key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read transfer",
+          "command_template": "hb transfer get {transfer_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: currency=USD, currency_amount=75, amount=100"
+        },
+        {
+          "kind": "auto",
+          "label": "Cleanup: Delete transfer",
+          "command_template": "hb transfer delete {transfer_key} --yes"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_full_spec_foreign_to_foreign",
+      "title": "UAT: Transfer fully specified - Foreign to Foreign",
+      "resource": "transfer_full_spec",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure TWH EUR account exists, mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Create transfer USD→EUR with full specification",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH IB USD\" --to-account \"TWH EUR\" --currency-amount 120.00 --currency USD --amount 110.00 --exchange-rate 1.35 --notes \"UAT: Full Spec Foreign→Foreign\""
+        },
+        {
+          "kind": "auto",
+          "label": "Verify SyncUpdate created",
+          "command": "python tests/manual/verify_syncupdate.py"
+        },
+        {
+          "kind": "user",
+          "label": "Record transfer key"
+        },
+        {
+          "kind": "auto",
+          "label": "Read transfer",
+          "command_template": "hb transfer get {transfer_key}"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: currency=USD, currency_amount=120, amount=110"
+        },
+        {
+          "kind": "auto",
+          "label": "Cleanup: Delete transfer",
+          "command_template": "hb transfer delete {transfer_key} --yes"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_amount_and_currency_amount",
+      "title": "UAT: Transfer INVALID - Both amount and currency_amount specified",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer with both amount and currency_amount (no rate)",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --amount 100.00 --currency-amount 75.00 --notes \"INVALID: Over-specified\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_currency_amount_no_currency",
+      "title": "UAT: Transfer INVALID - Currency_amount without currency",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer with currency_amount but no currency",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --currency-amount 75.00 --exchange-rate 1.35 --notes \"INVALID: Missing currency\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_currency_amount_no_rate",
+      "title": "UAT: Transfer INVALID - Currency_amount without exchange_rate",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer with currency_amount but no rate",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --currency SGD --currency-amount 100.00 --notes \"INVALID: Missing rate\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_third_currency",
+      "title": "UAT: Transfer INVALID - Currency is 3rd currency (not matching either account)",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer SGD→USD with currency=EUR (3rd currency)",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --currency EUR --currency-amount 100.00 --exchange-rate 1.35 --notes \"INVALID: 3rd currency\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned - currency must match from_account or to_account, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_currency_not_from_account",
+      "title": "UAT: Transfer INVALID - Currency doesn't match from_account",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer SGD→USD with currency=USD (must be SGD)",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --currency USD --currency-amount 75.00 --exchange-rate 1.35 --notes \"INVALID: Currency mismatch from_account\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned - currency must match from_account, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_negative_amount",
+      "title": "UAT: Transfer INVALID - Negative amount",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer with negative amount",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --amount -100.00 --notes \"INVALID: Negative amount\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_zero_amount",
+      "title": "UAT: Transfer INVALID - Zero amount",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer with zero amount",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --amount 0.00 --notes \"INVALID: Zero amount\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_negative_currency_amount",
+      "title": "UAT: Transfer INVALID - Negative currency_amount",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer with negative currency_amount",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --currency SGD --currency-amount -100.00 --exchange-rate 1.35 --notes \"INVALID: Negative currency_amount\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_missing_amount",
+      "title": "UAT: Transfer INVALID - No amount or currency_amount specified",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer without amount or currency_amount",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --notes \"INVALID: No amount\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_zero_exchange_rate",
+      "title": "UAT: Transfer INVALID - Zero exchange rate",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer with zero exchange_rate",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --currency SGD --currency-amount 100.00 --exchange-rate 0.00 --notes \"INVALID: Zero rate\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_negative_exchange_rate",
+      "title": "UAT: Transfer INVALID - Negative exchange rate",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer with negative exchange_rate",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH IB USD\" --currency SGD --currency-amount 100.00 --exchange-rate -1.35 --notes \"INVALID: Negative rate\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_nonexistent_account",
+      "title": "UAT: Transfer INVALID - From or to account doesn't exist",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer from nonexistent account",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"Nonexistent Account\" --to-account \"TWH IB USD\" --amount 100.00 --notes \"INVALID: Nonexistent account\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_transfer_invalid_same_account",
+      "title": "UAT: Transfer INVALID - From and to account are same",
+      "resource": "transfer_invalid",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced"
+        },
+        {
+          "kind": "auto",
+          "label": "Attempt to create transfer to same account",
+          "command": "hb transfer add --date 2026-02-21 --from-account \"TWH - Personal\" --to-account \"TWH - Personal\" --amount 100.00 --notes \"INVALID: Same account\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Error returned, no transfer created"
+        }
+      ]
+    },
+    {
+      "id": "uat_batch_transfer_valid",
+      "title": "UAT: Batch Transfer - Valid Transfers (Multiple Scenarios)",
+      "resource": "batch_transfer",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced, all required accounts exist (TWH - Personal, 30 CC Hashemis, TWH IB USD, Cash TWH EUR)"
+        },
+        {
+          "kind": "auto",
+          "label": "Import valid batch transfers from JSON",
+          "command": "hb transfer batch-import --file tests/manual/batch_templates/transfers_valid_batch.json --format json"
+        },
+        {
+          "kind": "auto",
+          "label": "List transfers to verify all were created",
+          "command": "hb transfer list --start-date 2026-02-22 --end-date 2026-02-22 --limit 10"
+        },
+        {
+          "kind": "user",
+          "label": "Record the transfer keys from the list above (comma-separated)"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: All transfers appear in Windows app and mobile app with correct currencies and amounts"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: SyncUpdates were created for all transfers in batch"
+        },
+        {
+          "kind": "auto",
+          "label": "Rollback: Delete all batch transfers using recorded keys",
+          "command_template": "hb batch run --file batch_templates/rollback_transfers.json"
+        }
+      ]
+    },
+    {
+      "id": "uat_batch_transfer_invalid",
+      "title": "UAT: Batch Transfer - Mixed Valid/Invalid (Error Handling)",
+      "resource": "batch_transfer",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Ensure mobile app is synced, all required accounts exist"
+        },
+        {
+          "kind": "auto",
+          "label": "Import batch with mixed valid and invalid transfers (continue on error)",
+          "command": "hb transfer batch-import --file tests/manual/batch_templates/transfers_invalid_batch.json --format json"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Command displayed errors for 9 invalid items (negative, zero, over-specified, currency mismatch, nonexistent accounts, missing amount, same account) while continuing to process valid items"
+        },
+        {
+          "kind": "auto",
+          "label": "List transfers to verify only 2 were created (Item 1 and Item 11)",
+          "command": "hb transfer list --start-date 2026-02-23 --end-date 2026-02-23"
+        },
+        {
+          "kind": "user",
+          "label": "Record the transfer keys from the list above (comma-separated)"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Only 2 successful transfers appear in Windows app and mobile app, invalid items not present, SyncUpdates created only for successful records"
+        },
+        {
+          "kind": "auto",
+          "label": "Rollback: Delete batch transfers using recorded keys",
+          "command_template": "hb batch run --file batch_templates/rollback_transfers.json"
+        }
+      ]
     }
   ]
 }

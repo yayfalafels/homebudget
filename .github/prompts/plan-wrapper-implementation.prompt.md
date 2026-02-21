@@ -9,7 +9,7 @@ agent: agent
 
 This plan implements the wrapper design using Test-Driven Development (TDD) workflow. Each feature follows the cycle: user guide documentation → test cases → implementation → validation. Testing is hybrid: automated scripts plus manual user feedback from HomeBudget UI.
 
-The implementation follows the consolidated design in [docs/design.md](docs/design.md), with support from [docs/developer-guide.md](docs/developer-guide.md) and [docs/user-guide.md](docs/user-guide.md).
+The implementation follows the consolidated design in docs/design.md, with support from docs/developer-guide.md and docs/user-guide.md.
 
 ## Environment usage
 
@@ -81,10 +81,10 @@ Each feature follows TDD cycle:
 Verify development environment and create main application environment.
 
 **Inputs**
-- [docs/develop/environment.md](docs/develop/environment.md)
-- [docs/design.md](docs/design.md)
-- [docs/developer-guide.md](docs/developer-guide.md)
-- Existing [.dev/env](.dev/env) virtual environment
+- docs/develop/environment.md
+- docs/design.md
+- docs/developer-guide.md
+- Existing .dev/env virtual environment
 
 **Process**
 1. Verify `.dev/env` exists from design phase and do not create new
@@ -135,17 +135,17 @@ CRITICAL: Use env/ for all wrapper and test work. Reserve .dev/env for helper sc
 Document user-facing features and workflows based on design and HomeBudget guide.
 
 **Inputs**
-- [docs/design.md](docs/design.md)
-- [docs/developer-guide.md](docs/developer-guide.md)
-- [docs/user-guide.md](docs/user-guide.md)
-- [reference/HomeBudget_Windows_guide.md](reference/HomeBudget_Windows_guide.md)
-- [docs/workflow.md](docs/workflow.md)
+- docs/design.md
+- docs/developer-guide.md
+- docs/user-guide.md
+- reference/HomeBudget_Windows_guide.md
+- docs/workflow.md
 
 **Process**
 1. Create user guide outline in `docs/user-guide.md`
 2. Document API entry points with examples
 3. Document CLI commands with usage examples
-4. Document workflows from [workflow.md](docs/workflow.md)
+4. Document workflows from docs/workflow.md
 5. Map HomeBudget UI features to wrapper operations
 6. Create a method list from design step 4
 7. Create a developer guide for implementation support
@@ -199,11 +199,11 @@ Use design documents and workflow.md as source material.
 Define hybrid testing approach and build test infrastructure.
 
 **Inputs**
-- [docs/design.md](docs/design.md)
-- [docs/developer-guide.md](docs/developer-guide.md)
-- [docs/user-guide.md](docs/user-guide.md)
-- [docs/sync-update.md](docs/sync-update.md)
-- [reference/hb-sqlite-db](reference/hb-sqlite-db)
+- docs/design.md
+- docs/developer-guide.md
+- docs/user-guide.md
+- docs/sync-update.md
+- reference/hb-sqlite-db
 
 **Process**
 1. Create test strategy document
@@ -385,8 +385,8 @@ Track progress: Create checklist in logs and mark each component complete.
 Create installable package structure.
 
 **Inputs**
-- [docs/design.md](docs/design.md)
-- [docs/developer-guide.md](docs/developer-guide.md)
+- docs/design.md
+- docs/developer-guide.md
 
 **Process**
 1. Create `pyproject.toml`
@@ -599,7 +599,7 @@ Follow same TDD workflow as 5.1:
 
 #### Design Pattern Review for Features 5.3-5.6
 
-For the remaining features, use this consolidated checklist to ensure consistency with patterns in 5.1-5.2 (reference: [docs/develop/python-design-guide.md](docs/develop/python-design-guide.md) and [docs/develop/sync-refactor-01-dry.md](docs/develop/sync-refactor-01-dry.md)):
+For the remaining features, use this consolidated checklist to ensure consistency with patterns in 5.1-5.2 (reference: docs/develop/python-design-guide.md and docs/develop/sync-refactor-01-dry.md):
 
 - **Separation of Concerns**: Identify which layer your feature belongs (presentation/CLI, orchestration/client, domain/models, persistence/repository). Verify responsibilities don't leak across layers. Example: SQL stays in repository, business logic stays in client.
 - **DRY - Reuse Patterns**: Before implementing, scan 5.1-5.2 code for shared patterns (validation helpers, error handling, sync coordination, output formatting). Reuse or extend existing code rather than reimplementing.

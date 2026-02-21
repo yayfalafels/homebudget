@@ -59,7 +59,9 @@ class BaseTransactionDTO:
 
     def _validate_base_fields(self) -> None:
         object.__setattr__(self, "date", _ensure_date(self.date))
-        object.__setattr__(self, "amount", _ensure_decimal(self.amount, "Amount"))
+        # For TransferDTO, amount can be None (will be inferred)
+        if self.amount is not None:
+            object.__setattr__(self, "amount", _ensure_decimal(self.amount, "Amount"))
         object.__setattr__(
             self,
             "amount_decimal_places",
@@ -169,7 +171,7 @@ class TransferDTO(BaseTransactionDTO):
     date: dt.date
     from_account: str
     to_account: str
-    amount: Decimal
+    amount: Decimal | None = None
     notes: str | None = None
     currency: str | None = None
     currency_amount: Decimal | None = None

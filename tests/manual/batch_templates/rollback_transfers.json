@@ -1,0 +1,9 @@
+[
+  {
+    "resource": "transfer",
+    "operation": "delete",
+    "parameters": {
+      "key": "{TRANSFER_KEYS}"
+    }
+  }
+]

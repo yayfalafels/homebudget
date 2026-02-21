@@ -269,6 +269,13 @@ class ManualTestRunner:
                 if step.command:
                     command = step.command
                 elif step.command_template:
+                    # Check if this is a rollback step and all key variables are empty - skip if so
+                    if "rollback" in step.label.lower():
+                        key_vars = ["transfer_keys", "expense_keys", "income_keys"]
+                        has_keys = any(variables.get(key, "").strip() for key in key_vars)
+                        if not has_keys:
+                            print("Skipped: No keys recorded (no items to rollback)")
+                            continue
                     command = step.command_template.format(**variables)
                 
                 if not command:

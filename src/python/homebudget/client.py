@@ -575,13 +575,17 @@ class HomeBudgetClient:
         )
 
     def _validate_transfer_currency_constraint(self, transfer: TransferDTO) -> None:
-        """Validate that currency matches from_account.
+        """Validate that currency matches from_account (backend constraint).
+        
+        Backend constraint: Transfer currency field must match from_account currency.
+        This validation runs AFTER normalization (_infer_currency_for_transfer), which
+        converts user input (currency can match either account) to backend format.
         
         By convention, transfers must have currency and currency_amount that match
         the from_account's currency. This ensures unambiguous conversion semantics.
         
         Args:
-            transfer: Transfer to validate
+            transfer: Transfer to validate (must be normalized to backend format)
             
         Raises:
             ValueError: If currency does not match from_account currency
@@ -616,9 +620,125 @@ class HomeBudgetClient:
             
         Returns:
             Modified TransferDTO with currency, currency_amount, and amount inferred
+            
+        Raises:
+            ValueError: If both amount and currency_amount specified (over-specified)
         """
-        # Skip if currency or currency_amount was explicitly specified
-        if transfer.currency is not None or transfer.currency_amount is not None:
+        # Validate: Do not provide both amount and currency_amount
+        # This follows design rule: "Do not provide both amount and currency amount"
+        if transfer.amount is not None and transfer.currency_amount is not None:
+            raise ValueError(
+                "Cannot specify both 'amount' and 'currency_amount'. "
+                "Provide either 'amount' alone (for inference) or 'currency' with 'currency_amount'."
+            )
+        
+        # Normalize user input: If currency+currency_amount specified, determine which account
+        # it refers to and convert to backend format (currency = from_account, currency_amount = from_amount)
+        if transfer.currency is not None and transfer.currency_amount is not None and transfer.amount is None:
+            from_currency = self._get_account_currency(transfer.from_account)
+            to_currency = self._get_account_currency(transfer.to_account)
+            base_currency = self._get_base_currency()
+            user_currency = transfer.currency
+            user_amount = Decimal(str(transfer.currency_amount))
+            
+            # Validate: currency must match one of the transfer accounts
+            if user_currency != from_currency and user_currency != to_currency:
+                raise ValueError(
+                    f"Transfer currency must match either from_account or to_account currency. "
+                    f"from_account uses {from_currency}, to_account uses {to_currency}, "
+                    f"but transfer specifies {user_currency}."
+                )
+            
+            # Case 1: User specified from_account currency (already in backend format)
+            if user_currency == from_currency:
+                # Calculate to_amount
+                if from_currency == to_currency:
+                    to_amount = user_amount
+                elif to_currency == base_currency:
+                    from_rate = Decimal(str(self._get_forex_rate(from_currency)))
+                    to_amount = user_amount * from_rate
+                elif from_currency == base_currency:
+                    to_rate = Decimal(str(self._get_forex_rate(to_currency)))
+                    to_amount = user_amount / to_rate
+                else:
+                    from_rate = Decimal(str(self._get_forex_rate(from_currency)))
+                    to_rate = Decimal(str(self._get_forex_rate(to_currency)))
+                    to_amount = user_amount * (from_rate / to_rate)
+                
+                return TransferDTO(
+                    date=transfer.date,
+                    from_account=transfer.from_account,
+                    to_account=transfer.to_account,
+                    amount=to_amount,
+                    notes=transfer.notes,
+                    currency=from_currency,
+                    currency_amount=user_amount,
+                )
+            
+            # Case 2: User specified to_account currency (convert to backend format)
+            else:  # user_currency == to_currency
+                # user_amount is to_amount, need to calculate from_amount
+                to_amount = user_amount
+                
+                if from_currency == to_currency:
+                    from_amount = to_amount
+                elif from_currency == base_currency:
+                    to_rate = Decimal(str(self._get_forex_rate(to_currency)))
+                    from_amount = to_amount * to_rate
+                elif to_currency == base_currency:
+                    from_rate = Decimal(str(self._get_forex_rate(from_currency)))
+                    from_amount = to_amount / from_rate
+                else:
+                    from_rate = Decimal(str(self._get_forex_rate(from_currency)))
+                    to_rate = Decimal(str(self._get_forex_rate(to_currency)))
+                    from_amount = to_amount * (to_rate / from_rate)
+                
+                return TransferDTO(
+                    date=transfer.date,
+                    from_account=transfer.from_account,
+                    to_account=transfer.to_account,
+                    amount=to_amount,
+                    notes=transfer.notes,
+                    currency=from_currency,
+                    currency_amount=from_amount,
+                )
+        
+        # If currency_amount is specified without amount (legacy path, currency may be omitted)
+        if transfer.currency_amount is not None and transfer.amount is None:
+            from_currency = self._get_account_currency(transfer.from_account)
+            to_currency = self._get_account_currency(transfer.to_account)
+            base_currency = self._get_base_currency()
+            currency_amount = Decimal(str(transfer.currency_amount))
+            
+            # Same currency: amount = currency_amount
+            if from_currency == to_currency:
+                to_amount = currency_amount
+            elif to_currency == base_currency:
+                # Foreign -> base: to_amount = currency_amount * from_rate
+                from_rate = Decimal(str(self._get_forex_rate(from_currency)))
+                to_amount = currency_amount * from_rate
+            elif from_currency == base_currency:
+                # Base -> foreign: to_amount = currency_amount / to_rate
+                to_rate = Decimal(str(self._get_forex_rate(to_currency)))
+                to_amount = currency_amount / to_rate
+            else:
+                # Foreign -> foreign: to_amount = currency_amount * (from_rate / to_rate)
+                from_rate = Decimal(str(self._get_forex_rate(from_currency)))
+                to_rate = Decimal(str(self._get_forex_rate(to_currency)))
+                to_amount = currency_amount * (from_rate / to_rate)
+            
+            return TransferDTO(
+                date=transfer.date,
+                from_account=transfer.from_account,
+                to_account=transfer.to_account,
+                amount=to_amount,
+                notes=transfer.notes,
+                currency=transfer.currency or from_currency,
+                currency_amount=currency_amount,
+            )
+        
+        # Skip further inference if currency was explicitly specified (full specification)
+        if transfer.currency is not None:
             return transfer
 
         from_currency = self._get_account_currency(transfer.from_account)
@@ -1413,15 +1533,31 @@ class HomeBudgetClient:
         Returns:
             BatchResult with successful records and any failures
         """
-        expenses_with_policy = [
-            self._apply_rounding_policy_expense(expense) for expense in expenses
-        ]
-        return self._execute_batch_create_transaction(
-            items=expenses_with_policy,
+        # Apply rounding policy to each expense
+        processed_expenses = []
+        failed: list[tuple[ExpenseDTO, Exception]] = []
+        
+        for expense in expenses:
+            try:
+                processed_expense = self._apply_rounding_policy_expense(expense)
+                processed_expenses.append(processed_expense)
+            except Exception as e:
+                if not continue_on_error:
+                    raise
+                # Collect preprocessing errors
+                failed.append((expense, e))
+        
+        # Execute batch insert for successfully preprocessed items
+        result = self._execute_batch_create_transaction(
+            items=processed_expenses,
             insert_func=self.repository.insert_expense,
             sync_operation_name="AddExpense",
             continue_on_error=continue_on_error,
         )
+        
+        # Merge preprocessing failures with insert failures
+        result.failed.extend(failed)
+        return result
 
     def add_incomes_batch(
         self,
@@ -1440,15 +1576,31 @@ class HomeBudgetClient:
         Returns:
             BatchResult with successful records and any failures
         """
-        incomes_with_policy = [
-            self._apply_rounding_policy_income(income) for income in incomes
-        ]
-        return self._execute_batch_create_transaction(
-            items=incomes_with_policy,
+        # Apply rounding policy to each income
+        processed_incomes = []
+        failed: list[tuple[IncomeDTO, Exception]] = []
+        
+        for income in incomes:
+            try:
+                processed_income = self._apply_rounding_policy_income(income)
+                processed_incomes.append(processed_income)
+            except Exception as e:
+                if not continue_on_error:
+                    raise
+                # Collect preprocessing errors
+                failed.append((income, e))
+        
+        # Execute batch insert for successfully preprocessed items
+        result = self._execute_batch_create_transaction(
+            items=processed_incomes,
             insert_func=self.repository.insert_income,
             sync_operation_name="AddIncome",
             continue_on_error=continue_on_error,
         )
+        
+        # Merge preprocessing failures with insert failures
+        result.failed.extend(failed)
+        return result
 
     def add_transfers_batch(
         self,
@@ -1457,22 +1609,48 @@ class HomeBudgetClient:
     ) -> BatchResult:
         """Add multiple transfers in a batch operation.
         
+        Applies same validation and inference as single transfer for each item.
         Disables sync during individual inserts and performs consolidated sync
         after all successful inserts complete.
         
         Args:
-            transfers: List of validated transfer DTOs
+            transfers: List of transfer DTOs (validation and inference applied to each)
             continue_on_error: If True, continue processing after errors; if False, raise on first
         
         Returns:
             BatchResult with successful records and any failures
         """
-        transfers_with_policy = [
-            self._apply_rounding_policy_transfer(transfer) for transfer in transfers
-        ]
-        return self._execute_batch_create_transaction(
-            items=transfers_with_policy,
+        # Apply validation and inference to each transfer (same as add_transfer does)
+        processed_transfers = []
+        failed: list[tuple[TransferDTO, Exception]] = []
+        
+        for transfer in transfers:
+            try:
+                # Normalize user input: convert currency specification to backend format
+                # (currency must match from_account after normalization)
+                normalized_transfer = self._infer_currency_for_transfer(transfer)
+                
+                # Validate backend constraint (currency = from_account)
+                self._validate_transfer_currency_constraint(normalized_transfer)
+                
+                # Apply rounding policy
+                rounded_transfer = self._apply_rounding_policy_transfer(normalized_transfer)
+                
+                processed_transfers.append(rounded_transfer)
+            except Exception as e:
+                if not continue_on_error:
+                    raise
+                # Collect preprocessing errors
+                failed.append((transfer, e))
+        
+        # Execute batch insert for successfully preprocessed items
+        result = self._execute_batch_create_transaction(
+            items=processed_transfers,
             insert_func=self.repository.insert_transfer,
             sync_operation_name="AddTransfer",
             continue_on_error=continue_on_error,
         )
+        
+        # Merge preprocessing failures with insert failures
+        result.failed.extend(failed)
+        return result

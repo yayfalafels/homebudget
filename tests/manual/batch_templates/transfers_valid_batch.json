@@ -1,0 +1,85 @@
+[
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "amount": "200.00",
+    "notes": "UAT Batch: SGD->USD Amount Only"
+  },
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH IB USD",
+    "to_account": "TWH - Personal",
+    "amount": "400.00",
+    "notes": "UAT Batch: USD->SGD Amount Only"
+  },
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH IB USD",
+    "to_account": "Cash TWH EUR",
+    "amount": "180.00",
+    "notes": "UAT Batch: USD->EUR Amount Only"
+  },
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH - Personal",
+    "to_account": "30 CC Hashemis",
+    "amount": "600.00",
+    "notes": "UAT Batch: SGD->SGD Same Currency"
+  },
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "currency": "SGD",
+    "currency_amount": "250.00",
+    "notes": "UAT Batch: SGD->USD Explicit From Currency (Base)"
+  },
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH IB USD",
+    "to_account": "TWH - Personal",
+    "currency": "USD",
+    "currency_amount": "150.00",
+    "notes": "UAT Batch: USD->SGD Explicit From Currency (Non-Base)"
+  },
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH IB USD",
+    "to_account": "Cash TWH EUR",
+    "currency": "USD",
+    "currency_amount": "120.00",
+    "notes": "UAT Batch: USD->EUR Explicit From Currency (Non-Base)"
+  },
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "currency": "USD",
+    "currency_amount": "100.00",
+    "notes": "UAT Batch: SGD->USD Explicit To Currency (Non-Base) [NORMALIZED]"
+  },
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH IB USD",
+    "to_account": "TWH - Personal",
+    "currency": "SGD",
+    "currency_amount": "300.00",
+    "notes": "UAT Batch: USD->SGD Explicit To Currency (Base) [NORMALIZED]"
+  },
+  {
+    "date": "2026-02-22",
+    "from_account": "Cash TWH EUR",
+    "to_account": "TWH IB USD",
+    "currency": "USD",
+    "currency_amount": "90.00",
+    "notes": "UAT Batch: EUR->USD Explicit To Currency (Non-Base) [NORMALIZED]"
+  },
+  {
+    "date": "2026-22-02",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "amount": "100.00",
+    "notes": "UAT Batch: INVALID DATE FORMAT (should cause parsing error)"
+  }
+]

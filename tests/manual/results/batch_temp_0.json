@@ -1,1 +1,1 @@
-[{"resource": "expense", "operation": "add", "parameters": {"date": "2026-02-20", "category": "Food (Basic)", "subcategory": "Cheap restaurant", "amount": "22.50", "account": "TWH - Personal", "notes": "UAT Batch Step1 Expense Add"}}]
+[{"resource": "transfer", "operation": "delete", "parameters": {"key": "{TRANSFER_KEYS}"}}]

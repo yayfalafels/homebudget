@@ -145,40 +145,58 @@ class TestTransferCurrencyConstraints:
 
     @pytest.mark.sit
     def test_transfer_currency_must_match_from_account(self, test_db_path) -> None:
-        """Transfer: Currency must match from_account.
+        """Transfer: Currency can match either account (normalized to from_account).
         
-        Constraint enforcement: If currency is specified, it must equal the
-        from_account's currency. This prevents ambiguous conversion semantics.
+        The normalization layer accepts currency specifications matching either
+        the from_account OR to_account, then converts to backend format where
+        currency always equals from_account currency.
         """
-        # Attempt 1: from SGD account with USD currency (mismatch)
-        transfer = TransferDTO(
+        # Test 1: Currency matches to_account (USD) - should be normalized to from_account format
+        transfer1 = TransferDTO(
             date=dt.date(2026, 2, 16),
-            from_account="Cash TWH SGD",  # SGD account
+            from_account="Cash TWH SGD",  # SGD account (base)
             to_account="TWH IB USD",  # USD account
-            amount=Decimal("100.00"),
-            currency="USD",  # WRONG: must match from_account (SGD)
-            currency_amount=Decimal("74.00"),
-            notes="Mismatched currency constraint - should fail",
+            currency="USD",  # Matches to_account (will be normalized)
+            currency_amount=Decimal("74.00"),  # This is to_amount
+            notes="Normalized: to_account currency specified",
         )
         
         with HomeBudgetClient(db_path=test_db_path, enable_sync=False) as client:
-            with pytest.raises(ValueError, match="must match from_account currency"):
-                client.add_transfer(transfer)
+            # Should succeed - normalization converts to backend format
+            result1 = client.add_transfer(transfer1)
+            assert result1.currency == "SGD"  # Backend format: currency = from_account
+            assert result1.amount == Decimal("74.00")  # to_amount preserved
+            # currency_amount (from_amount) calculated from to_amount
 
-        # Attempt 2: from USD account with SGD currency (mismatch)
-        transfer = TransferDTO(
-            date=dt.date(2026, 2, 16),
+        # Test 2: Currency matches from_account (USD) - passes through unchanged
+        transfer2 = TransferDTO(
+            date=dt.date(2026, 2, 17),
             from_account="TWH IB USD",  # USD account
             to_account="Cash TWH SGD",  # SGD account
-            amount=Decimal("100.00"),
-            currency="SGD",  # WRONG: must match from_account (USD)
-            currency_amount=Decimal("135.00"),
-            notes="Mismatched currency constraint - should fail",
+            currency="USD",  # Matches from_account (passes through)
+            currency_amount=Decimal("100.00"),  # This is from_amount
+            notes="Pass-through: from_account currency specified",
         )
         
         with HomeBudgetClient(db_path=test_db_path, enable_sync=False) as client:
-            with pytest.raises(ValueError, match="must match from_account currency"):
-                client.add_transfer(transfer)
+            # Should succeed - already in backend format
+            result2 = client.add_transfer(transfer2)
+            assert result2.currency == "USD"  # Backend format: currency = from_account
+            assert result2.currency_amount == Decimal("100.00")  # from_amount preserved
+
+        # Test 3: Currency doesn't match either account - should FAIL
+        transfer3 = TransferDTO(
+            date=dt.date(2026, 2, 18),
+            from_account="Cash TWH SGD",  # SGD account
+            to_account="TWH IB USD",  # USD account
+            currency="EUR",  # INVALID: doesn't match either account
+            currency_amount=Decimal("50.00"),
+            notes="Invalid: currency matches neither account",
+        )
+        
+        with HomeBudgetClient(db_path=test_db_path, enable_sync=False) as client:
+            with pytest.raises(ValueError, match="must match either from_account or to_account"):
+                client.add_transfer(transfer3)
 
 
 class TestCurrencyConstraintEdgeCases:

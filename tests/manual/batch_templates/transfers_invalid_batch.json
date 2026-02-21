@@ -1,0 +1,82 @@
+[
+  {
+    "date": "2026-02-23",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "amount": "100.00",
+    "notes": "INVALID BATCH: Item 1 Valid"
+  },
+  {
+    "date": "2026-02-23",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "amount": "-50.00",
+    "notes": "INVALID BATCH: Item 2 Negative"
+  },
+  {
+    "date": "2026-02-23",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "amount": "0.00",
+    "notes": "INVALID BATCH: Item 3 Zero"
+  },
+  {
+    "date": "2026-02-23",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "amount": "75.00",
+    "currency": "SGD",
+    "currency_amount": "75.00",
+    "notes": "INVALID BATCH: Item 4 OverSpec"
+  },
+  {
+    "date": "2026-02-23",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "currency": "EUR",
+    "currency_amount": "60.00",
+    "notes": "INVALID BATCH: Item 5 Currency Matches Neither Account"
+  },
+  {
+    "date": "2026-02-23",
+    "from_account": "Nonexistent Account",
+    "to_account": "TWH IB USD",
+    "amount": "100.00",
+    "notes": "INVALID BATCH: Item 6 NonexistentFrom"
+  },
+  {
+    "date": "2026-02-23",
+    "from_account": "TWH - Personal",
+    "to_account": "Nonexistent Account",
+    "amount": "100.00",
+    "notes": "INVALID BATCH: Item 7 NonexistentTo"
+  },
+  {
+    "date": "2026-02-23",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH - Personal",
+    "amount": "100.00",
+    "notes": "INVALID BATCH: Item 8 SameAccount"
+  },
+  {
+    "date": "2026-02-23",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "notes": "INVALID BATCH: Item 9 NoAmount"
+  },
+  {
+    "date": "2026-02-23",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "currency": "EUR",
+    "currency_amount": "70.00",
+    "notes": "INVALID BATCH: Item 10 ThirdCurrency"
+  },
+  {
+    "date": "2026-02-23",
+    "from_account": "TWH IB USD",
+    "to_account": "TWH - Personal",
+    "amount": "250.00",
+    "notes": "INVALID BATCH: Item 11 Valid"
+  }
+]
