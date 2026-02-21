@@ -23,48 +23,54 @@ def income() -> None:
 @income.command("add")
 @click.option("--date", "date_value", required=True, help="Income date in YYYY-MM-DD.")
 @click.option("--name", required=True, help="Income name.")
-@click.option("--amount", "amount_value", default=None, help="Income amount.")
+@click.option("--amount", "user_amount_str", default=None, help="Income amount in account currency or base currency.")
 @click.option("--account", required=True, help="Account name.")
 @click.option("--notes", default=None, help="Notes for the income.")
 @click.option("--currency", default=None, help="Currency code for the income.")
-@click.option("--currency-amount", default=None, help="Foreign currency amount.")
+@click.option("--currency-amount", "user_currency_amount_str", default=None, help="Foreign currency amount.")
 @click.option("--exchange-rate", default=None, help="Foreign exchange rate to base currency.")
 @click.pass_context
 def add_income(
     ctx: click.Context,
     date_value: str,
     name: str,
-    amount_value: str | None,
+    user_amount_str: str | None,
     account: str,
     notes: str | None,
     currency: str | None,
-    currency_amount: str | None,
+    user_currency_amount_str: str | None,
     exchange_rate: str | None,
 ) -> None:
-    """Add income."""
+    """Add income.
+    
+    User can specify amount in two ways:
+    - --amount: Amount in the account currency (or base currency if non-base account).
+    - --currency-amount + --exchange-rate + --currency: Amount in a foreign currency.
+    """
     date = parse_date(date_value, "--date")
-    amount = parse_decimal(amount_value, "--amount")
-    foreign_amount = parse_decimal(currency_amount, "--currency-amount")
-    rate = parse_decimal(exchange_rate, "--exchange-rate")
+    user_amount = parse_decimal(user_amount_str, "--amount")
+    user_currency_amount = parse_decimal(user_currency_amount_str, "--currency-amount")
+    user_exchange_rate = parse_decimal(exchange_rate, "--exchange-rate")
     if date is None:
         raise click.ClickException("Date is required.")
-    amount, currency, foreign_amount = resolve_forex_inputs(
-        amount=amount,
+    # resolve_forex_inputs processes user inputs and returns DTO-ready values
+    dto_amount, dto_currency, dto_currency_amount = resolve_forex_inputs(
+        amount=user_amount,
         currency=currency,
-        currency_amount=foreign_amount,
-        exchange_rate=rate,
-        default_currency_amount=True,
+        currency_amount=user_currency_amount,
+        exchange_rate=user_exchange_rate,
+        default_currency_amount=False,  # Let client handle forex inference
         allow_empty=False,
         label="Income add",
     )
     income_dto = IncomeDTO(
         date=date,
         name=name,
-        amount=amount,
+        amount=dto_amount,
         account=account,
         notes=notes,
-        currency=currency,
-        currency_amount=foreign_amount,
+        currency=dto_currency,
+        currency_amount=dto_currency_amount,
     )
     with get_client(ctx) as client:
         try:

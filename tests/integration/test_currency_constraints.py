@@ -143,6 +143,43 @@ class TestTransferCurrencyConstraints:
             with pytest.raises(NotFoundError):
                 client.add_transfer(transfer)
 
+    @pytest.mark.sit
+    def test_transfer_currency_must_match_from_account(self, test_db_path) -> None:
+        """Transfer: Currency must match from_account.
+        
+        Constraint enforcement: If currency is specified, it must equal the
+        from_account's currency. This prevents ambiguous conversion semantics.
+        """
+        # Attempt 1: from SGD account with USD currency (mismatch)
+        transfer = TransferDTO(
+            date=dt.date(2026, 2, 16),
+            from_account="Cash TWH SGD",  # SGD account
+            to_account="TWH IB USD",  # USD account
+            amount=Decimal("100.00"),
+            currency="USD",  # WRONG: must match from_account (SGD)
+            currency_amount=Decimal("74.00"),
+            notes="Mismatched currency constraint - should fail",
+        )
+        
+        with HomeBudgetClient(db_path=test_db_path, enable_sync=False) as client:
+            with pytest.raises(ValueError, match="must match from_account currency"):
+                client.add_transfer(transfer)
+
+        # Attempt 2: from USD account with SGD currency (mismatch)
+        transfer = TransferDTO(
+            date=dt.date(2026, 2, 16),
+            from_account="TWH IB USD",  # USD account
+            to_account="Cash TWH SGD",  # SGD account
+            amount=Decimal("100.00"),
+            currency="SGD",  # WRONG: must match from_account (USD)
+            currency_amount=Decimal("135.00"),
+            notes="Mismatched currency constraint - should fail",
+        )
+        
+        with HomeBudgetClient(db_path=test_db_path, enable_sync=False) as client:
+            with pytest.raises(ValueError, match="must match from_account currency"):
+                client.add_transfer(transfer)
+
 
 class TestCurrencyConstraintEdgeCases:
     """Edge case tests for currency constraints."""

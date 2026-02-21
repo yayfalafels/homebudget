@@ -32,6 +32,10 @@ from homebudget.schema import (
 )
 
 
+ALLOWED_DECIMAL_PLACES = {0, 2}
+DEFAULT_DECIMAL_PLACES = 2
+
+
 class Repository(PersistenceBackend):
     """SQLite-backed persistence implementation."""
 
@@ -39,6 +43,22 @@ class Repository(PersistenceBackend):
         """Create a repository for the given database path."""
         self.db_path = Path(db_path)
         self.connection: sqlite3.Connection | None = None
+
+    @staticmethod
+    def _round_currency_amount(amount: Decimal, decimal_places: int) -> Decimal:
+        """Round amount to specified decimal places."""
+        if decimal_places == 0:
+            return amount.quantize(Decimal("1"))
+        return amount.quantize(Decimal("0.01"))
+
+    @staticmethod
+    def _resolve_decimal_places(decimal_places: int | None) -> int:
+        """Resolve decimal places using defaults when not provided."""
+        if decimal_places is None:
+            return DEFAULT_DECIMAL_PLACES
+        if decimal_places not in ALLOWED_DECIMAL_PLACES:
+            raise ValueError("decimal_places must be 0 or 2")
+        return decimal_places
 
     def connect(self) -> None:
         """Open the database connection."""
@@ -87,6 +107,16 @@ class Repository(PersistenceBackend):
         amount = Decimal(expense.amount)
         currency = expense.currency or account["currency"]
         currency_amount = expense.currency_amount or amount
+
+        amount_decimal_places = self._resolve_decimal_places(expense.amount_decimal_places)
+        currency_decimal_places = self._resolve_decimal_places(
+            expense.currency_amount_decimal_places
+            if expense.currency_amount_decimal_places is not None
+            else expense.amount_decimal_places
+        )
+        amount = self._round_currency_amount(amount, amount_decimal_places)
+        currency_amount = self._round_currency_amount(currency_amount, currency_decimal_places)
+        
         device_id_key = self._get_primary_device_key()
         device_key = self._get_next_device_key("Expense")
 
@@ -317,6 +347,8 @@ class Repository(PersistenceBackend):
         notes: str | None = None,
         currency: str | None = None,
         currency_amount: Decimal | str | int | float | None = None,
+        amount_decimal_places: int | None = None,
+        currency_amount_decimal_places: int | None = None,
     ) -> ExpenseRecord:
         """Update an expense and return the latest record."""
         self._ensure_connection()
@@ -327,6 +359,8 @@ class Repository(PersistenceBackend):
         if amount is not None:
             updates.append("amount = ?")
             normalized_amount = Decimal(str(amount))
+            amount_places = self._resolve_decimal_places(amount_decimal_places)
+            normalized_amount = self._round_currency_amount(normalized_amount, amount_places)
             params.append(float(normalized_amount))
         if notes is not None:
             updates.append("notes = ?")
@@ -337,6 +371,14 @@ class Repository(PersistenceBackend):
         if currency_amount is not None:
             updates.append("currencyAmount = ?")
             normalized_currency_amount = Decimal(str(currency_amount))
+            currency_places = self._resolve_decimal_places(
+                currency_amount_decimal_places
+                if currency_amount_decimal_places is not None
+                else amount_decimal_places
+            )
+            normalized_currency_amount = self._round_currency_amount(
+                normalized_currency_amount, currency_places
+            )
             params.append(str(normalized_currency_amount))
         elif normalized_amount is not None:
             updates.append("currencyAmount = ?")
@@ -374,6 +416,16 @@ class Repository(PersistenceBackend):
         amount = Decimal(income.amount)
         currency = income.currency or account["currency"]
         currency_amount = income.currency_amount or amount
+
+        amount_decimal_places = self._resolve_decimal_places(income.amount_decimal_places)
+        currency_decimal_places = self._resolve_decimal_places(
+            income.currency_amount_decimal_places
+            if income.currency_amount_decimal_places is not None
+            else income.amount_decimal_places
+        )
+        amount = self._round_currency_amount(amount, amount_decimal_places)
+        currency_amount = self._round_currency_amount(currency_amount, currency_decimal_places)
+        
         device_id_key = self._get_primary_device_key()
         device_key = self._get_next_device_key("Income")
 
@@ -571,6 +623,8 @@ class Repository(PersistenceBackend):
         notes: str | None = None,
         currency: str | None = None,
         currency_amount: Decimal | str | int | float | None = None,
+        amount_decimal_places: int | None = None,
+        currency_amount_decimal_places: int | None = None,
     ) -> IncomeRecord:
         """Update an income record and return the latest data."""
         self._ensure_connection()
@@ -581,6 +635,8 @@ class Repository(PersistenceBackend):
         if amount is not None:
             updates.append("amount = ?")
             normalized_amount = Decimal(str(amount))
+            amount_places = self._resolve_decimal_places(amount_decimal_places)
+            normalized_amount = self._round_currency_amount(normalized_amount, amount_places)
             params.append(float(normalized_amount))
         if notes is not None:
             updates.append("notes = ?")
@@ -591,6 +647,14 @@ class Repository(PersistenceBackend):
         if currency_amount is not None:
             updates.append("currencyAmount = ?")
             normalized_currency_amount = Decimal(str(currency_amount))
+            currency_places = self._resolve_decimal_places(
+                currency_amount_decimal_places
+                if currency_amount_decimal_places is not None
+                else amount_decimal_places
+            )
+            normalized_currency_amount = self._round_currency_amount(
+                normalized_currency_amount, currency_places
+            )
             params.append(str(normalized_currency_amount))
         elif normalized_amount is not None:
             updates.append("currencyAmount = ?")
@@ -629,6 +693,16 @@ class Repository(PersistenceBackend):
         amount = Decimal(transfer.amount)
         currency = transfer.currency or from_account["currency"]
         currency_amount = transfer.currency_amount or amount
+
+        amount_decimal_places = self._resolve_decimal_places(transfer.amount_decimal_places)
+        currency_decimal_places = self._resolve_decimal_places(
+            transfer.currency_amount_decimal_places
+            if transfer.currency_amount_decimal_places is not None
+            else transfer.amount_decimal_places
+        )
+        amount = self._round_currency_amount(amount, amount_decimal_places)
+        currency_amount = self._round_currency_amount(currency_amount, currency_decimal_places)
+        
         device_id_key = self._get_primary_device_key()
         device_key = self._get_next_device_key("Transfer")
 
@@ -689,6 +763,13 @@ class Repository(PersistenceBackend):
         )
         transfer_key = int(cursor.lastrowid)
 
+        # Determine transaction amounts for AccountTrans records
+        # With the constraint that currency == from_account["currency"]:
+        # - from_amount = currency_amount (amount in from_account currency)
+        # - to_amount = amount (amount in to_account currency)
+        from_amount = currency_amount
+        to_amount = amount
+
         # Create transfer_out for from_account
         self.connection.execute(
             """
@@ -708,7 +789,7 @@ class Repository(PersistenceBackend):
                 TRANSACTION_TYPES["transfer_out"],
                 transfer_key,
                 transfer.date.isoformat(),
-                float(amount),
+                float(from_amount),
                 DEFAULT_CHECKED,
             ),
         )
@@ -732,7 +813,7 @@ class Repository(PersistenceBackend):
                 TRANSACTION_TYPES["transfer_in"],
                 transfer_key,
                 transfer.date.isoformat(),
-                float(amount),
+                float(to_amount),
                 DEFAULT_CHECKED,
             ),
         )
@@ -843,6 +924,8 @@ class Repository(PersistenceBackend):
         notes: str | None = None,
         currency: str | None = None,
         currency_amount: Decimal | None = None,
+        amount_decimal_places: int | None = None,
+        currency_amount_decimal_places: int | None = None,
     ) -> TransferRecord:
         """Update a transfer and return the latest record."""
         self._ensure_connection()
@@ -851,6 +934,8 @@ class Repository(PersistenceBackend):
         params = []
         if amount is not None:
             normalized_amount = Decimal(str(amount))
+            amount_places = self._resolve_decimal_places(amount_decimal_places)
+            normalized_amount = self._round_currency_amount(normalized_amount, amount_places)
             updates.append("amount = ?")
             params.append(float(normalized_amount))
         if notes is not None:
@@ -861,6 +946,14 @@ class Repository(PersistenceBackend):
             params.append(currency)
         if currency_amount is not None:
             normalized_currency_amount = Decimal(str(currency_amount))
+            currency_places = self._resolve_decimal_places(
+                currency_amount_decimal_places
+                if currency_amount_decimal_places is not None
+                else amount_decimal_places
+            )
+            normalized_currency_amount = self._round_currency_amount(
+                normalized_currency_amount, currency_places
+            )
             updates.append("currencyAmount = ?")
             params.append(str(normalized_currency_amount))
         if not updates:

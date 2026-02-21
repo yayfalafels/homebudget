@@ -165,9 +165,9 @@ This is optional; if omitted, defaults to 1-hour TTL. ExchangeRate-API is used a
 
 ### Cache file format
 
-Store rates in JSON at the location specified in config (default: same directory as db):
+Store rates in JSON in a dedicated Forex directory:
 
-**File**: `forex-rates.json`
+**File**: `{HomeBudgetData}/Forex/forex-rates.json`
 
 ```json
 {
@@ -619,7 +619,7 @@ Add to `hb-config.json` under `forex` key (all fields optional):
 All other settings are automatically derived or hardcoded:
 
 - **API provider**: ExchangeRate-API (free, no authentication required)
-- **Cache path**: Auto-derived as `{db_directory}/forex-rates.json`
+- **Cache path**: Auto-derived as `{HomeBudgetData}/Forex/forex-rates.json`
 - **Fallback rate**: Always `1.0` (unit rate for no conversion)
 - **Timeout**: `5` seconds for API requests
 - **Offline mode**: Disabled by default

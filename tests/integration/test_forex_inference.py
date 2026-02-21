@@ -91,6 +91,12 @@ def test_transfer_amount_only_infers_currency_amount(
         _patch_rate(client, monkeypatch)
         saved = client.add_transfer(transfer)
 
-    expected_currency_amount = INPUT_AMOUNT / FOREX_RATE
-    assert saved.currency == NON_BASE_CURRENCY
-    assert saved.currency_amount == expected_currency_amount
+    # Currency and currency_amount must match from_account (BASE_ACCOUNT = SGD)
+    # from_account is base, to_account is foreign
+    # User amount is in base (100 SGD), transfer to foreign (USD)
+    # currency = SGD, currency_amount = 100 (in SGD)
+    # amount = 100 / 1.35 = 74.074... (in USD, to_account currency, rounded to 2 decimal places)
+    expected_to_amount = (INPUT_AMOUNT / FOREX_RATE).quantize(Decimal("0.01"))
+    assert saved.currency == "SGD"
+    assert saved.currency_amount == INPUT_AMOUNT
+    assert saved.amount == expected_to_amount

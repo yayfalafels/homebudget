@@ -7,6 +7,7 @@ from typing import Callable, TypeVar
 import datetime as dt
 from decimal import Decimal
 import json
+import logging
 import os
 
 from homebudget.models import (
@@ -24,16 +25,27 @@ from homebudget.persistence import PersistenceBackend
 from homebudget.repository import Repository
 from homebudget.sync import SyncUpdateManager
 from homebudget.ui_control import HomeBudgetUIController
-from homebudget.forex import ForexRateManager
+from homebudget.forex import ForexRateManager, REF_CURRENCY
 from homebudget.exceptions import NotFoundError
 
 T = TypeVar("T")
+
+# Configure logging
+logger = logging.getLogger(__name__)
+log_level = os.environ.get('LOGGING_LEVEL', 'INFO').upper()
+logger.setLevel(getattr(logging, log_level, logging.INFO))
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('%(levelname)s - %(name)s - %(message)s'))
+    logger.addHandler(handler)
 
 ALLOWED_BATCH_RESOURCES = {"expense", "income", "transfer"}
 ALLOWED_BATCH_OPERATIONS = {"add", "update", "delete"}
 DEFAULT_FOREX_TTL_HOURS = 1
 DEFAULT_FOREX_CACHE_NAME = "forex-rates.json"
-DECIMAL_PLACES = Decimal("0.01")
+HIGH_VALUE_RATE_THRESHOLD = Decimal("100")
+HIGH_VALUE_DECIMAL_PLACES = 0
+STANDARD_DECIMAL_PLACES = 2
 
 
 class HomeBudgetClient:
@@ -121,10 +133,14 @@ class HomeBudgetClient:
         return payload
 
     def _derive_cache_path(self) -> Path:
-        """Derive the forex cache path near the database file."""
+        """Derive the forex cache path in dedicated Forex directory."""
         if not self.db_path:
             return Path(DEFAULT_FOREX_CACHE_NAME)
-        return Path(self.db_path).parent / DEFAULT_FOREX_CACHE_NAME
+        # Place cache in Forex subdirectory: */HomeBudgetData/Forex/forex-rates.json
+        data_dir = Path(self.db_path).parent
+        forex_dir = data_dir.parent / "Forex"
+        forex_dir.mkdir(parents=True, exist_ok=True)
+        return forex_dir / DEFAULT_FOREX_CACHE_NAME
 
     def _run_transaction(self, action: Callable[[], T]) -> T:
         """Run repository work inside a transaction.
@@ -275,8 +291,13 @@ class HomeBudgetClient:
         notes: str | None = None,
         currency: str | None = None,
         currency_amount: Decimal | str | int | float | None = None,
+        amount_decimal_places: int | None = None,
+        currency_amount_decimal_places: int | None = None,
     ) -> dict[str, object]:
-        """Collect which fields were provided for update."""
+        """Collect which fields were provided for update.
+        
+        Excludes internal rounding metadata (decimal_places fields).
+        """
         changed = {}
         if amount is not None:
             changed["amount"] = amount
@@ -318,6 +339,87 @@ class HomeBudgetClient:
             return 1.0
         base_currency = self._get_base_currency()
         return self._forex_manager.get_rate(from_currency, base_currency)
+
+    def _get_currency_decimal_places(self, currency: str) -> int:
+        """Determine decimal places for a currency using forex rates."""
+        if not self._forex_manager:
+            return STANDARD_DECIMAL_PLACES
+        try:
+            rate = self._forex_manager.get_rate(REF_CURRENCY, currency)
+        except Exception:
+            return STANDARD_DECIMAL_PLACES
+        if Decimal(str(rate)) >= HIGH_VALUE_RATE_THRESHOLD:
+            return HIGH_VALUE_DECIMAL_PLACES
+        return STANDARD_DECIMAL_PLACES
+
+    def _resolve_rounding_policy(self, currency: str | None) -> tuple[int, int]:
+        """Resolve decimal places for base and currency amounts."""
+        base_currency = self._get_base_currency()
+        amount_decimal_places = self._get_currency_decimal_places(base_currency)
+        if currency:
+            currency_decimal_places = self._get_currency_decimal_places(currency)
+        else:
+            currency_decimal_places = amount_decimal_places
+        return amount_decimal_places, currency_decimal_places
+
+    def _apply_rounding_policy_expense(self, expense: ExpenseDTO) -> ExpenseDTO:
+        """Attach rounding policy metadata to an expense DTO."""
+        amount_places, currency_places = self._resolve_rounding_policy(expense.currency)
+        if expense.amount_decimal_places is not None:
+            amount_places = expense.amount_decimal_places
+        if expense.currency_amount_decimal_places is not None:
+            currency_places = expense.currency_amount_decimal_places
+        return ExpenseDTO(
+            date=expense.date,
+            category=expense.category,
+            subcategory=expense.subcategory,
+            amount=expense.amount,
+            account=expense.account,
+            notes=expense.notes,
+            payee=expense.payee,
+            currency=expense.currency,
+            currency_amount=expense.currency_amount,
+            amount_decimal_places=amount_places,
+            currency_amount_decimal_places=currency_places,
+        )
+
+    def _apply_rounding_policy_income(self, income: IncomeDTO) -> IncomeDTO:
+        """Attach rounding policy metadata to an income DTO."""
+        amount_places, currency_places = self._resolve_rounding_policy(income.currency)
+        if income.amount_decimal_places is not None:
+            amount_places = income.amount_decimal_places
+        if income.currency_amount_decimal_places is not None:
+            currency_places = income.currency_amount_decimal_places
+        return IncomeDTO(
+            date=income.date,
+            name=income.name,
+            amount=income.amount,
+            account=income.account,
+            notes=income.notes,
+            currency=income.currency,
+            currency_amount=income.currency_amount,
+            amount_decimal_places=amount_places,
+            currency_amount_decimal_places=currency_places,
+        )
+
+    def _apply_rounding_policy_transfer(self, transfer: TransferDTO) -> TransferDTO:
+        """Attach rounding policy metadata to a transfer DTO."""
+        amount_places, currency_places = self._resolve_rounding_policy(transfer.currency)
+        if transfer.amount_decimal_places is not None:
+            amount_places = transfer.amount_decimal_places
+        if transfer.currency_amount_decimal_places is not None:
+            currency_places = transfer.currency_amount_decimal_places
+        return TransferDTO(
+            date=transfer.date,
+            from_account=transfer.from_account,
+            to_account=transfer.to_account,
+            amount=transfer.amount,
+            notes=transfer.notes,
+            currency=transfer.currency,
+            currency_amount=transfer.currency_amount,
+            amount_decimal_places=amount_places,
+            currency_amount_decimal_places=currency_places,
+        )
 
     def _validate_currency_for_account(
         self,
@@ -403,19 +505,26 @@ class HomeBudgetClient:
         Returns:
             Modified ExpenseDTO with inferred currency if applicable
         """
+        logger.debug(f"_infer_currency_for_expense called: account={expense.account}, amount={expense.amount}, currency={expense.currency}, currency_amount={expense.currency_amount}")
+        
         # Skip if currency or currency_amount was explicitly specified
         if expense.currency is not None or expense.currency_amount is not None:
+            logger.debug("Skipping inference: currency or currency_amount already set")
             return expense
 
         account_currency = self._get_account_currency(expense.account)
         base_currency = self._get_base_currency()
+        logger.debug(f"Account currency: {account_currency}, Base currency: {base_currency}")
 
         if account_currency == base_currency or not expense.amount:
+            logger.debug(f"Skipping inference: account_currency == base_currency ({account_currency == base_currency}) or no amount")
             return expense
 
         rate = Decimal(str(self._get_forex_rate(account_currency)))
-        base_amount = (Decimal(str(expense.amount)) * rate).quantize(DECIMAL_PLACES)
-        return ExpenseDTO(
+        base_amount = Decimal(str(expense.amount)) * rate
+        logger.debug(f"Forex inference: rate={rate}, input_amount={expense.amount}, base_amount={base_amount}")
+        
+        result = ExpenseDTO(
             date=expense.date,
             category=expense.category,
             subcategory=expense.subcategory,
@@ -425,6 +534,8 @@ class HomeBudgetClient:
             currency=account_currency,
             currency_amount=Decimal(str(expense.amount)),
         )
+        logger.debug(f"Returning modified expense: amount={result.amount}, currency={result.currency}, currency_amount={result.currency_amount}")
+        return result
 
     def _infer_currency_for_income(self, income: IncomeDTO) -> IncomeDTO:
         """Infer currency for income on non-base accounts.
@@ -452,7 +563,7 @@ class HomeBudgetClient:
             return income
 
         rate = Decimal(str(self._get_forex_rate(account_currency)))
-        base_amount = (Decimal(str(income.amount)) * rate).quantize(DECIMAL_PLACES)
+        base_amount = Decimal(str(income.amount)) * rate
         return IncomeDTO(
             date=income.date,
             name=income.name,
@@ -463,17 +574,48 @@ class HomeBudgetClient:
             currency_amount=Decimal(str(income.amount)),
         )
 
-    def _infer_currency_for_transfer(self, transfer: TransferDTO) -> TransferDTO:
-        """Infer currency for transfer from from_account.
+    def _validate_transfer_currency_constraint(self, transfer: TransferDTO) -> None:
+        """Validate that currency matches from_account.
         
-        For mixed-currency transfers (from SGD to USD), if no currency is specified,
-        default to the from_account's currency.
+        By convention, transfers must have currency and currency_amount that match
+        the from_account's currency. This ensures unambiguous conversion semantics.
+        
+        Args:
+            transfer: Transfer to validate
+            
+        Raises:
+            ValueError: If currency does not match from_account currency
+        """
+        if transfer.currency is None:
+            # No constraint to validate if currency not specified (will be inferred)
+            return
+        
+        from_currency = self._get_account_currency(transfer.from_account)
+        
+        if transfer.currency != from_currency:
+            raise ValueError(
+                f"Transfer currency must match from_account currency. "
+                f"from_account {transfer.from_account!r} uses {from_currency}, "
+                f"but transfer specifies {transfer.currency}."
+            )
+
+    def _infer_currency_for_transfer(self, transfer: TransferDTO) -> TransferDTO:
+        """Infer currency, currency_amount, and amount for transfer based on accounts.
+        
+        Transfer table fields represent:
+        - currency: from_account currency (constraint enforced)
+        - currency_amount: amount in from_account currency
+        - amount: amount in to_account currency
+        
+        User amount interpretation:
+        - If base in either account: user amount is in base currency
+        - If base in neither account: user amount is in from_account currency
         
         Args:
             transfer: TransferDTO to potentially modify
             
         Returns:
-            Modified TransferDTO with inferred currency if applicable
+            Modified TransferDTO with currency, currency_amount, and amount inferred
         """
         # Skip if currency or currency_amount was explicitly specified
         if transfer.currency is not None or transfer.currency_amount is not None:
@@ -486,22 +628,42 @@ class HomeBudgetClient:
         if not transfer.amount:
             return transfer
 
-        non_base_currencies = {
-            currency for currency in (from_currency, to_currency) if currency != base_currency
-        }
-        if len(non_base_currencies) != 1:
+        # If same currency, no inference needed
+        if from_currency == to_currency:
             return transfer
 
-        non_base_currency = non_base_currencies.pop()
-        rate = Decimal(str(self._get_forex_rate(non_base_currency)))
-        currency_amount = Decimal(str(transfer.amount)) / rate
+        user_amount = Decimal(str(transfer.amount))
+
+        # Currency always matches from_account
+        currency = from_currency
+
+        if from_currency == base_currency:
+            # Case 1: from base -> foreign
+            # User amount is in base, calculate to_amount in foreign currency
+            currency_amount = user_amount  # from_amount in base
+            to_rate = Decimal(str(self._get_forex_rate(to_currency)))
+            to_amount = user_amount / to_rate  # to_amount in foreign
+        elif to_currency == base_currency:
+            # Case 2: from foreign -> base
+            # User amount is in base, calculate from_amount in foreign currency
+            from_rate = Decimal(str(self._get_forex_rate(from_currency)))
+            currency_amount = user_amount / from_rate  # from_amount in foreign
+            to_amount = user_amount  # to_amount in base
+        else:
+            # Case 3: foreign -> foreign
+            # User amount is in from_currency, calculate to_amount in to_currency
+            from_rate = Decimal(str(self._get_forex_rate(from_currency)))
+            to_rate = Decimal(str(self._get_forex_rate(to_currency)))
+            currency_amount = user_amount  # from_amount in from_currency
+            to_amount = user_amount * (from_rate / to_rate)  # to_amount in to_currency
+
         return TransferDTO(
             date=transfer.date,
             from_account=transfer.from_account,
             to_account=transfer.to_account,
-            amount=transfer.amount,
+            amount=to_amount,
             notes=transfer.notes,
-            currency=non_base_currency,
+            currency=currency,
             currency_amount=currency_amount,
         )
 
@@ -513,6 +675,7 @@ class HomeBudgetClient:
         """
         # Infer currency for non-base accounts
         expense = self._infer_currency_for_expense(expense)
+        expense = self._apply_rounding_policy_expense(expense)
         
         return self._execute_create_transaction(
             insert_func=self.repository.insert_expense,
@@ -555,6 +718,13 @@ class HomeBudgetClient:
             label="Expense update",
             allow_empty=notes is not None,
         )
+
+        amount_decimal_places = None
+        currency_amount_decimal_places = None
+        if amount is not None or currency_amount is not None:
+            amount_decimal_places, currency_amount_decimal_places = self._resolve_rounding_policy(
+                currency
+            )
         
         return self._execute_update_transaction(
             update_func=self.repository.update_expense,
@@ -564,6 +734,8 @@ class HomeBudgetClient:
                 "notes": notes,
                 "currency": currency,
                 "currency_amount": currency_amount,
+                "amount_decimal_places": amount_decimal_places,
+                "currency_amount_decimal_places": currency_amount_decimal_places,
             },
             sync_operation="UpdateExpense",
         )
@@ -585,6 +757,7 @@ class HomeBudgetClient:
         """
         # Infer currency for non-base accounts
         income = self._infer_currency_for_income(income)
+        income = self._apply_rounding_policy_income(income)
         
         return self._execute_create_transaction(
             insert_func=self.repository.insert_income,
@@ -628,6 +801,13 @@ class HomeBudgetClient:
             allow_empty=notes is not None,
         )
 
+        amount_decimal_places = None
+        currency_amount_decimal_places = None
+        if amount is not None or currency_amount is not None:
+            amount_decimal_places, currency_amount_decimal_places = self._resolve_rounding_policy(
+                currency
+            )
+
         return self._execute_update_transaction(
             update_func=self.repository.update_income,
             key=key,
@@ -636,6 +816,8 @@ class HomeBudgetClient:
                 "notes": notes,
                 "currency": currency,
                 "currency_amount": currency_amount,
+                "amount_decimal_places": amount_decimal_places,
+                "currency_amount_decimal_places": currency_amount_decimal_places,
             },
             sync_operation="UpdateIncome",
         )
@@ -657,6 +839,11 @@ class HomeBudgetClient:
         """
         # Infer currency from from_account for non-base accounts
         transfer = self._infer_currency_for_transfer(transfer)
+        
+        # Validate that currency matches from_account
+        self._validate_transfer_currency_constraint(transfer)
+        
+        transfer = self._apply_rounding_policy_transfer(transfer)
         
         return self._execute_create_transaction(
             insert_func=self.repository.insert_transfer,
@@ -700,6 +887,13 @@ class HomeBudgetClient:
             allow_empty=notes is not None,
         )
 
+        amount_decimal_places = None
+        currency_amount_decimal_places = None
+        if amount is not None or currency_amount is not None:
+            amount_decimal_places, currency_amount_decimal_places = self._resolve_rounding_policy(
+                currency
+            )
+
         return self._execute_update_transaction(
             update_func=self.repository.update_transfer,
             key=key,
@@ -708,6 +902,8 @@ class HomeBudgetClient:
                 "notes": notes,
                 "currency": currency,
                 "currency_amount": currency_amount,
+                "amount_decimal_places": amount_decimal_places,
+                "currency_amount_decimal_places": currency_amount_decimal_places,
             },
             sync_operation="UpdateTransfer",
         )
@@ -757,9 +953,7 @@ class HomeBudgetClient:
                 raise ValueError(f"{label}: currency is required with currency_amount")
             if exchange_rate is None:
                 exchange_rate = self._get_forex_rate(currency)
-            amount = (Decimal(str(currency_amount)) * Decimal(str(exchange_rate))).quantize(
-                DECIMAL_PLACES
-            )
+            amount = Decimal(str(currency_amount)) * Decimal(str(exchange_rate))
 
         if amount is None and currency_amount is None and not allow_empty:
             raise ValueError(f"{label}: amount or currency_amount is required")
@@ -938,6 +1132,7 @@ class HomeBudgetClient:
         if resource == "expense":
             if action == "add":
                 dto = self._build_expense_dto(parameters)
+                dto = self._apply_rounding_policy_expense(dto)
                 record = self.repository.insert_expense(dto)
                 return record, "AddExpense", None
             if action == "update":
@@ -963,12 +1158,20 @@ class HomeBudgetClient:
                     label="Expense update",
                     allow_empty=notes is not None,
                 )
+                amount_decimal_places = None
+                currency_amount_decimal_places = None
+                if amount is not None or currency_amount is not None:
+                    amount_decimal_places, currency_amount_decimal_places = (
+                        self._resolve_rounding_policy(normalized_currency)
+                    )
                 record = self.repository.update_expense(
                     key=key,
                     amount=amount,
                     notes=normalized_notes,
                     currency=normalized_currency,
                     currency_amount=currency_amount,
+                    amount_decimal_places=amount_decimal_places,
+                    currency_amount_decimal_places=currency_amount_decimal_places,
                 )
                 changed = self._collect_changed_fields(
                     amount, normalized_notes, normalized_currency, currency_amount
@@ -982,6 +1185,7 @@ class HomeBudgetClient:
         if resource == "income":
             if action == "add":
                 dto = self._build_income_dto(parameters)
+                dto = self._apply_rounding_policy_income(dto)
                 record = self.repository.insert_income(dto)
                 return record, "AddIncome", None
             if action == "update":
@@ -1007,12 +1211,20 @@ class HomeBudgetClient:
                     label="Income update",
                     allow_empty=notes is not None,
                 )
+                amount_decimal_places = None
+                currency_amount_decimal_places = None
+                if amount is not None or currency_amount is not None:
+                    amount_decimal_places, currency_amount_decimal_places = (
+                        self._resolve_rounding_policy(normalized_currency)
+                    )
                 record = self.repository.update_income(
                     key=key,
                     amount=amount,
                     notes=normalized_notes,
                     currency=normalized_currency,
                     currency_amount=currency_amount,
+                    amount_decimal_places=amount_decimal_places,
+                    currency_amount_decimal_places=currency_amount_decimal_places,
                 )
                 changed = self._collect_changed_fields(
                     amount, normalized_notes, normalized_currency, currency_amount
@@ -1025,6 +1237,7 @@ class HomeBudgetClient:
 
         if action == "add":
             dto = self._build_transfer_dto(parameters)
+            dto = self._apply_rounding_policy_transfer(dto)
             record = self.repository.insert_transfer(dto)
             return record, "AddTransfer", None
         if action == "update":
@@ -1050,12 +1263,20 @@ class HomeBudgetClient:
                 label="Transfer update",
                 allow_empty=notes is not None,
             )
+            amount_decimal_places = None
+            currency_amount_decimal_places = None
+            if amount is not None or currency_amount is not None:
+                amount_decimal_places, currency_amount_decimal_places = (
+                    self._resolve_rounding_policy(normalized_currency)
+                )
             record = self.repository.update_transfer(
                 key=key,
                 amount=amount,
                 notes=normalized_notes,
                 currency=normalized_currency,
                 currency_amount=currency_amount,
+                amount_decimal_places=amount_decimal_places,
+                currency_amount_decimal_places=currency_amount_decimal_places,
             )
             changed = self._collect_changed_fields(
                 amount, normalized_notes, normalized_currency, currency_amount
@@ -1192,8 +1413,11 @@ class HomeBudgetClient:
         Returns:
             BatchResult with successful records and any failures
         """
+        expenses_with_policy = [
+            self._apply_rounding_policy_expense(expense) for expense in expenses
+        ]
         return self._execute_batch_create_transaction(
-            items=expenses,
+            items=expenses_with_policy,
             insert_func=self.repository.insert_expense,
             sync_operation_name="AddExpense",
             continue_on_error=continue_on_error,
@@ -1216,8 +1440,11 @@ class HomeBudgetClient:
         Returns:
             BatchResult with successful records and any failures
         """
+        incomes_with_policy = [
+            self._apply_rounding_policy_income(income) for income in incomes
+        ]
         return self._execute_batch_create_transaction(
-            items=incomes,
+            items=incomes_with_policy,
             insert_func=self.repository.insert_income,
             sync_operation_name="AddIncome",
             continue_on_error=continue_on_error,
@@ -1240,8 +1467,11 @@ class HomeBudgetClient:
         Returns:
             BatchResult with successful records and any failures
         """
+        transfers_with_policy = [
+            self._apply_rounding_policy_transfer(transfer) for transfer in transfers
+        ]
         return self._execute_batch_create_transaction(
-            items=transfers,
+            items=transfers_with_policy,
             insert_func=self.repository.insert_transfer,
             sync_operation_name="AddTransfer",
             continue_on_error=continue_on_error,

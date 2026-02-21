@@ -157,19 +157,82 @@ Mapping highlights
 
 ## Forex input rules
 
-Forex inputs follow one of two paths for expenses and income.
+Forex inputs follow one of three paths: base currency path for expenses/income, base currency or foreign currency path for expenses/income, and transfer path.
 
-Base currency path
-- Provide amount only
-- Currency defaults to the account currency
-- Currency amount is set to amount for base currency updates
-- Exchange rate is treated as 1.0
+### Expenses and Income
 
-Foreign currency path
-- Provide currency, currency amount, and exchange rate
-- Amount is calculated as currency amount times exchange rate
+**User Input Semantics**
 
-Do not provide amount and currency amount together, except when they are equal for base currency updates.
+When users specify `--amount`, the semantic meaning depends on the account:
+- For base currency accounts (SGD): `--amount` = amount in base currency
+- For non-base currency accounts (USD, RUB, etc.): `--amount` = amount in that account's currency
+
+When specifying `--currency-amount`, the user must also provide `--currency` and `--exchange-rate`:
+- `--currency`: The foreign currency code
+- `--currency-amount`: The amount in that foreign currency
+- `--exchange-rate`: The exchange rate from foreign to base currency
+- Backend calculates: `base_amount = currency_amount × exchange_rate`
+
+Backend internally supports specifying any currency with currency_amount and exchange_rate, allowing flexible forex conversions even for accounts not in that currency.
+
+Input validation rules:
+- Provide amount only: Currency defaults to account currency, currency amount set to amount
+- Provide currency, currency amount, and exchange rate: Amount calculated as currency amount times exchange rate
+- Do not provide both amount and currency amount
+
+### Transfers
+
+Transfers follow the constraint: **currency and currency_amount must match the from_account**.
+
+**Transfer Table Fields**
+
+The Transfer table fields represent:
+- `currency`: Always matches from_account currency (constraint enforced)
+- `currency_amount`: Amount in from_account currency
+- `amount`: Amount in to_account currency
+
+**User Input Semantics for Transfers**
+
+When specifying `--amount`:
+- If base currency is in either account: `--amount` = amount in base currency
+- If base currency is in neither account: `--amount` = amount in from_account currency
+
+This provides intuitive behavior: users think in base currency when it's involved, and in local currency otherwise.
+
+**Case 1: Transfer from base (SGD) to foreign (USD)**
+- User provides `--amount` in base currency (SGD)
+- Backend infers:
+  - `currency=SGD` (from_account currency)
+  - `currency_amount=amount` (amount in SGD)
+  - `amount=amount/rate` (amount in USD)
+- AccountTrans:
+  - from_account (SGD): `transAmount=currency_amount` (100 SGD)
+  - to_account (USD): `transAmount=amount` (74.07 USD)
+
+**Case 2: Transfer from foreign (USD) to base (SGD)**
+- User provides `--amount` in base currency (SGD to receive)
+- Backend infers:
+  - `currency=USD` (from_account currency)
+  - `currency_amount=amount/rate` (amount in USD)
+  - `amount=amount` (amount in SGD)
+- AccountTrans:
+  - from_account (USD): `transAmount=currency_amount` (74.07 USD)
+  - to_account (SGD): `transAmount=amount` (100 SGD)
+
+**Case 3: Transfer between two foreign accounts (USD to EUR)**
+- User provides `--amount` in from_account currency (USD to send)
+- Backend infers:
+  - `currency=USD` (from_account currency)
+  - `currency_amount=amount` (amount in USD)
+  - `amount=amount × (usd_rate ÷ eur_rate)` (amount in EUR)
+- AccountTrans:
+  - from_account (USD): `transAmount=currency_amount` (100 USD)
+  - to_account (EUR): `transAmount=amount` (90 EUR)
+
+When specifying `--currency-amount` for transfers:
+- `--currency` and `--currency-amount` together with `--exchange-rate` required
+- `--currency` must match one of the transfer accounts
+- Backend derives the missing amounts using cross-rate calculation: `from_amount = to_amount × (from_rate ÷ to_rate)`
 
 CLI and client methods enforce these rules to prevent ambiguous inputs.
 
