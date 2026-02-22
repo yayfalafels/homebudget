@@ -1,0 +1,2823 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Python library and CLI for programmatic interface for HomeBudget local Windows installation">
+      
+      
+        <meta name="author" content="Taylor Hickem">
+      
+      
+      
+        <link rel="prev" href="../methods/">
+      
+      
+        <link rel="next" href="../test-strategy/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+    
+    
+      
+        <title>Test Guide - HomeBudget Python Wrapper</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#test-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="HomeBudget Python Wrapper" class="md-header__button md-logo" aria-label="HomeBudget Python Wrapper" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            HomeBudget Python Wrapper
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Test Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/yayfalafels/homebudget" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    yayfalafels/homebudget
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../user-guide/" class="md-tabs__link">
+          
+  
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../cli-examples/" class="md-tabs__link">
+          
+  
+  
+  Usage Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../developer-guide/" class="md-tabs__link">
+          
+  
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../design/" class="md-tabs__link">
+          
+  
+  
+  Technical Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Testing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../workflow/" class="md-tabs__link">
+          
+  
+  
+  Implementation Example
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../issues/" class="md-tabs__link">
+          
+  
+  
+  Issues & Troubleshooting
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="HomeBudget Python Wrapper" class="md-nav__button md-logo" aria-label="HomeBudget Python Wrapper" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    HomeBudget Python Wrapper
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/yayfalafels/homebudget" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    yayfalafels/homebudget
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comprehensive Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dependencies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dependencies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Usage Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../developer-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../repository-layout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Repository Layout
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technical Design
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Technical Design
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sqlite-schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQLite Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sync-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sync Updates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forex-rates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Forex Rates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../transfer-currency-normalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transfer Currency Normalization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../methods/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Method List
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Testing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Test Guide
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Test Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related documents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Test Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#system-integration-tests-sit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System Integration Tests (SIT)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#user-acceptance-tests-uat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        User Acceptance Tests (UAT)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#for-all-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        For All Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#for-manual-tests-sit-and-uat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        For Manual Tests — SIT and UAT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uat-tests-mobile-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UAT Tests — Mobile Verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running Tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running Tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unit-tests_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-tests-system-integration-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual Tests (System Integration Testing)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manual Tests (System Integration Testing)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ui-control-during-manual-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UI Control During Manual Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#list-available-sit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        List Available SIT Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-a-specific-sit-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run a Specific SIT Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-tests-interactively" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run Tests Interactively
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uat-tests-full-crud-with-mobile-sync" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UAT Tests — Full CRUD with Mobile Sync
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="UAT Tests — Full CRUD with Mobile Sync">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#available-uat-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available UAT Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-single-uat-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run Single UAT Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-all-uat-tests-sequentially" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run All UAT Tests Sequentially
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#specifying-output-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Specifying Output Directory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reference-data-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference Data Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#batch-operations-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch Operations Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transfer-currency-normalization-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transfer Currency Normalization Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../test-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Test Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../test-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Test Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tests/TRANSFER_TEST_CASES/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transfer Test Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tests/BATCH_TRANSFER_TEST_CASES/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Transfer Test Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tests/feature_5.1_expense_crud/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expense CRUD Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tests/feature_5.3_transfer_crud/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transfer CRUD Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tests/sync_validation_procedure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sync Validation Procedure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation Example
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Implementation Example
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Issues & Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Issues & Troubleshooting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../issues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Issues Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related documents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Test Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#system-integration-tests-sit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System Integration Tests (SIT)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#user-acceptance-tests-uat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        User Acceptance Tests (UAT)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#for-all-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        For All Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#for-manual-tests-sit-and-uat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        For Manual Tests — SIT and UAT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uat-tests-mobile-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UAT Tests — Mobile Verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running Tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running Tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unit-tests_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-tests-system-integration-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual Tests (System Integration Testing)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manual Tests (System Integration Testing)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ui-control-during-manual-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UI Control During Manual Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#list-available-sit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        List Available SIT Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-a-specific-sit-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run a Specific SIT Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-tests-interactively" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run Tests Interactively
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uat-tests-full-crud-with-mobile-sync" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UAT Tests — Full CRUD with Mobile Sync
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="UAT Tests — Full CRUD with Mobile Sync">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#available-uat-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available UAT Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-single-uat-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run Single UAT Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run-all-uat-tests-sequentially" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run All UAT Tests Sequentially
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#specifying-output-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Specifying Output Directory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reference-data-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference Data Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#batch-operations-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch Operations Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transfer-currency-normalization-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transfer Currency Normalization Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href=".." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="./" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Testing
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="test-guide">Test Guide<a class="headerlink" href="#test-guide" title="Permanent link">&para;</a></h1>
+<h2 id="table-of-contents">Table of contents<a class="headerlink" href="#table-of-contents" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="#related-documents">Related documents</a></li>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#test-types">Test Types</a></li>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#running-tests">Running Tests</a></li>
+<li><a href="#uat-test-workflow">UAT Test Workflow</a></li>
+<li><a href="#feature-coverage">Feature Coverage</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#test-development">Test Development</a></li>
+<li><a href="#continuous-integration">Continuous Integration</a></li>
+</ul>
+<h2 id="related-documents">Related documents<a class="headerlink" href="#related-documents" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../developer-guide/">Developer Guide</a> - Development setup</li>
+<li><a href="https://github.com/yayfalafels/homebudget/blob/main/.github/prompts/plan-wrapper-implementation.prompt.md">Implementation Plan</a> - Feature implementation phases</li>
+<li><a href="../sync-update/">Sync Mechanism</a> - SyncUpdate details</li>
+<li><a href="../sqlite-schema/">SQLite Schema</a> - Database structure</li>
+</ul>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>This guide covers how to run tests for the HomeBudget Wrapper, including unit tests, manual tests — SIT — and User Acceptance Tests — UAT.</p>
+<h2 id="test-types">Test Types<a class="headerlink" href="#test-types" title="Permanent link">&para;</a></h2>
+<h3 id="unit-tests">Unit Tests<a class="headerlink" href="#unit-tests" title="Permanent link">&para;</a></h3>
+<p>Automated tests for Python code modules and functions.</p>
+<h3 id="system-integration-tests-sit">System Integration Tests (SIT)<a class="headerlink" href="#system-integration-tests-sit" title="Permanent link">&para;</a></h3>
+<p>Manual tests that verify wrapper functionality without involving mobile devices.</p>
+<h3 id="user-acceptance-tests-uat">User Acceptance Tests (UAT)<a class="headerlink" href="#user-acceptance-tests-uat" title="Permanent link">&para;</a></h3>
+<p>Manual tests that verify complete CRUD workflows with sync validation across desktop and mobile devices.</p>
+<hr />
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
+<h3 id="for-all-tests">For All Tests<a class="headerlink" href="#for-all-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Python 3.12+</li>
+<li>Wrapper installed in editable mode: <code>pip install -e .</code></li>
+<li>Development environment configured per <a href="../developer-guide/">Developer Guide</a></li>
+</ul>
+<h3 id="for-manual-tests-sit-and-uat">For Manual Tests — SIT and UAT<a class="headerlink" href="#for-manual-tests-sit-and-uat" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Configuration file</strong> with correct database path</li>
+<li>Location: <code>%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json</code></li>
+<li>See <a href="../configuration/">Configuration Guide</a> for setup</li>
+<li><strong>Database</strong>: HomeBudget.db with test data</li>
+<li><strong>Test resources must exist</strong>: </li>
+<li>Account: "TWH - Personal"</li>
+<li>Account: "30 CC Hashemis" for transfers</li>
+<li>Category: "Food (Basic)"</li>
+<li>Category: "Salary and Wages" for income</li>
+<li>Subcategory under Food: "Cheap restaurant"</li>
+</ul>
+<h3 id="uat-tests-mobile-verification">UAT Tests — Mobile Verification<a class="headerlink" href="#uat-tests-mobile-verification" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Mobile device with HomeBudget app installed</li>
+<li>Mobile device on WiFi network</li>
+<li>Mobile app signed in with same account as desktop</li>
+<li>Easy access to mobile device to verify sync results</li>
+</ul>
+<hr />
+<h2 id="running-tests">Running Tests<a class="headerlink" href="#running-tests" title="Permanent link">&para;</a></h2>
+<h3 id="unit-tests_1">Unit Tests<a class="headerlink" href="#unit-tests_1" title="Permanent link">&para;</a></h3>
+<p>Run all unit tests:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pytest
+</code></pre></div></p>
+<p>Run with coverage:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pytest<span class="w"> </span>--cov<span class="o">=</span>src/python/homebudget
+</code></pre></div></p>
+<p>Run specific test file:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pytest<span class="w"> </span>tests/unit/test_models.py
+</code></pre></div></p>
+<hr />
+<h3 id="manual-tests-system-integration-testing">Manual Tests (System Integration Testing)<a class="headerlink" href="#manual-tests-system-integration-testing" title="Permanent link">&para;</a></h3>
+<p>Manual tests verify wrapper functionality interactively. The test runner automates CLI operations and prompts you to verify UI changes.</p>
+<h4 id="ui-control-during-manual-tests">UI Control During Manual Tests<a class="headerlink" href="#ui-control-during-manual-tests" title="Permanent link">&para;</a></h4>
+<p>When manual tests execute CLI commands with sync enabled (default):
+- <strong>HomeBudget UI automatically closes</strong> before each database operation
+- Database changes are applied atomically while UI is closed
+- <strong>HomeBudget UI automatically reopens</strong> after the operation completes
+- This ensures data consistency and prevents incomplete state reads</p>
+<p>You may notice the HomeBudget application window briefly disappear and reappear during automated test steps. This is expected behavior and indicates UI control is working correctly.</p>
+<p><strong>Observing UI Control:</strong>
+1. Watch the HomeBudget window during automated steps
+2. You'll see it close, database operation execute, then reopen
+3. This typically takes 6-11 seconds depending on application startup speed
+4. No manual intervention is needed; it's automatic</p>
+<h4 id="list-available-sit-tests">List Available SIT Tests<a class="headerlink" href="#list-available-sit-tests" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--list
+</code></pre></div>
+<p>Output shows available test IDs and descriptions.</p>
+<h4 id="run-a-specific-sit-test">Run a Specific SIT Test<a class="headerlink" href="#run-a-specific-sit-test" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--test-id<span class="w"> </span>&lt;test_id&gt;
+</code></pre></div>
+<p>Example:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--test-id<span class="w"> </span>sync_validation
+</code></pre></div></p>
+<h4 id="run-tests-interactively">Run Tests Interactively<a class="headerlink" href="#run-tests-interactively" title="Permanent link">&para;</a></h4>
+<p>If no <code>--test-id</code> specified, the runner shows a menu:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py
+</code></pre></div></p>
+<h4 id="results">Results<a class="headerlink" href="#results" title="Permanent link">&para;</a></h4>
+<p>Results are saved to <code>tests/manual/results/&lt;test-id&gt;-&lt;timestamp&gt;.md</code> with:
+- Test summary (overall pass/fail/incomplete)
+- Step-by-step results with commands, outputs, and notes
+- Timestamps for each test run</p>
+<p>View latest result:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>ls<span class="w"> </span>-t<span class="w"> </span>tests/manual/results/*.md<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1
+</code></pre></div></p>
+<hr />
+<h3 id="uat-tests-full-crud-with-mobile-sync">UAT Tests — Full CRUD with Mobile Sync<a class="headerlink" href="#uat-tests-full-crud-with-mobile-sync" title="Permanent link">&para;</a></h3>
+<p>UAT tests verify complete Create-Read-Update-Delete workflows with mobile synchronization. These tests require manual verification that changes sync to mobile devices.</p>
+<h4 id="available-uat-tests">Available UAT Tests<a class="headerlink" href="#available-uat-tests" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--list
+</code></pre></div>
+<p>Three main UAT tests:
+- <code>uat_expense_crud</code> - Expense full CRUD with sync validation
+- <code>uat_income_crud</code> - Income full CRUD with sync validation
+- <code>uat_transfer_crud</code> - Transfer full CRUD with sync validation</p>
+<h4 id="run-single-uat-test">Run Single UAT Test<a class="headerlink" href="#run-single-uat-test" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--test-id<span class="w"> </span>uat_expense_crud
+</code></pre></div>
+<p>This will:
+1. Verify configuration is ready — you confirm
+2. Create a test expense via CLI — automated
+3. Verify SyncUpdate entry created — automated
+4. Ask you to verify expense appears in Windows AND mobile apps — manual
+5. List expenses and ask you to record the key — interactive
+6. Read the expense — automated
+7. Update the expense — automated
+8. Verify sync — manual
+9. Delete the expense — automated
+10. Verify sync — manual</p>
+<h4 id="run-all-uat-tests-sequentially">Run All UAT Tests Sequentially<a class="headerlink" href="#run-all-uat-tests-sequentially" title="Permanent link">&para;</a></h4>
+<p>To run all UAT tests in order — expense, income, then transfer:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--test-id<span class="w"> </span>uat_expense_crud
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--test-id<span class="w"> </span>uat_income_crud
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--test-id<span class="w"> </span>uat_transfer_crud
+</code></pre></div>
+<p>Or use a loop:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">for</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="k">in</span><span class="w"> </span>uat_expense_crud<span class="w"> </span>uat_income_crud<span class="w"> </span>uat_transfer_crud<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--test-id<span class="w"> </span><span class="nv">$test</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">done</span>
+</code></pre></div></p>
+<h4 id="specifying-output-directory">Specifying Output Directory<a class="headerlink" href="#specifying-output-directory" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--test-id<span class="w"> </span>uat_expense_crud<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>--output-dir<span class="w"> </span>.dev/uat-results
+</code></pre></div>
+<h4 id="reference-data-testing">Reference Data Testing<a class="headerlink" href="#reference-data-testing" title="Permanent link">&para;</a></h4>
+<p>Reference data tests verify read-only queries for accounts, categories, currencies, and other lookup tables. These are automated unit tests without mobile sync verification.</p>
+<p><strong>Run reference data tests:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>pytest<span class="w"> </span>tests/unit/test_reference_data.py<span class="w"> </span>-v
+</code></pre></div></p>
+<p>Tests verify:
+- Query all accounts and return correct structure
+- Filter accounts by type or status
+- List all categories with hierarchy
+- Filter categories by parent
+- Query currencies by code or name</p>
+<h4 id="batch-operations-testing">Batch Operations Testing<a class="headerlink" href="#batch-operations-testing" title="Permanent link">&para;</a></h4>
+<p>Batch operations tests verify importing multiple transactions from CSV or JSON files, with sync optimizations and error handling.</p>
+<p><strong>Run batch operation tests:</strong></p>
+<p>Automated tests:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>pytest<span class="w"> </span>tests/integration/test_batch_operations.py<span class="w"> </span>-v
+</code></pre></div></p>
+<p>Manual test with real data:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--test-id<span class="w"> </span>sit_batch_import_csv
+</code></pre></div></p>
+<p><strong>Batch operation capabilities:</strong>
+- File formats: CSV with headers or JSON array of transaction objects
+- Large files: Tested with 100 plus rows
+- Individual input validation per record
+- Sync disabled during individual processing, single sync after batch
+- Result summary with success/failure counts
+- Mixed-resource operations: Execute multiple operations (add, update, delete) across different resources (expense, income, transfer) in single batch</p>
+<p><strong>Example batch commands:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Import expenses from CSV</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>homebudget<span class="w"> </span>expense<span class="w"> </span>batch-import<span class="w"> </span>--file<span class="w"> </span>expenses.csv<span class="w"> </span>--format<span class="w"> </span>csv
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1"># Import income from JSON</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>homebudget<span class="w"> </span>income<span class="w"> </span>batch-import<span class="w"> </span>--file<span class="w"> </span>income.json<span class="w"> </span>--format<span class="w"> </span>json
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="c1"># Import transfers with currency normalization</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>homebudget<span class="w"> </span>transfer<span class="w"> </span>batch-import<span class="w"> </span>--file<span class="w"> </span>transfers.json<span class="w"> </span>--format<span class="w"> </span>json
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="c1"># Run mixed-resource batch operations</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>homebudget<span class="w"> </span>batch<span class="w"> </span>run<span class="w"> </span>--file<span class="w"> </span>operations.json
+</code></pre></div></p>
+<h4 id="transfer-currency-normalization-testing">Transfer Currency Normalization Testing<a class="headerlink" href="#transfer-currency-normalization-testing" title="Permanent link">&para;</a></h4>
+<p>Transfer operations include comprehensive UAT test cases covering mixed-currency scenarios. See <code>tests/manual/TRANSFER_TEST_CASES.md</code> for detailed test case documentation.</p>
+<p><strong>23 Transfer UAT Test Cases:</strong>
+- 3 Amount-only inference tests (base→foreign, foreign→base, foreign→foreign)
+- 1 Same-currency test (no forex needed)
+- 3 Fully-specified tests (amount + currency_amount + rate)
+- 14 Invalid/error cases (over-specification, missing fields, constraint violations)</p>
+<p><strong>Batch Transfer Tests:</strong>
+See <code>tests/manual/BATCH_TRANSFER_TEST_CASES.md</code> for batch transfer test scenarios including:
+- Amount-only (inference) mode
+- Explicit from-currency mode (pass through)
+- Explicit to-currency mode (normalized to backend format)
+- Parsing error handling</p>
+<p><strong>Run transfer UAT tests:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># Run specific transfer test</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--test-id<span class="w"> </span>uat_transfer_amount_only_base_to_foreign
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="c1"># Run batch transfer test</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>python<span class="w"> </span>tests/manual/manual_test_runner.py<span class="w"> </span>--test-id<span class="w"> </span>uat_batch_transfer_valid
+</code></pre></div></p>
+<p><strong>Example batch commands:</strong>
+homebudget expense batch-import --file expenses.csv --format csv</p>
+<h1 id="import-income-from-json">Import income from JSON<a class="headerlink" href="#import-income-from-json" title="Permanent link">&para;</a></h1>
+<p>homebudget income batch-import --file income.json --format json</p>
+<h1 id="import-transfers-with-error-reporting">Import transfers with error reporting<a class="headerlink" href="#import-transfers-with-error-reporting" title="Permanent link">&para;</a></h1>
+<p>homebudget transfer batch-import --file transfers.csv --format csv --error-report errors.txt
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>#### UAT Batch Import with Mobile Sync
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>UAT batch testing validates that imported transactions sync correctly to mobile devices. This follows the same sync validation pattern as individual CRUD operations but for bulk imports.
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>**Run UAT batch test:**
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>```bash
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>python tests/manual/manual_test_runner.py --test-id uat_batch_import_csv
+</code></pre></div></p>
+<p><strong>Test workflow:</strong>
+1. <strong>Setup</strong> — Note expense count in Windows and mobile apps
+2. <strong>Import</strong> — Batch import 20 expenses from CSV via CLI (automated)
+3. <strong>Verify Import</strong> — Check CLI summary shows 20 successful (automated)
+4. <strong>Verify Desktop</strong> — Confirm all 20 expenses appear in Windows app (manual)
+5. <strong>Verify Mobile</strong> — Wait 30 seconds for sync and verify on mobile (manual)
+6. <strong>Check Totals</strong> — Verify transaction count increased by exactly 20 (manual)</p>
+<p><strong>Expected result:</strong> All 20 batch-imported transactions appear in both Windows and mobile apps with correct amounts, categories, and dates.</p>
+<hr />
+<h2 id="uat-test-workflow">UAT Test Workflow<a class="headerlink" href="#uat-test-workflow" title="Permanent link">&para;</a></h2>
+<p>Each UAT test follows this pattern:</p>
+<h3 id="1-setup-manual">1. Setup — Manual<a class="headerlink" href="#1-setup-manual" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Confirm hb-config.json is configured</li>
+<li>Ensure mobile device is connected to WiFi</li>
+<li>Note current transaction counts in both apps</li>
+</ul>
+<h3 id="2-create-automated-then-manual-verification">2. Create — Automated then Manual Verification<a class="headerlink" href="#2-create-automated-then-manual-verification" title="Permanent link">&para;</a></h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>CLI Creates transaction → SyncUpdate inserted → Verify both apps updated
+</code></pre></div>
+- Wrapper CLI creates resource, which can be an expense, income, or transfer
+- Test runner verifies SyncUpdate entry exists
+- <strong>You verify</strong>: New transaction appears in Windows app AND mobile app</p>
+<h3 id="3-read-automated">3. Read — Automated<a class="headerlink" href="#3-read-automated" title="Permanent link">&para;</a></h3>
+<ul>
+<li>List transactions and record the resource key</li>
+<li>CLI retrieves transaction details</li>
+<li><strong>You verify</strong>: Details match what was entered</li>
+</ul>
+<h3 id="4-update-automated-then-manual-verification">4. Update — Automated then Manual Verification<a class="headerlink" href="#4-update-automated-then-manual-verification" title="Permanent link">&para;</a></h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>CLI Updates amount/notes → SyncUpdate inserted → Verify both apps updated
+</code></pre></div>
+- CLI updates transaction
+- Test runner verifies SyncUpdate entry exists
+- <strong>You verify</strong>: Updated transaction appears in Windows app AND mobile app</p>
+<h3 id="5-delete-automated-then-manual-verification">5. Delete — Automated then Manual Verification<a class="headerlink" href="#5-delete-automated-then-manual-verification" title="Permanent link">&para;</a></h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>CLI Deletes transaction → SyncUpdate inserted → Verify removed from both apps
+</code></pre></div>
+- CLI deletes transaction
+- Test runner verifies SyncUpdate entry exists
+- <strong>You verify</strong>: Transaction removed from Windows app AND mobile app</p>
+<hr />
+<h2 id="feature-coverage">Feature Coverage<a class="headerlink" href="#feature-coverage" title="Permanent link">&para;</a></h2>
+<p>The test suite covers all planned features from the implementation plan:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Testing Type</th>
+<th>Status</th>
+<th>Entry Point</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5.1 Expense CRUD</td>
+<td>UAT plus automated</td>
+<td>Enabled</td>
+<td><code>uat_expense_crud</code> test</td>
+</tr>
+<tr>
+<td>5.2 Income CRUD</td>
+<td>UAT plus automated</td>
+<td>Enabled</td>
+<td><code>uat_income_crud</code> test</td>
+</tr>
+<tr>
+<td>5.3 Transfer CRUD</td>
+<td>UAT plus automated</td>
+<td>Enabled</td>
+<td><code>uat_transfer_crud</code> test</td>
+</tr>
+<tr>
+<td>5.4 Reference Data</td>
+<td>Automated only</td>
+<td>Enabled</td>
+<td><code>pytest tests/unit/test_reference_data.py</code></td>
+</tr>
+<tr>
+<td>5.5 CLI Commands</td>
+<td>Automated plus manual</td>
+<td>Enabled</td>
+<td>UAT tests use CLI, SIT can target specific commands</td>
+</tr>
+<tr>
+<td>5.6 Batch Operations</td>
+<td>UAT plus automated</td>
+<td>Enabled</td>
+<td><code>uat_batch_import_csv</code> test, <code>pytest tests/integration/test_batch_operations.py</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Test automation levels:</strong>
+- <strong>Automated only</strong>: Unit tests run without user interaction or mobile devices
+- <strong>Automated plus manual</strong>: Automated tests verify code paths, manual tests verify UI in HomeBudget on Windows and mobile
+- <strong>UAT</strong>: Full workflow including sync validation on mobile devices</p>
+<hr />
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="test-runner-issues">Test Runner Issues<a class="headerlink" href="#test-runner-issues" title="Permanent link">&para;</a></h3>
+<h4 id="no-syncupdate-entries-found">"No SyncUpdate entries found"<a class="headerlink" href="#no-syncupdate-entries-found" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Ensure database path in hb-config.json is correct</li>
+<li>Verify sync is enabled in config</li>
+<li>Check that CLI commands executed successfully</li>
+</ul>
+<h4 id="account-not-found-or-category-not-found">"Account not found" or "Category not found"<a class="headerlink" href="#account-not-found-or-category-not-found" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Verify required test resources exist in database</li>
+<li>Check exact account/category names match — names are case-sensitive</li>
+<li>See prerequisites section above</li>
+</ul>
+<h4 id="command-timeout">"Command timeout"<a class="headerlink" href="#command-timeout" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Increase timeout in <code>manual_test_runner.py</code> — default is 30 seconds</li>
+<li>Check that CLI commands work manually</li>
+<li>Verify database is accessible</li>
+</ul>
+<h3 id="sync-verification-issues">Sync Verification Issues<a class="headerlink" href="#sync-verification-issues" title="Permanent link">&para;</a></h3>
+<h4 id="expense-doesnt-appear-on-mobile">Expense doesn't appear on mobile<a class="headerlink" href="#expense-doesnt-appear-on-mobile" title="Permanent link">&para;</a></h4>
+<ol>
+<li>Check WiFi connectivity on both devices</li>
+<li>Verify both devices signed in with same account</li>
+<li>Check SyncUpdate entry in database: <code>python tests/manual/verify_syncupdate.py</code></li>
+<li>Check mobile app logs or wait longer for sync</li>
+<li>Verify device registration in DeviceInfo table</li>
+</ol>
+<h4 id="mobile-shows-transaction-but-desktop-shows-error">Mobile shows transaction but desktop shows error<a class="headerlink" href="#mobile-shows-transaction-but-desktop-shows-error" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Desktop transaction may have failed silently</li>
+<li>Check wrapper logs for errors</li>
+<li>Verify all required fields were populated</li>
+<li>Check database for partial transaction</li>
+</ul>
+<hr />
+<h2 id="test-development">Test Development<a class="headerlink" href="#test-development" title="Permanent link">&para;</a></h2>
+<h3 id="adding-new-uat-tests">Adding New UAT Tests<a class="headerlink" href="#adding-new-uat-tests" title="Permanent link">&para;</a></h3>
+<p>Edit <code>tests/manual/manual_tests.json</code> and add a new test object:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="p">{</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uat_myresource_crud&quot;</span><span class="p">,</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UAT: MyResource CRUD with sync validation&quot;</span><span class="p">,</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">  </span><span class="nt">&quot;resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;myresource&quot;</span><span class="p">,</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">  </span><span class="nt">&quot;steps&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="w">      </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Record count and verify mobile is on WiFi&quot;</span>
+<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a><span class="w">      </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a><span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Create test resource&quot;</span><span class="p">,</span>
+<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a><span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;homebudget &lt;resource&gt; add --param value ...&quot;</span>
+<a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a><span class="w">    </span><span class="err">...</span>
+<a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-22-17" name="__codelineno-22-17" href="#__codelineno-22-17"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="step-types">Step Types<a class="headerlink" href="#step-types" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>"kind": "auto"</code>: CLI command executed automatically</li>
+<li><code>"command"</code>: Shell command to run</li>
+<li><code>"command_template"</code>: Command with placeholders like <code>{expense_key}</code></li>
+<li><code>"kind": "user"</code>: Manual verification step</li>
+<li>Prompts user for pass/fail/skip and optional notes</li>
+<li>Can capture variables such as transaction key for use in later steps</li>
+</ul>
+<h3 id="adding-batch-operation-tests">Adding Batch Operation Tests<a class="headerlink" href="#adding-batch-operation-tests" title="Permanent link">&para;</a></h3>
+<p>For UAT batch operations with mobile sync validation, add test with CSV and JSON file handling:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="p">{</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uat_batch_import_expenses&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UAT: Batch import expenses from CSV with mobile sync validation&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">  </span><span class="nt">&quot;resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;batch&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">  </span><span class="nt">&quot;steps&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="w">      </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Record current expense count in Windows and mobile apps, ensure mobile is on WiFi&quot;</span>
+<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="w">      </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a><span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Import 20 expenses from CSV&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a><span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;homebudget expense batch-import --file tests/fixtures/test_expenses.csv --format csv&quot;</span>
+<a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a><span class="w">      </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a><span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Verify import summary shows 20 successful&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a><span class="w">      </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;python tests/manual/verify_batch_import.py --count 20&quot;</span>
+<a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-23-20" name="__codelineno-23-20" href="#__codelineno-23-20"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-23-21" name="__codelineno-23-21" href="#__codelineno-23-21"></a><span class="w">      </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-22" name="__codelineno-23-22" href="#__codelineno-23-22"></a><span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Verify: All 20 expenses appear in Windows app with correct amounts and categories&quot;</span>
+<a id="__codelineno-23-23" name="__codelineno-23-23" href="#__codelineno-23-23"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-23-24" name="__codelineno-23-24" href="#__codelineno-23-24"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-23-25" name="__codelineno-23-25" href="#__codelineno-23-25"></a><span class="w">      </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-26" name="__codelineno-23-26" href="#__codelineno-23-26"></a><span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Wait 30 seconds for sync, verify all 20 expenses appear on mobile device&quot;</span>
+<a id="__codelineno-23-27" name="__codelineno-23-27" href="#__codelineno-23-27"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-23-28" name="__codelineno-23-28" href="#__codelineno-23-28"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-23-29" name="__codelineno-23-29" href="#__codelineno-23-29"></a><span class="w">      </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-30" name="__codelineno-23-30" href="#__codelineno-23-30"></a><span class="w">      </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Verify: Transaction count increased by exactly 20 on both Windows and mobile&quot;</span>
+<a id="__codelineno-23-31" name="__codelineno-23-31" href="#__codelineno-23-31"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-23-32" name="__codelineno-23-32" href="#__codelineno-23-32"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-23-33" name="__codelineno-23-33" href="#__codelineno-23-33"></a><span class="p">}</span>
+</code></pre></div>
+<hr />
+<h2 id="continuous-integration">Continuous Integration<a class="headerlink" href="#continuous-integration" title="Permanent link">&para;</a></h2>
+<p>For CI/CD pipelines, unit tests can run automatically:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>pytest<span class="w"> </span>--cov<span class="o">=</span>src/python/homebudget<span class="w"> </span>--tb<span class="o">=</span>short
+</code></pre></div>
+<p>Manual tests — both SIT and UAT — require human interaction and should be run locally before commits.</p>
+<hr />
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 HomeBudget Python Wrapper | Version 2.0
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": "2.0"}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
