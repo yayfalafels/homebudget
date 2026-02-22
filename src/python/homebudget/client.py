@@ -1051,22 +1051,13 @@ class HomeBudgetClient:
 
         Rules:
         - amount and currency_amount are mutually exclusive.
-        - currency_amount requires exchange_rate and currency.
+        - currency_amount requires currency.
         - amount defaults currency_amount to amount.
         """
         if amount is not None and currency_amount is not None:
-            if exchange_rate is not None:
-                raise ValueError(
-                    f"{label}: provide amount or currency_amount with exchange_rate, not both"
-                )
-            amount_dec = Decimal(str(amount))
-            currency_amount_dec = Decimal(str(currency_amount))
-            if amount_dec != currency_amount_dec:
-                raise ValueError(
-                    f"{label}: provide amount or currency_amount with exchange_rate, not both"
-                )
-            currency_amount = amount_dec
-            amount = amount_dec
+            raise ValueError(
+                f"{label}: provide amount or currency_amount, not both"
+            )
 
         if currency_amount is not None:
             if currency is None or not currency.strip():

@@ -2,7 +2,7 @@
 
 ## Project context
 
-Refer to `docs/about.md` for an overview of the project and its goals.
+Refer to `docs/index.md` for an overview of the project and its goals.
 
 ## Skills
 

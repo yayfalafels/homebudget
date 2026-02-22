@@ -1,25 +1,24 @@
-# HomeBudget wrapper user guide
+# HomeBudget comprehensive guide
 
 ## Table of contents
 
 - [Getting started](#getting-started)
 - [Installation](#installation)
+- [Configuration](#configuration)
 - [Basic usage](#basic-usage)
 - [Entry points](#entry-points)
 - [Forex input rules](#forex-input-rules)
-- [Currency matching constraints](#currency-matching-constraints)
+  - [Currency matching constraints](#currency-matching-constraints)
+- [Feature mapping](#feature-mapping)
 - [Working with expenses](#working-with-expenses)
 - [Working with income](#working-with-income)
 - [Working with transfers](#working-with-transfers)
 - [Batch operations](#batch-operations)
-- [Configuration](#configuration)
-- [Common workflows](#common-workflows)
 - [Troubleshooting](#troubleshooting)
-- [Feature mapping](#feature-mapping)
 
 ## Getting started
 
-The HomeBudget wrapper is a Python library and CLI that lets you manage HomeBudget data through a SQLite database. The wrapper supports expense and income operations. It also supports sync updates so changes appear in the HomeBudget apps.
+The HomeBudget wrapper is a Python library and CLI that lets you manage HomeBudget data through a SQLite database. The wrapper supports expense, income, and transfer operations with full CRUD (create, read, update, delete) functionality. It also supports sync updates so changes appear in the HomeBudget apps across all devices.
 
 What you need
 - Python 3.10 or later
@@ -28,53 +27,45 @@ What you need
 
 ## Installation
 
-Use the repository setup scripts to create the main environment and install dependencies.
-
-Windows
+Using Git Bash on Windows for all examples. Clone the repository to access the project files.
 
 ```bash
-.\.scripts\cmd\setup-env.cmd
-.\env\Scripts\activate
+git clone https://github.com/yayfalafels/homebudget.git
+cd homebudget
 ```
 
-Bash
+Activate the main environment at `env/` (do not use `.dev/env` for normal workflows).
 
 ```bash
-./.scripts/bash/setup-env.sh
-source env/bin/activate
+source env/Scripts/activate
 ```
 
-Install the package in editable mode for local development.
+Install the package from the wheel distribution.
 
 ```bash
-pip install -e src/python
+pip install homebudget-*.whl
 ```
 
-Create the user config JSON once during setup. A sample config is provided in `config/hb-config.json.sample`.
+## Configuration
 
-Config file path
-- %USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json
+The wrapper requires a configuration file for database path and settings. See the [Configuration Guide](configuration.md) for complete setup instructions.
 
-Default database path
-- %USERPROFILE%\OneDrive\Documents\HomeBudgetData\Data\homebudget.db
+**Quick setup:**
 
-Setup instructions
-
-```powershell
-# Copy the sample config to your HomeBudgetData directory
-$configDir = "$env:USERPROFILE\OneDrive\Documents\HomeBudgetData"
-New-Item -ItemType Directory -Force -Path $configDir
-Copy-Item config\hb-config.json.sample "$configDir\hb-config.json"
-# Edit the config file to set db_path to your operational homebudget.db
+```bash
+# Create config directory and copy sample
+config_dir="$USERPROFILE/OneDrive/Documents/HomeBudgetData"
+mkdir -p "$config_dir"
+cp config/hb-config.json.sample "$config_dir/hb-config.json"
+# Edit the config file to set db_path
 ```
 
-Config file format
-
-```json
-{
-  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db"
-}
+**Configuration file location:**
 ```
+%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json
+```
+
+For full configuration options and troubleshooting, see [Configuration Guide](configuration.md).
 
 ## Basic usage
 
@@ -91,19 +82,16 @@ Library entry point
 
 CLI entry point
 - Use `homebudget` or `hb` for the command line interface
-- Provide `--db` for the database path
+- Provide `--db` for the database path when `hb-config.json` is not configured
 
-### Sync behavior
+## Sync behavior
 
-Sync updates are enabled by default for write commands, which:
+Sync updates are enabled by default and mandatory for all write commands. This ensures consistency between local and remote devices:
 - Creates SyncUpdate records in the database
 - Enables mobile and other HomeBudget clients to synchronize changes
 - Automatically manages the HomeBudget UI to maintain data consistency (Feature 001)
 
-Use `--no-sync` to disable sync updates:
-```bash
-homebudget --no-sync expense add [options]
-```
+Sync cannot be disabled via the CLI to prevent irreparable breaks between local and remote data.
 
 ## Forex input rules
 
@@ -116,10 +104,13 @@ Base currency path
 - Exchange rate is treated as 1.0
 
 Foreign currency path
-- Provide currency, currency amount, and exchange rate
+- Provide currency and currency amount
+- Exchange rate is optional (if omitted, the wrapper infers a rate from the forex cache)
 - Amount is calculated as currency amount times exchange rate
 
-Do not provide amount and currency amount together, except when they are equal for base currency updates.
+You can pass an explicit rate with `--exchange-rate` (CLI) or `exchange_rate` (client updates).
+
+Do not provide amount and currency amount together.
 
 ### Currency matching constraints
 
@@ -127,7 +118,7 @@ When adding or updating transactions (expense, income, transfer), the currency y
 
 **For expenses and income:**
 - **Cannot add base currency transactions to non-base currency accounts**: If an account's currency is non-base (e.g., USD account "TWH IB USD"), you cannot add a transaction in the system's base currency (SGD). The account will reject base currency inputs.
-- **Can add foreign currency transactions to base currency accounts**: If an account's currency is the system base (SGD), you can add transactions in foreign currencies (USD, EUR, GEL, etc.) by specifying `--currency`, `--currency-amount`, and `--exchange-rate`.
+- **Can add foreign currency transactions to base currency accounts**: If an account's currency is the system base (SGD), you can add transactions in foreign currencies (USD, EUR, GEL, etc.) by specifying `--currency`, `--currency-amount`, and optionally `--exchange-rate`.
 
 **Examples:**
 - ✓ VALID: Add USD expense to "TWH - Personal" (SGD base) with `--currency USD --currency-amount 27.50 --exchange-rate 0.9273`
@@ -156,16 +147,33 @@ When you run a write command with sync enabled (the default), the HomeBudget UI 
 - The entire operation (close → change → reopen) typically takes 6-11 seconds
 - No manual intervention is needed; it's completely automated
 
-**Disabling UI control:**
-Use `--no-sync` to disable both sync and UI control:
-```bash
-homebudget --no-sync expense add --date 2026-02-17 --category "Food" --amount 25.50 --account "Wallet"
-```
+## Feature mapping
 
-This is useful for:
-- Maintenance tasks where sync should not happen
-- Testing without affecting mobile devices
-- Operations where you want to manage UI control manually
+| HomeBudget UI operation | Wrapper method | CLI command |
+| --- | --- | --- |
+| Add expense | HomeBudgetClient.add_expense | homebudget expense add |
+| List expenses | HomeBudgetClient.list_expenses | homebudget expense list |
+| Get expense | HomeBudgetClient.get_expense | homebudget expense get |
+| Update expense | HomeBudgetClient.update_expense | homebudget expense update |
+| Delete expense | HomeBudgetClient.delete_expense | homebudget expense delete |
+| Add income | HomeBudgetClient.add_income | homebudget income add |
+| List income | HomeBudgetClient.list_incomes | homebudget income list |
+| Get income | HomeBudgetClient.get_income | homebudget income get |
+| Update income | HomeBudgetClient.update_income | homebudget income update |
+| Delete income | HomeBudgetClient.delete_income | homebudget income delete |
+| Add transfer | HomeBudgetClient.add_transfer | homebudget transfer add |
+| List transfers | HomeBudgetClient.list_transfers | homebudget transfer list |
+| Get transfer | HomeBudgetClient.get_transfer | homebudget transfer get |
+| Update transfer | HomeBudgetClient.update_transfer | homebudget transfer update |
+| Delete transfer | HomeBudgetClient.delete_transfer | homebudget transfer delete |
+| Batch add expenses | HomeBudgetClient.add_expenses_batch | homebudget expense batch-import |
+| Batch add income | HomeBudgetClient.add_incomes_batch | homebudget income batch-import |
+| Batch add transfers | HomeBudgetClient.add_transfers_batch | homebudget transfer batch-import |
+| Start UI | N/A | homebudget ui start |
+| Close UI | N/A | homebudget ui close |
+| Refresh UI | N/A | homebudget ui refresh |
+| Check UI status | N/A | homebudget ui status |
+
 
 ## Working with expenses
 
@@ -285,9 +293,31 @@ homebudget income add \
 
 ## Working with transfers
 
-Use the transfer methods to add, list, update, and delete transfers between accounts. Sync updates are created for write operations when sync is enabled.
+Use the transfer methods to add, list, update, and delete transfers between accounts. Transfers support a **currency normalization layer** that allows flexible input for mixed-currency transfers.
 
-Add a transfer.
+### Currency Normalization Layer
+
+When transferring between accounts with different currencies, you can specify the amount in three ways:
+
+- **Amount Only (Inference)**: Provide only `--amount`. The system infers the currency:
+
+If base currency in either account → amount is in base currency
+
+If base in neither account → amount is in from_account currency
+
+- **From-Currency Explicit**: Provide `--currency` + `--currency-amount` matching the **from_account**
+
+Already in backend format → passes through unchanged
+
+- **To-Currency Explicit**: Provide `--currency` + `--currency-amount` matching the **to_account**
+
+System normalizes to backend format using inverse forex calculation
+
+For detailed normalization rules, see [docs/transfer-currency-normalization.md](transfer-currency-normalization.md).
+
+### Basic Transfer Examples
+
+Add a same-currency transfer.
 
 ```python
 from decimal import Decimal
@@ -302,6 +332,60 @@ with HomeBudgetClient() as client:
     to_account="Wallet",
     amount=Decimal("200.00"),
     notes="Cash withdrawal"
+  )
+  saved = client.add_transfer(transfer)
+  print(saved.key)
+```
+
+Add a mixed-currency transfer (amount only).
+
+```python
+# Transfer from SGD account to USD account
+# System infers: amount is in base currency (SGD)
+with HomeBudgetClient() as client:
+  transfer = TransferDTO(
+    date=datetime.date(2026, 2, 20),
+    from_account="TWH - Personal",  # SGD base
+    to_account="TWH IB USD",  # USD
+    amount=Decimal("200.00"),  # Interpreted as SGD
+    notes="Transfer to USD account"
+  )
+  saved = client.add_transfer(transfer)
+  print(saved.key)
+```
+
+Add a mixed-currency transfer (explicit from-currency).
+
+```python
+# Specify amount in from_account currency (USD)
+with HomeBudgetClient() as client:
+  transfer = TransferDTO(
+    date=datetime.date(2026, 2, 20),
+    from_account="TWH IB USD",  # USD
+    to_account="TWH - Personal",  # SGD base
+    amount=None,  # Will be calculated
+    currency="USD",  # Matches from_account
+    currency_amount=Decimal("150.00"),  # Amount in USD
+    notes="Transfer to SGD account"
+  )
+  saved = client.add_transfer(transfer)
+  print(saved.key)
+```
+
+Add a mixed-currency transfer (explicit to-currency, normalized).
+
+```python
+# Specify amount in to_account currency (EUR)
+# System normalizes to backend format (from_account currency)
+with HomeBudgetClient() as client:
+  transfer = TransferDTO(
+    date=datetime.date(2026, 2, 20),
+    from_account="TWH IB USD",  # USD
+    to_account="Cash TWH EUR",  # EUR
+    amount=None,  # Will be calculated
+    currency="EUR",  # Matches to_account (will be normalized)
+    currency_amount=Decimal("90.00"),  # Amount in EUR
+    notes="Transfer to EUR account"
   )
   saved = client.add_transfer(transfer)
   print(saved.key)
@@ -322,7 +406,9 @@ with HomeBudgetClient() as client:
     print(transfer.key, transfer.amount)
 ```
 
-Add a transfer with the CLI.
+### CLI Transfer Examples
+
+Add a same-currency transfer.
 
 ```bash
 homebudget transfer add \
@@ -333,61 +419,44 @@ homebudget transfer add \
   --notes "Cash withdrawal"
 ```
 
-## Configuration
-
-The wrapper reads a user config JSON file for HomeBudget settings such as the database path.
-
-Config file path
-- %USER_PROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json
-
-Default database path
-- %USER_PROFILE%\OneDrive\Documents\HomeBudgetData\Data\homebudget.db
-
-Config file example
-
-```json
-{
-  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db"
-}
-```
-
-Client behavior
-- HomeBudgetClient uses db_path from config when not provided
-
-CLI behavior
-- CLI uses db_path from config when --db is not provided
-
-### API quick start
-
-```python
-from decimal import Decimal
-import datetime
-
-from homebudget import HomeBudgetClient, ExpenseDTO
-
-with HomeBudgetClient() as client:
-    expense = ExpenseDTO(
-        date=datetime.date(2026, 2, 16),
-        category="Dining",
-        subcategory="Restaurant",
-        amount=Decimal("25.50"),
-        account="Wallet",
-        notes="Lunch"
-    )
-    saved = client.add_expense(expense)
-    print(saved.key)
-```
-
-### CLI quick start
+Add a mixed-currency transfer (amount only).
 
 ```bash
-homebudget expense add \
-  --date 2026-02-16 \
-  --category Dining \
-  --subcategory Restaurant \
-  --amount 25.50 \
-  --account Wallet \
-  --notes "Lunch"
+# Transfer from SGD to USD - amount inferred as base currency (SGD)
+homebudget transfer add \
+  --date 2026-02-20 \
+  --from-account "TWH - Personal" \
+  --to-account "TWH IB USD" \
+  --amount 200.00 \
+  --notes "Transfer to USD account"
+```
+
+Add a mixed-currency transfer (explicit from-currency).
+
+```bash
+# Specify amount in from_account currency (USD)
+homebudget transfer add \
+  --date 2026-02-20 \
+  --from-account "TWH IB USD" \
+  --to-account "TWH - Personal" \
+  --currency USD \
+  --currency-amount 150.00 \
+  --exchange-rate 1.35 \
+  --notes "Transfer to SGD account"
+```
+
+Add a mixed-currency transfer (explicit to-currency, normalized).
+
+```bash
+# Specify amount in to_account currency (EUR) - system normalizes
+homebudget transfer add \
+  --date 2026-02-20 \
+  --from-account "TWH IB USD" \
+  --to-account "Cash TWH EUR" \
+  --currency EUR \
+  --currency-amount 90.00 \
+  --exchange-rate 0.92 \
+  --notes "Transfer to EUR account"
 ```
 
 ## Batch operations
@@ -406,6 +475,7 @@ Batch operations support two paths. Use batch import for single resource files, 
 CSV files must include a header row with these columns:
 
 **Expense CSV columns:**
+
 - `date` required: YYYY-MM-DD format
 - `category` required: Category name
 - `subcategory` optional: Subcategory name
@@ -417,6 +487,7 @@ CSV files must include a header row with these columns:
 - `exchange_rate` optional: Exchange rate to base currency
 
 **Income CSV columns:**
+
 - `date` required: YYYY-MM-DD format
 - `name` required: Income name
 - `amount` required: Decimal amount
@@ -427,14 +498,15 @@ CSV files must include a header row with these columns:
 - `exchange_rate` optional: Exchange rate to base currency
 
 **Transfer CSV columns:**
+
 - `date` required: YYYY-MM-DD format
 - `from_account` required: Source account name
 - `to_account` required: Destination account name
-- `amount` required: Decimal amount
+- `amount` optional: Destination amount Decimal
 - `notes` optional: Transaction notes
-- `currency` optional: Currency code
-- `currency_amount` optional: Foreign currency amount
-- `exchange_rate` optional: Exchange rate to base currency
+- `currency` optional: Source Currency code
+- `currency_amount` optional: Source currency amount
+- `exchange_rate` optional: Exchange rate from currency -> to currency
 
 **CSV example** for expenses.csv:
 ```csv
@@ -467,6 +539,37 @@ JSON files must contain an array of transaction objects with the same fields as 
   }
 ]
 ```
+
+**Transfer batch with currency normalization** - transfers_batch.json:
+```json
+[
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "amount": "200.00",
+    "notes": "SGD->USD Amount Only (inferred)"
+  },
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "currency": "SGD",
+    "currency_amount": "250.00",
+    "notes": "Explicit From Currency (SGD)"
+  },
+  {
+    "date": "2026-02-22",
+    "from_account": "TWH - Personal",
+    "to_account": "TWH IB USD",
+    "currency": "USD",
+    "currency_amount": "100.00",
+    "notes": "Explicit To Currency (USD) - normalized to backend format"
+  }
+]
+```
+
+**Note**: Transfer batch imports support the currency normalization layer. You can specify `currency` + `currency_amount` for **either** the from_account **or** to_account. The system automatically normalizes to backend format (currency = from_account) during import.
 
 ### Mixed operation JSON format
 
@@ -571,7 +674,17 @@ homebudget transfer batch-import --file transfers.csv --format csv --stop-on-err
 
 **Run mixed batch operations:**
 ```bash
-homebudget sync batch --file operations.json
+homebudget batch run --file operations.json
+```
+
+**Run mixed batch with stop-on-error:**
+```bash
+homebudget batch run --file operations.json --stop-on-error
+```
+
+**Run mixed batch with error report:**
+```bash
+homebudget batch run --file operations.json --error-report batch_errors.json
 ```
 
 ### Batch result output
@@ -594,26 +707,6 @@ Sync completed for 23 transactions
 
 If `--error-report` is specified, failed records are written to the file with details.
 
-## Common workflows
-
-The wrapper supports the same workflow used for financial statement updates.
-
-Pre-flight checks
-- Confirm access to account statements
-- Confirm the HomeBudget database is current
-
-Forex
-- Fetch USD SGD rates and update the rates sheet
-
-Account update
-- Add expenses, income, and transfers as statements are reviewed
-- Use batch import for statement driven updates
-
-Report update
-- Use list commands to review totals and spot errors
-- Confirm no duplicate entries before report export
-- Save statements as PDF after review
-
 ## Troubleshooting
 
 - The setup script fails to install a dependency. Check requirements.txt and confirm the package source.
@@ -624,29 +717,3 @@ Report update
 - The Python version is too old. Install Python 3.10 or later and recreate the env directory.
 - The SQLite version is too old. Use a Python build that includes SQLite 3.35 or later.
 
-## Feature mapping
-
-| HomeBudget UI operation | Wrapper method | CLI command |
-| --- | --- | --- |
-| Add expense | HomeBudgetClient.add_expense | homebudget expense add |
-| List expenses | HomeBudgetClient.list_expenses | homebudget expense list |
-| Get expense | HomeBudgetClient.get_expense | homebudget expense get |
-| Update expense | HomeBudgetClient.update_expense | homebudget expense update |
-| Delete expense | HomeBudgetClient.delete_expense | homebudget expense delete |
-| Add income | HomeBudgetClient.add_income | homebudget income add |
-| List income | HomeBudgetClient.list_incomes | homebudget income list |
-| Get income | HomeBudgetClient.get_income | homebudget income get |
-| Update income | HomeBudgetClient.update_income | homebudget income update |
-| Delete income | HomeBudgetClient.delete_income | homebudget income delete |
-| Add transfer | HomeBudgetClient.add_transfer | homebudget transfer add |
-| List transfers | HomeBudgetClient.list_transfers | homebudget transfer list |
-| Get transfer | HomeBudgetClient.get_transfer | homebudget transfer get |
-| Update transfer | HomeBudgetClient.update_transfer | homebudget transfer update |
-| Delete transfer | HomeBudgetClient.delete_transfer | homebudget transfer delete |
-| Batch add expenses | HomeBudgetClient.add_expenses_batch | homebudget expense batch-import |
-| Batch add income | HomeBudgetClient.add_incomes_batch | homebudget income batch-import |
-| Batch add transfers | HomeBudgetClient.add_transfers_batch | homebudget transfer batch-import |
-| Start UI | N/A | homebudget ui start |
-| Close UI | N/A | homebudget ui close |
-| Refresh UI | N/A | homebudget ui refresh |
-| Check UI status | N/A | homebudget ui status |

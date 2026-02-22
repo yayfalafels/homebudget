@@ -2,3 +2,5 @@ click>=8.1.0
 pytest
 pytest-cov
 requests
+mkdocs>=1.5.0,<2.0
+mkdocs-material>=9.0.0,<10.0

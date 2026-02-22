@@ -1,5 +1,5 @@
 # SQLite schema reference
-Database: reference/hb-sqlite-db/homebudget.db
+Database: HomeBudget sample SQLite database (local reference)
 
 ## Table of contents
 - [Account](#account)

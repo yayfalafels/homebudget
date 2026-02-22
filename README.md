@@ -1,31 +1,91 @@
-# HomeBudget Python wrapper
-refer to `docs/about.md` for more information about the project and its goals.
+# HomeBudget Python Wrapper
 
-- [Overview](#overview)
-- [Situation](#situation)
-- [Aims](#aims)
-- [Reference resources](#reference-resources)
+A Python library and CLI for managing HomeBudget transactions with full CRUD operations for expenses, income, and transfers.
 
-## Overview
+## Quick Links
 
-The HomeBuget Python wrapper (wrapper) is a Python library that provides an interface to interact with the HomeBudget application. It allows developers to perform similar operations as the HomeBudget application, such as managing accounts, transactions, and budgets, but through a Python interface. The wrapper is designed to be easy to use and integrate into other Python applications or scripts.
+- **[About](docs/index.md)** - Project overview and goals
+- **[User Guide](docs/user-guide.md)** - Getting started and usage
+- **[Developer Guide](docs/developer-guide.md)** - Development and testing
+- **[Configuration](docs/configuration.md)** - Setup and configuration
+- **[API Examples](docs/api-examples.md)** - Python API examples
+- **[CLI Examples](docs/cli-examples.md)** - Command-line examples
 
-## Situation
+## Features
 
-The HomeBudget application is a legacy application with a UI and a sqlite database backend. It is time consuming and tedious to perform routine operations such as adding, updating, deleting transactions through the Desktop UI. A proof-of-concept Python wrapper module [homebudget.py](../reference/hb-finances/homebudget.py) has already been developed with limited functionality for adding expenses via direct calls to the sqlite database.
+- **Full CRUD Operations**: Create, read, update, delete for expenses, income, and transfers
+- **Mixed Currency Support**: Handle transactions across accounts with different currencies
+- **Automatic Sync**: Changes propagate to HomeBudget mobile apps
+- **Batch Operations**: Import multiple transactions from CSV/JSON
+- **Forex Rates**: Automatic foreign exchange rate fetching and caching
+- **UI Control**: Automatic HomeBudget app management during database operations
 
-## Aims
+## Quick Start
 
-The aim of the wrapper is to
+### Installation
 
-1. expand the wrapper's functionality to cover more operations and features of the HomeBudget application with full CRUD operations for income, expenses, transfers and operations in foreign currencies.
-2. package the wrapper as a Python library that can be easily installed and used by other developers.
-3. provide a command-line interface (CLI) for interacting with the wrapper.
+```bash
+# Setup environment
+.\scripts\cmd\setup-env.cmd
+.\env\Scripts\activate
 
-## Reference resources
+# Install package
+pip install -e src/python
+```
 
-- [HomeBudget application](https://www.anishu.com/homebudget/)
-- [POC Python wrapper module](../reference/hb-finances/homebudget.py)
-- [hb-finances that implements the wrapper](../reference/hb-finances)
-- [sample HB sqlite database](../reference/hb-sqlite-db/homebudget.db)
+### Configuration
+
+Create `%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json`:
+
+```json
+{
+  "db_path": "C:\\Users\\USERNAME\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db",
+  "sync_enabled": true,
+  "base_currency": "SGD"
+}
+```
+
+See [Configuration Guide](docs/configuration.md) for details.
+
+### Usage
+
+**CLI:**
+```bash
+homebudget expense add --date 2026-02-20 --category "Food" --amount 25.50 --account "Wallet"
+```
+
+**API:**
+```python
+from homebudget import HomeBudgetClient, ExpenseDTO
+from decimal import Decimal
+import datetime
+
+with HomeBudgetClient() as client:
+    expense = ExpenseDTO(
+        date=datetime.date(2026, 2, 20),
+        category="Food",
+        subcategory="Restaurant",
+        amount=Decimal("25.50"),
+        account="Wallet"
+    )
+    saved = client.add_expense(expense)
+    print(f"Added expense {saved.key}")
+```
+
+## Documentation
+
+Complete documentation is available in the `docs/` directory:
+
+- [About](docs/index.md) - Project background and aims
+- [User Guide](docs/user-guide.md) - Complete user documentation
+- [Developer Guide](docs/developer-guide.md) - Development workflow
+- [Configuration](docs/configuration.md) - Configuration reference
+- [Design](docs/design.md) - Architecture and design decisions
+- [Test Guide](docs/test-guide.md) - Testing strategy and procedures
+- [API Examples](docs/api-examples.md) - Python API usage examples
+- [CLI Examples](docs/cli-examples.md) - Command-line usage examples
+
+## License
+
+See [LICENSE](LICENSE) file for details.
 

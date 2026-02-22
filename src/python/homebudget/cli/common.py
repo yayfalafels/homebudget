@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 from decimal import Decimal
+from typing import Callable
 
 import click
 
@@ -39,29 +40,34 @@ def resolve_forex_inputs(
     default_currency_amount: bool,
     allow_empty: bool,
     label: str,
+    forex_rate_provider: Callable[[str], Decimal | float] | None = None,
 ) -> tuple[Decimal | None, str | None, Decimal | None]:
     """Resolve forex inputs into amount and currency_amount.
 
     Rules:
     - Either amount or currency_amount is required, unless allow_empty is True.
-    - If currency_amount is provided, exchange_rate and currency are required.
+    - If currency_amount is provided, currency is required.
+    - exchange_rate is optional when currency_amount is provided, but requires
+      a forex_rate_provider to infer the rate.
     - amount and currency_amount are mutually exclusive.
     - When amount is provided, currency_amount defaults to amount.
     """
     if amount is not None and currency_amount is not None:
         raise click.UsageError(
-            f"{label}: Provide --amount or --currency-amount with --exchange-rate, not both."
+            f"{label}: Provide --amount or --currency-amount, not both."
         )
 
     if currency_amount is not None:
-        if exchange_rate is None:
-            raise click.UsageError(
-                f"{label}: --exchange-rate is required when --currency-amount is provided."
-            )
         if not currency or not currency.strip():
             raise click.UsageError(
                 f"{label}: --currency is required when --currency-amount is provided."
             )
+        if exchange_rate is None:
+            if forex_rate_provider is None:
+                raise click.UsageError(
+                    f"{label}: Provide --exchange-rate or enable forex rate inference."
+                )
+            exchange_rate = Decimal(str(forex_rate_provider(currency)))
         amount = currency_amount * exchange_rate
 
     if amount is None and currency_amount is None and not allow_empty:
@@ -76,15 +82,15 @@ def resolve_forex_inputs(
 def get_client(ctx: click.Context) -> HomeBudgetClient:
     """Build a HomeBudget client from Click context.
     
-    When sync is enabled, UI control is enabled to ensure the HomeBudget UI
-    is closed during database operations, preventing inconsistent data reads
-    and database lock conflicts during batch changes.
+    Sync is always enabled to ensure consistency between local and remote devices.
+    UI control is enabled to ensure the HomeBudget UI is closed during database
+    operations, preventing inconsistent data reads and database lock conflicts
+    during batch changes.
     """
     payload = ctx.obj or {}
-    enable_sync = payload.get("enable_sync", True)
     return HomeBudgetClient(
         db_path=payload.get("db_path"),
-        enable_sync=enable_sync,
-        enable_ui_control=enable_sync,  # UI control enabled when sync is enabled
+        enable_sync=True,  # Sync is always enabled for CLI operations
+        enable_ui_control=True,  # UI control enabled to prevent sync conflicts
         enable_forex_rates=True,  # Enable forex rate inference for non-base accounts
     )

@@ -36,8 +36,8 @@ Primary sources
 - docs/sync-update.md
 - docs/workflow.md
 - docs/test-cases.md
-- reference/HomeBudget_Windows_guide.md
-- reference/hb-finances
+- HomeBudget Windows guide (local reference)
+- hb-finances reference implementation (local reference)
 
 Related implementation guides
 - docs/user-guide.md
@@ -81,15 +81,17 @@ Public API entry point
 - HomeBudgetClient with context manager support
 
 Transaction data objects
-- ExpenseDTO
-- IncomeDTO
-- TransferDTO (defined but not yet implemented)
+- ExpenseDTO: Validated expense input for persistence
+- IncomeDTO: Validated income input for persistence
+- TransferDTO: Validated transfer input for persistence with currency normalization
+
+Batch operation data objects
+- BatchOperation: Single batch operation for mixed resource workflows
+- BatchOperationResult: Result of mixed batch operation run
+- BatchResult: Result of single-resource batch operation
 
 Reference data objects
-- Not yet implemented
-
-Batch operations
-- Not yet implemented
+- Account, Category, SubCategory, Currency querying supported
 
 UI Control
 - HomeBudgetUIController provides methods to open, close, and check status of the HomeBudget UI
@@ -101,30 +103,22 @@ Method list reference
 
 ## User configuration
 
-The wrapper reads a user config JSON file for HomeBudget settings such as the database path.
+The wrapper uses a JSON configuration file for database path, sync settings, and forex preferences. For complete configuration documentation, see [Configuration Guide](configuration.md).
 
-Config file path
-- %USER_PROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json
-
-Default database path
-- %USER_PROFILE%\OneDrive\Documents\HomeBudgetData\Data\homebudget.db
-
-Config file example
-
-```json
-{
-  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db"
-}
+**Configuration file location:**
+```
+%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json
 ```
 
-Client and CLI behavior
-- HomeBudgetClient uses db_path from config when not provided
-- CLI uses db_path from config when --db is not provided
+**Configuration behavior:**
+- Client and CLI load config automatically when present
+- Explicit `db_path` parameter or `--db` flag overrides config
+- Sync is always enabled via CLI to ensure consistency between devices
 
 ## Schema mapping
 
 Core tables
-- Expense, Income, Transfer (transfer not yet implemented), AccountTrans, Account, Category, SubCategory, Currency
+- Expense, Income, Transfer, AccountTrans, Account, Category, SubCategory, Currency
 
 Supporting tables
 - SyncInfo, SyncUpdate, DeviceInfo, Settings
@@ -151,9 +145,11 @@ Mapping highlights
 
 ## CLI design
 
-- Command groups for expense, income, and ui
+- Command groups for expense, income, transfer, batch, sync, and ui
 - Global options include db path and sync toggle
 - UI control commands support managing the HomeBudget application
+- Batch operations support CSV/JSON import for single resources and mixed-operation JSON
+- Transfer operations support currency normalization layer for flexible user input
 
 ## Forex input rules
 
@@ -182,16 +178,42 @@ Input validation rules:
 
 ### Transfers
 
-Transfers follow the constraint: **currency and currency_amount must match the from_account**.
+Transfers use a **currency normalization layer** that accepts user currency specifications for either the from_account or to_account, and converts to the backend standard format.
 
-**Transfer Table Fields**
+**Backend Storage Format (Constraint)**
 
-The Transfer table fields represent:
-- `currency`: Always matches from_account currency (constraint enforced)
-- `currency_amount`: Amount in from_account currency
-- `amount`: Amount in to_account currency
+The Transfer table enforces a strict constraint:
+- `currency`: **Always** equals from_account currency (constraint enforced at backend)
+- `currency_amount`: Amount in from_account currency (from_amount)
+- `amount`: Amount in to_account currency (to_amount)
 
-**User Input Semantics for Transfers**
+**User Input Modes**
+
+Users can specify transfers in three ways:
+
+1. **Amount Only (Inference)**: Provide only `--amount`. System infers currency based on account types:
+   - If base currency in either account → amount is in base currency
+   - If base in neither account → amount is in from_account currency
+
+2. **From-Currency Explicit**: Provide `--currency` + `--currency-amount` matching from_account
+   - Already in backend format → passes through unchanged
+
+3. **To-Currency Explicit**: Provide `--currency` + `--currency-amount` matching to_account
+   - Normalized to backend format using inverse forex calculation
+   - `from_amount = to_amount / forex_rate` or cross-rate as appropriate
+
+**Normalization Layer Architecture**
+
+The normalization happens in `client.py → _infer_currency_for_transfer()`:
+1. Accepts flexible user input (currency can match either account)
+2. Validates: currency must match one of the two accounts (not a third currency)
+3. If currency matches to_account, calculates inverse to get from_amount
+4. Returns TransferDTO in backend format (currency = from_account)
+5. Backend validation (`_validate_transfer_currency_constraint`) enforces the constraint
+
+For detailed normalization rules and examples, see [docs/transfer-currency-normalization.md](transfer-currency-normalization.md).
+
+**Transfer Input Semantics Examples**
 
 When specifying `--amount`:
 - If base currency is in either account: `--amount` = amount in base currency
@@ -235,6 +257,63 @@ When specifying `--currency-amount` for transfers:
 - Backend derives the missing amounts using cross-rate calculation: `from_amount = to_amount × (from_rate ÷ to_rate)`
 
 CLI and client methods enforce these rules to prevent ambiguous inputs.
+
+## Batch operations design
+
+The wrapper supports two types of batch operations:
+
+### Single-Resource Batch Import
+
+Import multiple transactions of the same type from CSV or JSON files:
+- `add_expenses_batch()`, `add_incomes_batch()`, `add_transfers_batch()` API methods
+- `hb expense batch-import`, `hb income batch-import`, `hb transfer batch-import` CLI commands
+- Support CSV and JSON file formats
+- Each transaction validated independently before insertion
+- Sync optimization: Single SyncUpdate created after batch completes (not per transaction)
+
+### Mixed-Resource Batch Operations
+
+Execute multiple operations across different resources in a single atomic batch:
+- `batch()` API method accepting list of `BatchOperation` objects
+- `hb batch run` CLI command with JSON file input
+- Supports add, update, delete operations for expense, income, transfer resources
+- Continue-on-error mode (default) or stop-on-error mode
+- Returns `BatchOperationResult` with successful and failed operations
+- Single SyncUpdate created after batch completes
+
+**Batch Behavior:**
+- Each individual transaction insert is atomic
+- Sync optimization: Batch operations create one sync entry after completion, not per transaction
+- Error handling: By default continues on error and reports failures at end
+- Validation: Each record validated same as single-record operations
+- Transaction atomicity: Each insert is atomic, but batch as whole may partially succeed
+
+**Example Mixed Batch JSON:**
+```json
+[
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-02-20",
+      "category": "Food (Basic)",
+      "subcategory": "Restaurant",
+      "amount": 25.50,
+      "account": "TWH - Personal"
+    }
+  },
+  {
+    "resource": "transfer",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-02-20",
+      "from_account": "TWH - Personal",
+      "to_account": "TWH IB USD",
+      "amount": 100.00
+    }
+  }
+]
+```
 
 ## Packaging and repository layout
 

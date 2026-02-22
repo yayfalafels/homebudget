@@ -1,4 +1,4 @@
-# Financial statements workflow
+# Implementation Example: Financial statements workflow
 
 ## Table of contents
 
@@ -12,7 +12,7 @@
 
 ## Overview
 
-This document describes the financial statements workflow, beginning with the sequential steps with time estimates, then the account update flowchart, and finally the report generation flowchart.
+This document describes an implementation example for the HomeBudget wrapper with the Financial Statements update. It covers the financial statements workflow, beginning with the sequential steps with time estimates, then the account update flowchart, and finally the report generation flowchart.
 
 ## Sequential steps and time estimates
 

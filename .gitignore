@@ -221,3 +221,6 @@ reference
 # agent helpers
 .github/prompts
 .github/skills
+
+# MkDocs build output
+site/

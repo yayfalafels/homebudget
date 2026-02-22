@@ -7,11 +7,11 @@
 
 ## Overview
 
-The HomeBuget Python wrapper (wrapper) is a Python library that provides an interface to interact with the HomeBudget application. It allows developers to perform similar operations as the HomeBudget application, such as managing accounts, transactions, and budgets, but through a Python interface. The wrapper is designed to be easy to use and integrate into other Python applications or scripts.
+The HomeBudget Python wrapper is a Python library and CLI that provides programmatic access to HomeBudget data. It enables full CRUD operations for expenses, income, and transfers with automatic sync to mobile devices. The wrapper is designed to be easy to use and integrate into automation scripts and workflows.
 
 ## Situation
 
-The HomeBudget application is a legacy application with a UI and a sqlite database backend. It is time consuming and tedious to perform routine operations such as adding, updating, deleting transactions through the Desktop UI. A proof-of-concept Python wrapper module [homebudget.py](../reference/hb-finances/homebudget.py) has already been developed with limited functionality for adding expenses via direct calls to the sqlite database.
+The HomeBudget application is a legacy application with a UI and a sqlite database backend. It is time consuming and tedious to perform routine operations such as adding, updating, deleting transactions through the Desktop UI. A proof-of-concept Python wrapper module (homebudget.py) was developed with limited functionality for adding expenses via direct calls to the sqlite database.
 
 ## Aims
 
@@ -24,6 +24,6 @@ The aim of the wrapper is to
 ## Reference resources
 
 - [HomeBudget application](https://www.anishu.com/homebudget/)
-- [POC Python wrapper module](../reference/hb-finances/homebudget.py)
-- [hb-finances that implements the wrapper](../reference/hb-finances)
-- [sample HB sqlite database](../reference/hb-sqlite-db/homebudget.db)
+- POC Python wrapper module (homebudget.py, local reference)
+- hb-finances reference implementation (local reference)
+- sample HB sqlite database (local reference)

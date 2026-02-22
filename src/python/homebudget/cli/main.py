@@ -23,13 +23,11 @@ from homebudget.cli.ui import ui
     type=click.Path(path_type=Path),
     help="Path to the HomeBudget database.",
 )
-@click.option("--no-sync", is_flag=True, help="Disable sync updates.")
 @click.pass_context
-def main(ctx: click.Context, db_path: Path | None, no_sync: bool) -> None:
+def main(ctx: click.Context, db_path: Path | None) -> None:
     """HomeBudget CLI entry point."""
     ctx.obj = {
         "db_path": db_path,
-        "enable_sync": not no_sync,
     }
 
 

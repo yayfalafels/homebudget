@@ -20,7 +20,7 @@ The wrapper mirrors this behavior by inserting SyncUpdate entries for each trans
 
 ## Configuration driven payloads
 
-Sync payloads are configuration driven. The wrapper reads [src/python/homebudget/sync-config.json](../src/python/homebudget/sync-config.json) to define payload fields, key formats, and compression rules per operation.
+Sync payloads are configuration driven. The wrapper reads [src/python/homebudget/sync-config.json](https://github.com/yayfalafels/homebudget/blob/main/src/python/homebudget/sync-config.json) to define payload fields, key formats, and compression rules per operation.
 
 Key configuration concepts:
 
@@ -28,7 +28,7 @@ Key configuration concepts:
 - Key fields can be singular or array, depending on the operation.
 - Padding rules are operation specific and may apply only to smaller payloads.
 
-The implementation that loads and applies the configuration is in [src/python/homebudget/sync.py](../src/python/homebudget/sync.py).
+The implementation that loads and applies the configuration is in [src/python/homebudget/sync.py](https://github.com/yayfalafels/homebudget/blob/main/src/python/homebudget/sync.py).
 
 ## SyncUpdate table structure
 
@@ -70,8 +70,8 @@ Key learnings:
 
 Reference implementations:
 
-- Encoder: [src/python/homebudget/sync.py](../src/python/homebudget/sync.py)
-- Decoder: [tests/manual/verify_syncupdate.py](../tests/manual/verify_syncupdate.py)
+- Encoder: [src/python/homebudget/sync.py](https://github.com/yayfalafels/homebudget/blob/main/src/python/homebudget/sync.py)
+- Decoder: [tests/manual/verify_syncupdate.py](https://github.com/yayfalafels/homebudget/blob/main/tests/manual/verify_syncupdate.py)
 
 ## Payload structure by operation
 
@@ -194,11 +194,64 @@ DeleteIncome uses a minimal payload with a singular key.
 }
 ```
 
+### Transfer operations
+
+AddTransfer uses a singular key and includes from/to account details and forex amounts.
+
+```json
+{
+    "Operation": "AddTransfer",
+    "accountFromDeviceId": "A6F3C991-022C-407C-99B1-6E9402E8D674",
+    "accountFromDeviceKey": 3,
+    "accountToDeviceId": "A6F3C991-022C-407C-99B1-6E9402E8D674",
+    "accountToDeviceKey": 5,
+    "amount": "148.15",
+    "currency": "SGD",
+    "currencyAmount": "200.00",
+    "deviceId": "448cc747-79b2-46bf-93e2-4f62a91d4fe6",
+    "deviceKey": 2001,
+    "notes": "Transfer between accounts",
+    "recurringKey": 0,
+    "timeStamp": "2026-02-22 14:00:00",
+    "transferDateString": "2026-02-22"
+}
+```
+
+UpdateTransfer uses the same key format and updates the same field set.
+
+```json
+{
+    "Operation": "UpdateTransfer",
+    "accountFromDeviceId": "A6F3C991-022C-407C-99B1-6E9402E8D674",
+    "accountFromDeviceKey": 3,
+    "accountToDeviceId": "A6F3C991-022C-407C-99B1-6E9402E8D674",
+    "accountToDeviceKey": 5,
+    "amount": "148.15",
+    "currency": "SGD",
+    "currencyAmount": "200.00",
+    "deviceId": "448cc747-79b2-46bf-93e2-4f62a91d4fe6",
+    "deviceKey": 2001,
+    "notes": "Updated transfer notes",
+    "timeStamp": "2026-02-22 14:15:00",
+    "transferDateString": "2026-02-22"
+}
+```
+
+DeleteTransfer uses a minimal payload with a singular key.
+
+```json
+{
+    "Operation": "DeleteTransfer",
+    "deviceKey": 2001,
+    "deviceId": "448cc747-79b2-46bf-93e2-4f62a91d4fe6"
+}
+```
+
 ## Update operations and attribute fan out
 
 Update operations generate a SyncUpdate entry per changed attribute. The wrapper creates one SyncUpdate entry for each field change, using the full final record payload in each entry. This mirrors native behavior where a multi field update results in multiple sync events.
 
-This behavior is implemented in `create_updates_for_changes` in [src/python/homebudget/sync.py](../src/python/homebudget/sync.py).
+This behavior is implemented in `create_updates_for_changes` in [src/python/homebudget/sync.py](https://github.com/yayfalafels/homebudget/blob/main/src/python/homebudget/sync.py).
 
 ## Device identifiers
 
@@ -223,6 +276,4 @@ If any step fails, the transaction is rolled back to keep the database consisten
 
 ## References
 
-- [Issue 001 Sync Detection](issues/001-sync-detection.md)
-- [Issue 001 Sync Detection Diagnostics](issues/001-sync-detection-diagnostics.md)
 - [SQLite Schema Reference](sqlite-schema.md)

@@ -9,6 +9,7 @@
 - [Global options](#global-options)
 - [Expense commands](#expense-commands)
 - [Income commands](#income-commands)
+- [Transfer commands](#transfer-commands)
 - [Batch commands](#batch-commands)
 - [UI control commands](#ui-control-commands)
 
@@ -27,57 +28,32 @@ The HomeBudget CLI provides access to database operations via command-line inter
 Example sequence:
 ```
 $ hb expense add --date 2026-02-17 --category "Food" --amount 25.50 --account "Wallet"
-[UI closes] 
+[UI closes]
 → Database operation executes
 → SyncUpdate records created
 [UI reopens]
 Added expense 12345
 ```
 
-**To disable sync (and UI control):**
-```bash
-homebudget --no-sync expense add [options]
-```
-
-When `--no-sync` is used:
-- No SyncUpdate records are created
-- UI control is disabled
-- Database changes are applied without UI management
-- Useful for maintenance and testing without affecting mobile devices
-
 ## Setup
 
-Activate the main environment and run the CLI from the repository root.
+After setting up the virutal env and installing dependencies, activate the main environment and run the CLI from the repository root.
 
 ```bash
-.\.scripts\cmd\setup-env.cmd
-.\env\Scripts\activate
+source env/Scripts/activate
 ```
 
 ## Configuration
 
-The CLI reads a user config JSON file for HomeBudget settings such as the database path.
+The CLI uses a configuration file for database path and settings. For complete setup and configuration options, see the [Configuration Guide](configuration.md).
 
-Config file path
-- %USER_PROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json
+**Quick reference:**
+- Config location: `%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json`
+- Sample: `config/hb-config.json.sample`
 
-Default database path
-- %USER_PROFILE%\OneDrive\Documents\HomeBudgetData\Data\homebudget.db
-
-Config file example
-
-```json
-{
-  "db_path": "C:\\Users\\taylo\\OneDrive\\Documents\\HomeBudgetData\\Data\\homebudget.db"
-}
-```
-
-When the config file is present, the CLI uses db_path from config when --db is not provided.
-
-Explicit db path override.
-
+**Override config:**
 ```bash
-homebudget --db C:/path/to/homebudget.db expense list --limit 5
+homebudget --db "C:/path/to/homebudget.db" expense list
 ```
 
 ## Global options
@@ -90,12 +66,12 @@ Override database path (instead of using config file).
 
 ### Sync Control
 
-| Flag | Default | Effect |
-|------|---------|--------|
-| (no flag) | sync enabled | Enables SyncUpdate and automatic UI control |
-| `--no-sync` | N/A | Disables SyncUpdate and automatic UI control |
+Sync updates are enabled by default and cannot be disabled via CLI. This ensures consistency between local and remote devices.
 
-When sync is enabled, the HomeBudget UI is automatically managed during database operations to ensure consistency.
+When a write command is executed:
+- SyncUpdate records are automatically created
+- The HomeBudget UI is automatically managed to prevent conflicts
+- Mobile and other clients can synchronize changes
 
 ## Expense commands
 
@@ -162,18 +138,6 @@ homebudget expense update 13074 \
   --currency-amount 15.00 \
   --exchange-rate 1.08 \
   --notes "Lunch with tip"
-```
-
-Add an expense without sync.
-
-```bash
-homebudget --no-sync expense add \
-  --date 2026-02-16 \
-  --category Dining \
-  --subcategory Restaurant \
-  --amount 25.50 \
-  --account Wallet \
-  --notes "Lunch"
 ```
 
 Delete an expense.
@@ -244,6 +208,100 @@ Delete income.
 homebudget income delete 14021 --yes
 ```
 
+## Transfer commands
+
+Transfers support a **currency normalization layer** that allows flexible input for mixed-currency transfers. You can specify the amount in either the from_account or to_account currency.
+
+Add a same-currency transfer.
+
+```bash
+homebudget transfer add \
+  --date 2026-02-20 \
+  --from-account "Bank" \
+  --to-account "Wallet" \
+  --amount 200.00 \
+  --notes "Cash withdrawal"
+```
+
+Add a mixed-currency transfer (amount only, inferred).
+
+```bash
+# Transfer from SGD account to USD account
+# System infers: amount is in base currency (SGD)
+homebudget transfer add \
+  --date 2026-02-20 \
+  --from-account "TWH - Personal" \
+  --to-account "TWH IB USD" \
+  --amount 200.00 \
+  --notes "Transfer to USD account"
+```
+
+Add a mixed-currency transfer (explicit from-currency).
+
+```bash
+# Specify amount in from_account currency (USD)
+homebudget transfer add \
+  --date 2026-02-20 \
+  --from-account "TWH IB USD" \
+  --to-account "TWH - Personal" \
+  --currency USD \
+  --currency-amount 150.00 \
+  --exchange-rate 1.35 \
+  --notes "Transfer to SGD account"
+```
+
+Add a mixed-currency transfer (explicit to-currency, normalized).
+
+```bash
+# Specify amount in to_account currency (EUR) - system normalizes
+homebudget transfer add \
+  --date 2026-02-20 \
+  --from-account "TWH IB USD" \
+  --to-account "Cash TWH EUR" \
+  --currency EUR \
+  --currency-amount 90.00 \
+  --exchange-rate 0.92 \
+  --notes "Transfer to EUR account"
+```
+
+List transfers.
+
+```bash
+homebudget transfer list \
+  --start-date 2026-02-01 \
+  --end-date 2026-02-28
+```
+
+Get a single transfer by key.
+
+```bash
+homebudget transfer get 21007
+```
+
+Update a transfer.
+
+```bash
+homebudget transfer update 21007 \
+  --amount 250.00 \
+  --notes "Updated transfer amount"
+```
+
+Update a transfer with foreign currency.
+
+```bash
+homebudget transfer update 21007 \
+  --currency USD \
+  --currency-amount 180.00 \
+  --exchange-rate 1.35 \
+  --notes "Updated with explicit USD amount"
+```
+
+Delete a transfer.
+
+```bash
+homebudget transfer delete 21007 --yes
+```
+
 ## Batch commands
 
 The batch command accepts a JSON file list of CRUD operations on transactions (expense, income, transfer).
@@ -251,7 +309,19 @@ The batch command accepts a JSON file list of CRUD operations on transactions (e
 Command
 
 ```bash
-homebudget sync batch --file operations.json
+homebudget batch run --file operations.json
+```
+
+Run with stop-on-error mode.
+
+```bash
+homebudget batch run --file operations.json --stop-on-error
+```
+
+Run with error report output.
+
+```bash
+homebudget batch run --file operations.json --error-report batch_errors.json
 ```
 
 JSON structure

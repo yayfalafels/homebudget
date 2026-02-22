@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "homebudget"
-version = "0.1.0-dev"
+dynamic = ["version"]
 description = "HomeBudget SQLite wrapper and CLI"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -20,6 +20,9 @@ hb = "homebudget.cli.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "src/python"}
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
 
 [tool.setuptools.packages.find]
 where = ["src/python"]

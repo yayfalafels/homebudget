@@ -37,19 +37,25 @@ Income methods
 - delete_income
 
 Transfer methods
-- add_transfer
-- get_transfer
-- list_transfers
-- update_transfer
-- delete_transfer
+- add_transfer: Add a transfer with currency normalization support
+- get_transfer: Get transfer by key
+- list_transfers: List transfers with optional date range filters
+- update_transfer: Update transfer fields
+- delete_transfer: Delete transfer by key
+- add_transfers_batch: Batch import transfers from list
 
 Reference data methods
-- list_accounts
-- list_categories
-- list_currencies
+- list_accounts: Query account reference data
+- list_categories: Query category reference data  
+- list_currencies: Query currency reference data
+- _get_account_currency: Internal helper to get account currency
+- _get_base_currency: Internal helper to get base currency
 
 Batch methods
-- batch
+- batch: Execute mixed-resource batch operations (add, update, delete across expense, income, transfer)
+- add_expenses_batch: Batch import expenses
+- add_incomes_batch: Batch import incomes
+- add_transfers_batch: Batch import transfers
 
 ## Sync update methods
 

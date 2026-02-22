@@ -1,0 +1,100 @@
+site_name: HomeBudget Python Wrapper
+site_description: Python library and CLI for programmatic interface for HomeBudget local Windows installation
+site_author: Taylor Hickem
+repo_url: https://github.com/yayfalafels/homebudget
+repo_name: yayfalafels/homebudget
+
+extra:
+  version: "2.0"
+
+copyright: Copyright &copy; 2026 HomeBudget Python Wrapper | Version 2.0
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  
+  - Guides:
+    - Comprehensive Guide: user-guide.md
+    - Configuration: configuration.md
+    - Dependencies: dependencies.md
+
+  - Usage Examples:
+    - CLI Examples: cli-examples.md
+    - API Examples: api-examples.md
+  
+  - Development:
+    - Developer Guide: developer-guide.md
+    - Repository Layout: repository-layout.md
+
+  - Technical Design:
+    - Design Overview: design.md
+    - SQLite Schema: sqlite-schema.md
+    - Sync Updates: sync-update.md
+    - Forex Rates: forex-rates.md
+    - Transfer Currency Normalization: transfer-currency-normalization.md
+    - Method List: methods.md
+  
+  - Testing:
+    - Test Guide: test-guide.md
+    - Test Strategy: test-strategy.md
+    - Test Cases: test-cases.md
+    - Transfer Test Cases: tests/TRANSFER_TEST_CASES.md
+    - Batch Transfer Test Cases: tests/BATCH_TRANSFER_TEST_CASES.md
+    - Expense CRUD Tests: tests/feature_5.1_expense_crud.md
+    - Transfer CRUD Tests: tests/feature_5.3_transfer_crud.md
+    - Sync Validation Procedure: tests/sync_validation_procedure.md
+  
+  - Implementation Example: 
+    - Workflow: workflow.md
+  
+  - Issues & Troubleshooting:
+    - Issues Overview: issues.md

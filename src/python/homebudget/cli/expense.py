@@ -47,7 +47,7 @@ def add_expense(
     
     User can specify amount in two ways:
     - --amount: Amount in the account currency (or base currency if not base-account).
-    - --currency-amount + --exchange-rate + --currency: Amount in a foreign currency.
+    - --currency-amount + --currency (+ optional --exchange-rate): Amount in a foreign currency.
     """
     date = parse_date(date_value, "--date")
     user_amount = parse_decimal(user_amount_str, "--amount")
@@ -55,27 +55,28 @@ def add_expense(
     user_exchange_rate = parse_decimal(exchange_rate, "--exchange-rate")
     if date is None:
         raise click.ClickException("Date is required.")
-    # resolve_forex_inputs processes user inputs and returns DTO-ready values
-    dto_amount, dto_currency, dto_currency_amount = resolve_forex_inputs(
-        amount=user_amount,
-        currency=currency,
-        currency_amount=user_currency_amount,
-        exchange_rate=user_exchange_rate,
-        default_currency_amount=False,  # Let client handle forex inference
-        allow_empty=False,
-        label="Expense add",
-    )
-    expense_dto = ExpenseDTO(
-        date=date,
-        category=category,
-        subcategory=subcategory,
-        amount=dto_amount,
-        account=account,
-        notes=notes,
-        currency=dto_currency,
-        currency_amount=dto_currency_amount,
-    )
     with get_client(ctx) as client:
+        # resolve_forex_inputs processes user inputs and returns DTO-ready values
+        dto_amount, dto_currency, dto_currency_amount = resolve_forex_inputs(
+            amount=user_amount,
+            currency=currency,
+            currency_amount=user_currency_amount,
+            exchange_rate=user_exchange_rate,
+            default_currency_amount=False,  # Let client handle forex inference
+            allow_empty=False,
+            label="Expense add",
+            forex_rate_provider=client._get_forex_rate,
+        )
+        expense_dto = ExpenseDTO(
+            date=date,
+            category=category,
+            subcategory=subcategory,
+            amount=dto_amount,
+            account=account,
+            notes=notes,
+            currency=dto_currency,
+            currency_amount=dto_currency_amount,
+        )
         try:
             record = client.add_expense(expense_dto)
         except NotFoundError as e:
@@ -155,20 +156,20 @@ def update_expense(
     rate = parse_decimal(exchange_rate, "--exchange-rate")
     if amount is None and foreign_amount is None and (currency is not None or rate is not None):
         raise click.UsageError(
-            "Expense update: Provide --amount or --currency-amount with --exchange-rate."
+            "Expense update: Provide --amount or --currency-amount when setting currency fields."
         )
-    amount, currency, foreign_amount = resolve_forex_inputs(
-        amount=amount,
-        currency=currency,
-        currency_amount=foreign_amount,
-        exchange_rate=rate,
-        default_currency_amount=False,
-        allow_empty=notes is not None,
-        label="Expense update",
-    )
+    if amount is not None and foreign_amount is not None:
+        raise click.UsageError("Expense update: Provide --amount or --currency-amount, not both.")
+    if foreign_amount is not None and (currency is None or not currency.strip()):
+        raise click.UsageError("Expense update: --currency is required with --currency-amount.")
     with get_client(ctx) as client:
         record = client.update_expense(
-            key=key, amount=amount, notes=notes, currency=currency, currency_amount=foreign_amount
+            key=key,
+            amount=amount,
+            notes=notes,
+            currency=currency,
+            currency_amount=foreign_amount,
+            exchange_rate=rate,
         )
     click.echo(f"Updated expense {record.key}")
 

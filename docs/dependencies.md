@@ -1,4 +1,6 @@
 # Dependencies
 
-This project uses only built-in SQLite support for runtime data access.
+## Requests
+
+The project relies on the [requests](https://pypi.org/project/requests/) library for the forex rates fetch feature.
 

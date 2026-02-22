@@ -459,7 +459,10 @@ class ForexRateManager:
     def _save_cache(self, data: dict) -> None:
         """Persist cache to JSON file."""
     
-    def _is_cache_valid() -> bool:
+    def _is_cache_valid(self) -> bool:
+        """Return True when cached rates are still valid."""
+        return False
+```
 
 ## Architecture and implementation
 
@@ -541,7 +544,7 @@ class InvalidCurrencyError(ForexError):
     pass
 ```
 
-### Error handling strategy
+## Error handling
 
 **Normal flow with graceful fallback**:
 

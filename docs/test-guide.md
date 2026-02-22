@@ -1,6 +1,6 @@
 # Test Guide
 
-## Table of Contents
+## Table of contents
 
 - [Related documents](#related-documents)
 - [Overview](#overview)
@@ -16,8 +16,7 @@
 ## Related documents
 
 - [Developer Guide](developer-guide.md) - Development setup
-- [Environment Documentation](develop/environment.md) - Python environment
-- [Implementation Plan](../.github/prompts/plan-wrapper-implementation.prompt.md) - Feature implementation phases
+- [Implementation Plan](https://github.com/yayfalafels/homebudget/blob/main/.github/prompts/plan-wrapper-implementation.prompt.md) - Feature implementation phases
 - [Sync Mechanism](sync-update.md) - SyncUpdate details
 - [SQLite Schema](sqlite-schema.md) - Database structure
 
@@ -43,12 +42,12 @@ Manual tests that verify complete CRUD workflows with sync validation across des
 ### For All Tests
 - Python 3.12+
 - Wrapper installed in editable mode: `pip install -e .`
-- Development environment configured: See [environment.md](develop/environment.md)
+- Development environment configured per [Developer Guide](developer-guide.md)
 
 ### For Manual Tests — SIT and UAT
-- **hb-config.json** configured with correct database path
-  - Location: `~/.homebudget/hb-config.json` on first run, or specify via environment
-  - See [developer-guide.md](developer-guide.md#configuration) for setup
+- **Configuration file** with correct database path
+  - Location: `%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json`
+  - See [Configuration Guide](configuration.md) for setup
 - **Database**: HomeBudget.db with test data
 - **Test resources must exist**: 
   - Account: "TWH - Personal"
@@ -241,10 +240,50 @@ python tests/manual/manual_test_runner.py --test-id sit_batch_import_csv
 - Individual input validation per record
 - Sync disabled during individual processing, single sync after batch
 - Result summary with success/failure counts
+- Mixed-resource operations: Execute multiple operations (add, update, delete) across different resources (expense, income, transfer) in single batch
 
 **Example batch commands:**
 ```bash
 # Import expenses from CSV
+homebudget expense batch-import --file expenses.csv --format csv
+
+# Import income from JSON
+homebudget income batch-import --file income.json --format json
+
+# Import transfers with currency normalization
+homebudget transfer batch-import --file transfers.json --format json
+
+# Run mixed-resource batch operations
+homebudget batch run --file operations.json
+```
+
+#### Transfer Currency Normalization Testing
+
+Transfer operations include comprehensive UAT test cases covering mixed-currency scenarios. See `tests/manual/TRANSFER_TEST_CASES.md` for detailed test case documentation.
+
+**23 Transfer UAT Test Cases:**
+- 3 Amount-only inference tests (base→foreign, foreign→base, foreign→foreign)
+- 1 Same-currency test (no forex needed)
+- 3 Fully-specified tests (amount + currency_amount + rate)
+- 14 Invalid/error cases (over-specification, missing fields, constraint violations)
+
+**Batch Transfer Tests:**
+See `tests/manual/BATCH_TRANSFER_TEST_CASES.md` for batch transfer test scenarios including:
+- Amount-only (inference) mode
+- Explicit from-currency mode (pass through)
+- Explicit to-currency mode (normalized to backend format)
+- Parsing error handling
+
+**Run transfer UAT tests:**
+```bash
+# Run specific transfer test
+python tests/manual/manual_test_runner.py --test-id uat_transfer_amount_only_base_to_foreign
+
+# Run batch transfer test
+python tests/manual/manual_test_runner.py --test-id uat_batch_transfer_valid
+```
+
+**Example batch commands:**
 homebudget expense batch-import --file expenses.csv --format csv
 
 # Import income from JSON

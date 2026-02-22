@@ -11,6 +11,7 @@
 - [Delete expense](#delete-expense)
 - [Handle duplicate expense](#handle-duplicate-expense)
 - [Batch add expenses](#batch-add-expenses)
+- [Mixed batch operations](#mixed-batch-operations)
 - [Query transactions](#query-transactions)
 - [Reference data lookups](#reference-data-lookups)
 
@@ -44,22 +45,29 @@ with HomeBudgetClient(db_path="C:/path/to/homebudget.db") as client:
 
 ## Use config file
 
-Load the user config JSON and let the client use the configured db_path.
+The client automatically loads configuration from the default location. Explicit loading is not required.
+
+```python
+from homebudget import HomeBudgetClient
+
+# Configuration loaded automatically
+with HomeBudgetClient() as client:
+    expenses = client.list_expenses()
+```
+
+**Load from custom location:**
 
 ```python
 import json
-import os
 from pathlib import Path
 from homebudget import HomeBudgetClient
 
-config_path = Path(os.environ["USER_PROFILE"]) / "OneDrive" / "Documents" / "HomeBudgetData" / "hb-config.json"
-
-with config_path.open("r", encoding="utf-8") as handle:
-    config = json.load(handle)
-
-with HomeBudgetClient() as client:
-    print("connected")
+# Explicitly specify database path
+with HomeBudgetClient(db_path="C:/custom/path/homebudget.db") as client:
+    expenses = client.list_expenses()
 ```
+
+See [Configuration Guide](configuration.md) for details.
 
 ## Add expense
 
@@ -104,6 +112,8 @@ with HomeBudgetClient() as client:
 
 ## Add transfer
 
+Add a same-currency transfer.
+
 ```python
 from decimal import Decimal
 import datetime
@@ -117,6 +127,60 @@ with HomeBudgetClient() as client:
         to_account="Wallet",
         amount=Decimal("200.00"),
         notes="Cash withdrawal"
+    )
+    saved = client.add_transfer(transfer)
+    print(saved.key)
+```
+
+Add a mixed-currency transfer (amount only, inferred).
+
+```python
+# Transfer from SGD account to USD account
+# System infers: amount is in base currency (SGD)
+with HomeBudgetClient() as client:
+    transfer = TransferDTO(
+        date=datetime.date(2026, 2, 20),
+        from_account="TWH - Personal",  # SGD base
+        to_account="TWH IB USD",  # USD
+        amount=Decimal("200.00"),  # Interpreted as SGD
+        notes="Transfer to USD account"
+    )
+    saved = client.add_transfer(transfer)
+    print(saved.key)
+```
+
+Add a mixed-currency transfer (explicit from-currency).
+
+```python
+# Specify amount in from_account currency (USD)
+with HomeBudgetClient() as client:
+    transfer = TransferDTO(
+        date=datetime.date(2026, 2, 20),
+        from_account="TWH IB USD",  # USD
+        to_account="TWH - Personal",  # SGD base
+        amount=None,  # Will be calculated
+        currency="USD",  # Matches from_account
+        currency_amount=Decimal("150.00"),  # Amount in USD
+        notes="Transfer to SGD account"
+    )
+    saved = client.add_transfer(transfer)
+    print(saved.key)
+```
+
+Add a mixed-currency transfer (explicit to-currency, normalized).
+
+```python
+# Specify amount in to_account currency (EUR)
+# System normalizes to backend format (from_account currency)
+with HomeBudgetClient() as client:
+    transfer = TransferDTO(
+        date=datetime.date(2026, 2, 20),
+        from_account="TWH IB USD",  # USD
+        to_account="Cash TWH EUR",  # EUR
+        amount=None,  # Will be calculated
+        currency="EUR",  # Matches to_account (will be normalized)
+        currency_amount=Decimal("90.00"),  # Amount in EUR
+        notes="Transfer to EUR account"
     )
     saved = client.add_transfer(transfer)
     print(saved.key)
@@ -172,14 +236,14 @@ with HomeBudgetClient() as client:
 
 ## Batch add expenses
 
-Use a batch call with resource and operation values and a list of expense records.
+Add multiple expenses in a single batch operation.
 
 ```python
 from decimal import Decimal
 import datetime
 from homebudget import HomeBudgetClient, ExpenseDTO
 
-records = [
+expenses = [
     ExpenseDTO(
         date=datetime.date(2026, 2, 16),
         category="Dining",
@@ -199,12 +263,56 @@ records = [
 ]
 
 with HomeBudgetClient() as client:
-    results = client.batch(
+    result = client.add_expenses_batch(expenses)
+    print(f"Successful: {len(result.successful)}")
+    print(f"Failed: {len(result.failed)}")
+    for dto, error in result.failed:
+        print(f"  Failed: {dto.date} {dto.amount} - {error}")
+```
+
+## Mixed batch operations
+
+Execute multiple operations (add, update, delete) across different resources (expense, income, transfer) in a single batch.
+
+```python
+from homebudget import HomeBudgetClient, BatchOperation
+
+operations = [
+    BatchOperation(
         resource="expense",
         operation="add",
-        records=records
+        parameters={
+            "date": "2026-02-20",
+            "category": "Food (Basic)",
+            "subcategory": "Restaurant",
+            "amount": "25.50",
+            "account": "TWH - Personal",
+            "notes": "Lunch"
+        }
+    ),
+    BatchOperation(
+        resource="income",
+        operation="update",
+        parameters={
+            "key": 14021,
+            "notes": "Updated notes"
+        }
+    ),
+    BatchOperation(
+        resource="transfer",
+        operation="delete",
+        parameters={
+            "key": 21007
+        }
     )
-    print(len(results))
+]
+
+with HomeBudgetClient() as client:
+    result = client.batch(operations, continue_on_error=True)
+    print(f"Successful: {len(result.successful)}")
+    print(f"Failed: {len(result.failed)}")
+    for op, error in result.failed:
+        print(f"  Failed: {op.resource} {op.operation} - {error}")
 ```
 
 ## Query transactions
