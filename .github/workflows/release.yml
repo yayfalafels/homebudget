@@ -18,13 +18,16 @@ jobs:
           python-version: '3.12'
       
       - name: Install build tools
-        run: pip install build wheel setuptools
+        run: pip install --upgrade pip setuptools wheel build
       
-      - name: Build package
-        run: python -m build
+      - name: Build wheel
+        run: python -m build --wheel
+      
+      - name: Build source distribution
+        run: python -m build --sdist
       
       - name: List built files
-        run: ls -la dist/
+        run: ls -lah dist/
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
