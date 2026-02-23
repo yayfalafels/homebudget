@@ -42,7 +42,7 @@ Manual tests that verify complete CRUD workflows with sync validation across des
 ### For All Tests
 
 - Python 3.12+
-- Wrapper installed in editable mode: `pip install -e .`
+- Wrapper installed in editable mode with development dependencies: `pip install -e .[dev]`
 - Development environment configured per [Developer Guide](developer-guide.md)
 
 ### For Manual Tests — SIT and UAT

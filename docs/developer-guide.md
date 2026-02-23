@@ -23,13 +23,14 @@ Use env for all wrapper work. Use .dev env only for helper scripts and diagnosti
 
 ## Setup
 
-Run the setup script to create or update env and install requirements.
+Run the setup script to create or update env and install dependencies.
 
 Windows
 
 ```bash
-\.scripts\cmd\setup-env.cmd
+\.\scripts\cmd\setup-env.cmd
 .\env\Scripts\activate
+pip install -e .[dev]
 ```
 
 Bash
@@ -37,7 +38,10 @@ Bash
 ```bash
 ./.scripts/bash/setup-env.sh
 source env/bin/activate
+pip install -e .[dev]
 ```
+
+This installs both runtime and development dependencies from `pyproject.toml`.
 
 use a separate python interpreter environment for development work to avoid conflicts with the HomeBudget app. 
 use scripts in `.dev/.scripts/*` and interpreter at `.dev/env` and requirements in `.dev/requirements.txt` for development utilities and diagnostics to keep them separate from the main wrapper code and dependencies. This prevents conflicts with the HomeBudget app's Python environment and allows for safe experimentation with helper tools without risking stability of the wrapper or the app.

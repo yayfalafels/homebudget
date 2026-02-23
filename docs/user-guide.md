@@ -42,10 +42,19 @@ Activate the main environment at `env/` (do not use `.dev/env` for normal workfl
 source env/Scripts/activate
 ```
 
-Install the package from the wheel distribution.
+Download the latest wheel distribution from the releases page and install it.
 
 ```bash
-pip install homebudget-*.whl
+RELEASE_VERSION=2.0.0
+WHEEL_FILE=homebudget-$RELEASE_VERSION-py3-none-any.whl
+DOWNLOAD_URL=https://github.com/yayfalafels/homebudget/releases/download/v$RELEASE_VERSION/$WHEEL_FILE
+curl -L -o $WHEEL_FILE $DOWNLOAD_URL
+```
+
+Install the package from the wheel.
+
+```bash
+pip install $WHEEL_FILE
 ```
 
 ## Configuration

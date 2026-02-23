@@ -25,6 +25,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.whl
+*.tar.gz
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -141,6 +143,7 @@ celerybeat.pid
 env/
 venv/
 ENV/
+env-test/
 env.bak/
 venv.bak/
 
