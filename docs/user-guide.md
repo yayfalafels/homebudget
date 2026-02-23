@@ -29,26 +29,23 @@ What you need
 
 ## Installation
 
-Using Git Bash on Windows for all examples. Clone the repository to access the project files.
+Using Git Bash on Windows for all examples. 
+
+Download the latest wheel distribution from the releases page and install it. Replace the version number as needed.
 
 ```bash
-git clone https://github.com/yayfalafels/homebudget.git
-cd homebudget
-```
-
-Activate the main environment at `env/` (do not use `.dev/env` for normal workflows).
-
-```bash
-source env/Scripts/activate
-```
-
-Download the latest wheel distribution from the releases page and install it.
-
-```bash
-RELEASE_VERSION=2.0.0
+RELEASE_VERSION=$(cat VERSION)
 WHEEL_FILE=homebudget-$RELEASE_VERSION-py3-none-any.whl
 DOWNLOAD_URL=https://github.com/yayfalafels/homebudget/releases/download/v$RELEASE_VERSION/$WHEEL_FILE
 curl -L -o $WHEEL_FILE $DOWNLOAD_URL
+```
+
+Create and install a python virtual environment at `env/` 
+
+```bash
+python -m venv env
+# Activate the environment
+source env/Scripts/activate
 ```
 
 Install the package from the wheel.

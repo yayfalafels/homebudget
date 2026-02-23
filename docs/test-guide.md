@@ -48,7 +48,8 @@ Manual tests that verify complete CRUD workflows with sync validation across des
 ### For Manual Tests — SIT and UAT
 
 - **Configuration file** with correct database path
-  - Location: `%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json`
+  - Windows: `%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json`
+  - Linux/macOS: `$HOME/OneDrive/Documents/HomeBudgetData/hb-config.json`
   - See [Configuration Guide](configuration.md) for setup
 
 - **Database**: HomeBudget.db with test data
