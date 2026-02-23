@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "HomeBudget SQLite wrapper and CLI"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "GPL-3.0-or-later"}
+license = "GPL-3.0-or-later"
 authors = [{name = "HomeBudget contributors"}]
 dependencies = [
   "click>=8.1.0",
