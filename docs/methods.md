@@ -1,126 +1,345 @@
-# HomeBudget wrapper method list
+# HomeBudget Wrapper Methods Guide
 
 ## Table of contents
 
 - [Overview](#overview)
+- [Quick start](#quick-start)
 - [Client methods](#client-methods)
-- [Sync update methods](#sync-update-methods)
-- [Repository methods](#repository-methods)
+- [Expense methods](#expense-methods)
+- [Income methods](#income-methods)
+- [Transfer methods](#transfer-methods)
+- [Batch methods](#batch-methods)
+- [Reference data methods](#reference-data-methods)
 - [Data transfer objects](#data-transfer-objects)
-- [Validation utilities](#validation-utilities)
-- [Config utilities](#config-utilities)
 
 ## Overview
 
-This document lists the methods planned for the wrapper API. It is a reference for implementation and test planning.
+The HomeBudget wrapper exposes methods for programmatic database access. All write operations automatically manage sync updates and can be used within a context manager or with explicit lifecycle management.
+
+## Quick start
+
+Create a client using the configured default database path:
+
+```python
+from homebudget import HomeBudgetClient
+
+with HomeBudgetClient() as client:
+    expense = client.add_expense(...)
+```
+
+Override the database path:
+
+```python
+with HomeBudgetClient(db_path="C:/path/to/homebudget.db") as client:
+    expenses = client.list_expenses()
+```
 
 ## Client methods
 
-HomeBudgetClient lifecycle
-- __init__ with db_path and enable_sync
-- close
-- __enter__
-- __exit__
+### Lifecycle
 
-Expense methods
-- add_expense expense returns ExpenseRecord
-- get_expense key returns ExpenseRecord
-- list_expenses filters returns list of ExpenseRecord
-- update_expense key and fields returns ExpenseRecord
-- delete_expense key returns None
+**`__init__(db_path=None, enable_sync=True)`**
 
-Income methods
-- add_income
-- get_income
-- list_income
-- update_income
-- delete_income
+Initialize the client. If `db_path` is omitted, the configured default is used. Sync is enabled by default and cannot be disabled.
 
-Transfer methods
-- add_transfer: Add a transfer with currency normalization support
-- get_transfer: Get transfer by key
-- list_transfers: List transfers with optional date range filters
-- update_transfer: Update transfer fields
-- delete_transfer: Delete transfer by key
-- add_transfers_batch: Batch import transfers from list
+**`close()`**
 
-Reference data methods
-- list_accounts: Query account reference data
-- list_categories: Query category reference data  
-- list_currencies: Query currency reference data
-- _get_account_currency: Internal helper to get account currency
-- _get_base_currency: Internal helper to get base currency
+Close the database connection. Called automatically when using the context manager.
 
-Batch methods
-- batch: Execute mixed-resource batch operations (add, update, delete across expense, income, transfer)
-- add_expenses_batch: Batch import expenses
-- add_incomes_batch: Batch import incomes
-- add_transfers_batch: Batch import transfers
+**`__enter__()`, `__exit__()`**
 
-## Sync update methods
+Context manager support. Ensures clean shutdown via `close()`.
 
-SyncUpdateManager
-- create_expense_update
-- create_income_update
-- create_transfer_update
-- encode_payload
-- insert_sync_update
+```python
+with HomeBudgetClient() as client:
+    # use client
+    pass  # closes automatically
+```
 
-## Repository methods
+### Expense methods
 
-Connection and transaction
-- connect
-- close
-- begin_transaction
-- commit
-- rollback
+**`add_expense(expense: ExpenseDTO) -> ExpenseRecord`**
 
-Expense data
-- insert_expense
-- get_expense
-- list_expenses
-- update_expense
-- delete_expense
+Add a single expense. For base currency accounts, provide `amount` only. For foreign currency accounts, provide `currency`, `currency_amount`, and `exchange_rate`. Returns the saved record with generated key.
 
-Income data
-- insert_income
-- get_income
-- list_income
-- update_income
-- delete_income
+```python
+from decimal import Decimal
+import datetime
+from homebudget import HomeBudgetClient, ExpenseDTO
 
-Transfer data
-- insert_transfer
-- get_transfer
-- list_transfers
-- update_transfer
-- delete_transfer
+with HomeBudgetClient() as client:
+    expense = ExpenseDTO(
+        date=datetime.date(2026, 2, 16),
+        category="Dining",
+        subcategory="Restaurant",
+        amount=Decimal("25.50"),
+        account="Wallet",
+        notes="Lunch"
+    )
+    saved = client.add_expense(expense)
+    print(saved.key)
+```
 
-Reference data
-- list_accounts
-- list_categories
-- list_currencies
+**`get_expense(key: int) -> ExpenseRecord`**
+
+Retrieve a single expense by key.
+
+**`list_expenses(start_date=None, end_date=None, account=None, category=None, limit=None) -> list[ExpenseRecord]`**
+
+List expenses with optional filters. Date range is inclusive. Returns all matching expenses up to the limit.
+
+```python
+import datetime
+results = client.list_expenses(
+    start_date=datetime.date(2026, 2, 1),
+    end_date=datetime.date(2026, 2, 28),
+    account="Wallet",
+    limit=50
+)
+```
+
+**`update_expense(key: int, **fields) -> ExpenseRecord`**
+
+Update specific fields of an existing expense. Accepts `amount`, `currency`, `currency_amount`, `exchange_rate`, `category`, `subcategory`, `account`, `date`, `notes`. Returns the updated record.
+
+```python
+from decimal import Decimal
+
+updated = client.update_expense(
+    13074,
+    amount=Decimal("27.50"),
+    notes="Updated"
+)
+```
+
+**`delete_expense(key: int) -> None`**
+
+Delete an expense by key.
+
+### Income methods
+
+**`add_income(income: IncomeDTO) -> IncomeRecord`**
+
+Add a single income. Currency handling matches expense methods. Returns the saved record with generated key.
+
+**`get_income(key: int) -> IncomeRecord`**
+
+Retrieve a single income by key.
+
+**`list_income(start_date=None, end_date=None, account=None, limit=None) -> list[IncomeRecord]`**
+
+List income with optional filters. Date range is inclusive. Returns all matching income up to the limit.
+
+**`update_income(key: int, **fields) -> IncomeRecord`**
+
+Update specific fields of an existing income. Accepts `amount`, `currency`, `currency_amount`, `exchange_rate`, `name`, `account`, `date`, `notes`. Returns the updated record.
+
+**`delete_income(key: int) -> None`**
+
+Delete an income by key.
+
+### Transfer methods
+
+**`add_transfer(transfer: TransferDTO) -> TransferRecord`**
+
+Add a transfer between accounts. The normalization layer accepts `currency` for either the from_account or to_account. Returns the saved record with generated key.
+
+To specify the sending amount (from_account currency):
+
+```python
+from decimal import Decimal
+import datetime
+
+transfer = TransferDTO(
+    date=datetime.date(2026, 2, 22),
+    from_account="Wallet",
+    to_account="Bank Account",
+    currency="SGD",
+    currency_amount=Decimal("100.00"),
+    exchange_rate=Decimal("1.0"),
+    notes="Wallet to bank"
+)
+saved = client.add_transfer(transfer)
+```
+
+To specify the receiving amount (to_account currency), the system automatically calculates the corresponding from_account amount using the forex rate:
+
+```python
+transfer = TransferDTO(
+    date=datetime.date(2026, 2, 22),
+    from_account="TWH - Personal",  # SGD base
+    to_account="TWH IB USD",  # USD
+    currency="USD",
+    currency_amount=Decimal("100.00"),
+    exchange_rate=Decimal("0.74"),
+    notes="SGD to USD"
+)
+# Internally normalized to: currency=SGD, currency_amount=135.14, amount=100.00
+saved = client.add_transfer(transfer)
+```
+
+**`get_transfer(key: int) -> TransferRecord`**
+
+Retrieve a single transfer by key.
+
+**`list_transfers(start_date=None, end_date=None, from_account=None, to_account=None, limit=None) -> list[TransferRecord]`**
+
+List transfers with optional filters. Date range is inclusive. Returns all matching transfers up to the limit.
+
+**`update_transfer(key: int, **fields) -> TransferRecord`**
+
+Update specific fields of an existing transfer. Accepts `from_account`, `to_account`, `amount`, `currency`, `currency_amount`, `exchange_rate`, `date`, `notes`. Returns the updated record.
+
+**`delete_transfer(key: int) -> None`**
+
+Delete a transfer by key.
+
+### Batch methods
+
+**`batch(operations: list[BatchOperation], continue_on_error=False) -> BatchResult`**
+
+Execute mixed operations (add, update, delete) across expense, income, and transfer resources atomically. If `continue_on_error=True`, failed operations do not prevent subsequent operations. Returns a result object with `successful` and `failed` lists.
+
+```python
+from homebudget import HomeBudgetClient, BatchOperation
+
+operations = [
+    BatchOperation(
+        resource="expense",
+        operation="add",
+        parameters={
+            "date": "2026-02-20",
+            "category": "Food (Basic)",
+            "subcategory": "Restaurant",
+            "amount": "25.50",
+            "account": "TWH - Personal",
+            "notes": "Lunch"
+        }
+    ),
+    BatchOperation(
+        resource="income",
+        operation="update",
+        parameters={
+            "key": 14021,
+            "notes": "Updated notes"
+        }
+    ),
+    BatchOperation(
+        resource="transfer",
+        operation="delete",
+        parameters={
+            "key": 21007
+        }
+    )
+]
+
+with HomeBudgetClient() as client:
+    result = client.batch(operations, continue_on_error=True)
+    print(f"Successful: {len(result.successful)}")
+    print(f"Failed: {len(result.failed)}")
+    for op, error in result.failed:
+        print(f"  Failed: {op.resource} {op.operation} - {error}")
+```
+
+**`add_expenses_batch(expenses: list[ExpenseDTO]) -> BatchResult`**
+
+Batch import multiple expenses. Returns result with successful and failed lists.
+
+**`add_incomes_batch(incomes: list[IncomeDTO]) -> BatchResult`**
+
+Batch import multiple income records. Returns result with successful and failed lists.
+
+**`add_transfers_batch(transfers: list[TransferDTO]) -> BatchResult`**
+
+Batch import multiple transfers. Returns result with successful and failed lists.
+
+### Reference data methods
+
+**`list_accounts() -> list[AccountDTO]`**
+
+Retrieve all configured accounts with their names and currencies.
+
+```python
+with HomeBudgetClient() as client:
+    accounts = client.list_accounts()
+    for account in accounts:
+        print(account.name, account.currency)
+```
+
+**`list_categories() -> list[CategoryDTO]`**
+
+Retrieve all available expense and income categories with their subcategories.
+
+```python
+with HomeBudgetClient() as client:
+    categories = client.list_categories()
+    for category in categories:
+        print(category.category, category.subcategory)
+```
+
+**`list_currencies() -> list[CurrencyDTO]`**
+
+Retrieve all available currencies with their exchange rates against the base currency.
+
+```python
+with HomeBudgetClient() as client:
+    currencies = client.list_currencies()
+    for currency in currencies:
+        print(currency.code, currency.exchange_rate)
+```
 
 ## Data transfer objects
 
-Transaction data
-- ExpenseDTO
-- IncomeDTO
-- TransferDTO
+### Transaction DTOs
 
-Reference data
-- AccountDTO
-- CategoryDTO
-- CurrencyDTO
+**`ExpenseDTO`**
 
-## Validation utilities
+Fields: `date`, `category`, `subcategory`, `amount` (or `currency_amount`), `currency` (optional), `exchange_rate` (optional), `account`, `notes` (optional).
 
-- validate_expense_inputs
-- validate_income_inputs
-- validate_transfer_inputs
+**`IncomeDTO`**
 
-## Config utilities
+Fields: `date`, `name`, `amount` (or `currency_amount`), `currency` (optional), `exchange_rate` (optional), `account`, `notes` (optional).
 
-- load_user_config
-- resolve_db_path
-- default_config_path
+**`TransferDTO`**
+
+Fields: `date`, `from_account`, `to_account`, `amount` (optional), `currency` (optional), `currency_amount` (optional), `exchange_rate` (optional), `notes` (optional).
+
+For transfers, the normalization layer accepts currency specification for either account and calculates the corresponding other amount. See [Transfer Currency Normalization](transfer-currency-normalization.md) for details.
+
+### Record DTOs
+
+**`ExpenseRecord`**
+
+Fields: `key`, `date`, `category`, `subcategory`, `amount`, `currency`, `currency_amount`, `exchange_rate`, `account`, `notes`, `created_at`, `updated_at`.
+
+**`IncomeRecord`**
+
+Fields: `key`, `date`, `name`, `amount`, `currency`, `currency_amount`, `exchange_rate`, `account`, `notes`, `created_at`, `updated_at`.
+
+**`TransferRecord`**
+
+Fields: `key`, `date`, `from_account`, `to_account`, `amount`, `currency`, `currency_amount`, `exchange_rate`, `notes`, `created_at`, `updated_at`.
+
+### Reference data DTOs
+
+**`AccountDTO`**
+
+Fields: `name`, `currency`, `account_type`.
+
+**`CategoryDTO`**
+
+Fields: `category`, `subcategory`, `transaction_type`.
+
+**`CurrencyDTO`**
+
+Fields: `code`, `exchange_rate`.
+
+### Batch operation DTOs
+
+**`BatchOperation`**
+
+Fields: `resource` (expense, income, or transfer), `operation` (add, update, or delete), `parameters` (dict of operation-specific fields).
+
+**`BatchResult`**
+
+Fields: `successful` (list of tuples: operation, result), `failed` (list of tuples: operation, error).

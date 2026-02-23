@@ -40,14 +40,17 @@ Manual tests that verify complete CRUD workflows with sync validation across des
 ## Prerequisites
 
 ### For All Tests
+
 - Python 3.12+
 - Wrapper installed in editable mode: `pip install -e .`
 - Development environment configured per [Developer Guide](developer-guide.md)
 
 ### For Manual Tests — SIT and UAT
+
 - **Configuration file** with correct database path
   - Location: `%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json`
   - See [Configuration Guide](configuration.md) for setup
+
 - **Database**: HomeBudget.db with test data
 - **Test resources must exist**: 
   - Account: "TWH - Personal"
@@ -57,6 +60,7 @@ Manual tests that verify complete CRUD workflows with sync validation across des
   - Subcategory under Food: "Cheap restaurant"
 
 ### UAT Tests — Mobile Verification
+
 - Mobile device with HomeBudget app installed
 - Mobile device on WiFi network
 - Mobile app signed in with same account as desktop
@@ -92,6 +96,7 @@ Manual tests verify wrapper functionality interactively. The test runner automat
 #### UI Control During Manual Tests
 
 When manual tests execute CLI commands with sync enabled (default):
+
 - **HomeBudget UI automatically closes** before each database operation
 - Database changes are applied atomically while UI is closed
 - **HomeBudget UI automatically reopens** after the operation completes
@@ -100,6 +105,7 @@ When manual tests execute CLI commands with sync enabled (default):
 You may notice the HomeBudget application window briefly disappear and reappear during automated test steps. This is expected behavior and indicates UI control is working correctly.
 
 **Observing UI Control:**
+
 1. Watch the HomeBudget window during automated steps
 2. You'll see it close, database operation execute, then reopen
 3. This typically takes 6-11 seconds depending on application startup speed
@@ -134,6 +140,7 @@ python tests/manual/manual_test_runner.py
 #### Results
 
 Results are saved to `tests/manual/results/<test-id>-<timestamp>.md` with:
+
 - Test summary (overall pass/fail/incomplete)
 - Step-by-step results with commands, outputs, and notes
 - Timestamps for each test run
@@ -156,6 +163,7 @@ python tests/manual/manual_test_runner.py --list
 ```
 
 Three main UAT tests:
+
 - `uat_expense_crud` - Expense full CRUD with sync validation
 - `uat_income_crud` - Income full CRUD with sync validation
 - `uat_transfer_crud` - Transfer full CRUD with sync validation
@@ -167,6 +175,7 @@ python tests/manual/manual_test_runner.py --test-id uat_expense_crud
 ```
 
 This will:
+
 1. Verify configuration is ready — you confirm
 2. Create a test expense via CLI — automated
 3. Verify SyncUpdate entry created — automated
@@ -212,6 +221,7 @@ pytest tests/unit/test_reference_data.py -v
 ```
 
 Tests verify:
+
 - Query all accounts and return correct structure
 - Filter accounts by type or status
 - List all categories with hierarchy
@@ -235,6 +245,7 @@ python tests/manual/manual_test_runner.py --test-id sit_batch_import_csv
 ```
 
 **Batch operation capabilities:**
+
 - File formats: CSV with headers or JSON array of transaction objects
 - Large files: Tested with 100 plus rows
 - Individual input validation per record
@@ -262,6 +273,7 @@ homebudget batch run --file operations.json
 Transfer operations include comprehensive UAT test cases covering mixed-currency scenarios. See `tests/manual/TRANSFER_TEST_CASES.md` for detailed test case documentation.
 
 **23 Transfer UAT Test Cases:**
+
 - 3 Amount-only inference tests (base→foreign, foreign→base, foreign→foreign)
 - 1 Same-currency test (no forex needed)
 - 3 Fully-specified tests (amount + currency_amount + rate)
@@ -269,6 +281,7 @@ Transfer operations include comprehensive UAT test cases covering mixed-currency
 
 **Batch Transfer Tests:**
 See `tests/manual/BATCH_TRANSFER_TEST_CASES.md` for batch transfer test scenarios including:
+
 - Amount-only (inference) mode
 - Explicit from-currency mode (pass through)
 - Explicit to-currency mode (normalized to backend format)

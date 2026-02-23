@@ -3,13 +3,14 @@
 ## Table of contents
 
 - [Overview](#overview)
+- [Terminology](#terminology)
 - [Requirements](#requirements)
 - [API service selection](#api-service-selection)
 - [Data structure and storage](#data-structure-and-storage)
 - [Caching and TTL strategy](#caching-and-ttl-strategy)
 - [Fallback mechanism](#fallback-mechanism)
 - [Integration points](#integration-points)
-- [Architecture and implementation](#architecture-and-implementation)
+- [Architecture](#architecture)
 - [Error handling](#error-handling)
 - [Configuration](#configuration)
 - [Appendix: Alternative API providers](#appendix-alternative-api-providers)
@@ -20,7 +21,7 @@ The forex rates feature enables the HomeBudget wrapper to fetch current foreign 
 
 ### Use case
 
-When users record expenses or income in foreign currencies (e.g., USD amounts in a SGD-base-currency account), they need to convert between currencies using current exchange rates. Instead of manually entering rates, this feature:
+When users record expenses or income in foreign currencies, for example: USD amounts in a SGD-base-currency account, they need to convert between currencies using current exchange rates. Instead of manually entering rates, this feature:
 
 1. Fetches current rates from a public API
 2. Caches rates locally with timestamps
@@ -35,6 +36,15 @@ The primary conversion path leverages USD as an intermediary:
 - Calculate conversion between any two currencies using the formula: `CURRENCY_A.USD / CURRENCY_B.USD`
 - Example: To convert SGD to USD, use the quoted rate directly. To convert SGD to EUR, calculate the EUR and SGD rates against USD
 
+## Terminology
+
+- **Base currency**: The primary currency of the user's budget (e.g., SGD)
+- **Reference currency**: USD, used as a common denominator for all exchange rates fetched from the API. Referred to as "base" in API responses but distinct from the user's base currency.
+- **Foreign currency**: Any currency other than the base currency (e.g., USD, EUR)
+- **Forex rate**: also "exchange rate". The exchange rate between a foreign currency and the base currency, expressed as a decimal (e.g., 1 USD = 1.35 SGD → rate = 1.35)
+- **Cache TTL**: Time-to-live for cached rates, after which they are considered stale and a fresh API fetch is triggered
+- **Fallback rate**: The default rate of 1.0 used when no valid rate is available, meaning no conversion is applied
+
 ## Requirements
 
 ### Functional requirements
@@ -46,6 +56,7 @@ The primary conversion path leverages USD as an intermediary:
    - Application is offline (cannot reach API)
    - No rate has been previously cached for a currency
    - Rate fetch fails with an error
+
 5. **Calculate derived rates**: Support arbitrary currency pairs by using USD as a hub
 6. **Configuration**: Allow users to configure API preferences and cache location
 
@@ -62,13 +73,14 @@ The primary conversion path leverages USD as an intermediary:
 
 | Service | Free Tier | Auth Required | Data Freshness | Currencies | Uptime | Best For |
 |---------|-----------|---------------|-----------------|-----------|--------|----------|
-| **ExchangeRate-API** | 1.5K req/mo | ❌ No | Daily | 161 | 99.99% | ✅ Recommended |
-| **exchangerate.host** | 100 req/mo | ✅ Yes | Hourly | 168 | 99.9% | Limited free |
-| **Open Exchange Rates** | 1.0K req/mo | ✅ Yes | Variable | 200+ | Claimed | Backup only |
+| **[ExchangeRate-API](https://www.exchangerate-api.com/)** | 1.5K req/mo | ❌ No | Daily | 161 | 99.99% | ✅ Recommended |
+| **[exchangerate.host](https://exchangerate.host/)** | 100 req/mo | ✅ Yes | Hourly | 168 | 99.9% | Limited free |
+| **[Open Exchange Rates](https://openexchangerates.org/)** | 1.0K req/mo | ✅ Yes | Variable | 200+ | Claimed | Backup only |
 
-### Recommended choice: **ExchangeRate-API**
+### Recommended choice: **[ExchangeRate-API](https://www.exchangerate-api.com/)**
 
 **Rationale**:
+
 - **No API key required** — free tier works without authentication or credit card
 - Simple REST API: `https://api.exchangerate-api.com/v4/latest/{currency}`
 - 1,500 requests/month free (50/day, adequate with 1-hour cache TTL)
@@ -96,7 +108,7 @@ The primary conversion path leverages USD as an intermediary:
 
 ### Sample API requests
 
-**Get rates for USD (base currency)**:
+**Get rates for USD (reference currency)**:
 ```bash
 curl https://api.exchangerate-api.com/v4/latest/USD
 ```
@@ -116,24 +128,6 @@ Response:
 }
 ```
 
-**Get rates for SGD**:
-```bash
-curl https://api.exchangerate-api.com/v4/latest/SGD
-```
-
-Response:
-```json
-{
-  "base": "SGD",
-  "date": "2026-02-20",
-  "rates": {
-    "USD": 0.7407,
-    "EUR": 0.6804,
-    "GBP": 0.5870,
-    ...
-  }
-}
-```
 
 **Python example**:
 ```python
@@ -209,6 +203,7 @@ When a user requests a rate for currency `X`:
    - Parse `timestamp` field
    - If `current_time - timestamp < 1 hour`: Use cached rates
    - Otherwise: Fetch fresh rates from API
+
 3. **Update on fetch**: Store new timestamp and refreshed rates
 4. **Persist to disk**: Write updated cache file
 
@@ -219,17 +214,20 @@ Note: TTL is per-cache (all currencies share the same timestamp), not per-curren
 Default: 1 hour (`cache_ttl_hours: 1`)
 
 Rationale:
+
 - Balances minimizing API calls with reasonable rate freshness
 - Typical daily forex volatility is 0.5-2%, acceptable for budget tracking
 - Aligns with common transaction batch workflows (process daily receipts)
 
 Users can override in config:
+
 - Aggressive caching: `cache_ttl_hours: 24`
 - Conservative: `cache_ttl_hours: 0` (always fetch, subject to API limits)
 
 ### Cache initialization
 
 On first use:
+
 - If cache file doesn't exist, create it with empty structure
 - First rate request triggers a fetch from the API
 
@@ -257,6 +255,7 @@ The fallback rate `1.0` represents "no conversion" (unit rate), meaning the prov
 ### Stale rate fallback
 
 If cache exists but is older than TTL and API fails:
+
 - Use the stale rate instead of 1.0
 - Log at INFO level: "Cache expired but using stale rate due to API failure"
 - Rationale: A day-old rate is better than no conversion
@@ -301,12 +300,14 @@ These methods are called by all transaction operations (add/update/delete) regar
 
 When a user provides only `amount` on a non-base currency account:
 
-**Current behavior (before forex rates)**:
+**Without forex rate, rate=1.0**:
+
 - User enters: `amount=100` on USD account (base currency is SGD)
 - Result: `amount=100, currency=USD, currency_amount=100, exchange_rate=1.0`
 - Interpretation: 100 USD = 100 SGD (incorrect 1:1 conversion)
 
-**Enhanced behavior (with forex rates)**:
+**With forex rate**:
+
 - User enters: `amount=100` on USD account (amount is in USD, the account's currency)
 - Fetch rate: 1 USD = 1.35 SGD
 - Calculate: `amount = 100 * 1.35 = 135 SGD` (base currency)
@@ -318,11 +319,13 @@ When a user provides only `amount` on a non-base currency account:
 When a user provides only `amount` on a **transfer between base and non-base accounts**:
 
 **Scenario**:
+
 - User on base account (SGD) transfers to non-base account (USD)
 - User specifies: `amount=135` (base currency, SGD)
 - Transfer involves both SGD (base, from_account) and USD (foreign, to_account)
 
 **Enhanced behavior**:
+
 - Infer non-base currency from target account: `currency=USD`
 - Fetch rate: 1 USD = 1.35 SGD
 - Calculate: `currency_amount = 135 / 1.35 = 100` (WITHOUT rounding)
@@ -331,217 +334,16 @@ When a user provides only `amount` on a **transfer between base and non-base acc
 
 This applies to the transfer's foreign currency leg (the non-base account side).
 
-### Normalization layer logic
 
-The normalization layer handles these calculation scenarios:
+## Architecture
 
-```python
-def _normalize_forex_inputs(
-    self,
-    *,
-    amount: Decimal | str | int | float | None,
-    currency: str | None,
-    currency_amount: Decimal | str | int | float | None,
-    exchange_rate: Decimal | str | int | float | None,
-    label: str,
-    allow_empty: bool,
-) -> tuple[Decimal | None, str | None, Decimal | None]:
-    """Normalize forex inputs with dynamic rate fetching and calculation.
-    
-    Handles two calculation scenarios:
-    1. currency_amount + exchange_rate → calculate amount (round to 2 decimals)
-    2. amount + exchange_rate → calculate currency_amount (NO rounding)
-    """
-    
-    # ... existing validation ...
-    
-    # Scenario 1: Calculate base amount from foreign amount + rate
-    if currency_amount is not None and exchange_rate is None:
-        # Auto-fetch rate if not provided
-        exchange_rate = self._get_forex_rate(currency)
-    
-    if currency_amount is not None and exchange_rate is not None:
-        amount = Decimal(str(currency_amount)) * Decimal(str(exchange_rate))
-        # Round to 2 decimal places for base currency storage
-        amount = amount.quantize(Decimal('0.01'))
-    
-    # Scenario 2: Calculate foreign amount from base amount + rate
-    # Used for transfer base-to-non-base with amount-only input
-    if amount is not None and currency_amount is None and exchange_rate is None and currency is not None:
-        # Auto-fetch rate if not provided
-        exchange_rate = self._get_forex_rate(currency)
-    
-    if amount is not None and currency_amount is None and exchange_rate is not None and currency is not None:
-        # Calculate currency_amount WITHOUT rounding (preserve user precision)
-        currency_amount = Decimal(str(amount)) / Decimal(str(exchange_rate))
-    
-    # ... rest of existing logic ...
-```
-
-```python
-def _infer_currency_and_rate(self, dto: ExpenseDTO | IncomeDTO | TransferDTO) -> ExpenseDTO | IncomeDTO | TransferDTO:
-    """Common logic for inferring currency and rate for non-base accounts.
-    
-    For non-base currency accounts, if only amount (no currency_amount) is provided:
-    1. Treat amount as the account currency amount (currency_amount)
-    2. Fetch current forex rate for account currency
-    3. Set currency, currency_amount, and exchange_rate
-    4. DO NOT set amount (normalization layer will calculate it)
-    
-    Applies to all transaction types (expense, income, transfer).
-    """
-    # Skip if currency or currency_amount already provided
-    if dto.currency is not None or dto.currency_amount is not None:
-        return dto
-    
-    # Get account and base currency
-    account_currency = self._get_account_currency(dto.account)
-    base_currency = self._get_base_currency()
-    
-    # All accounts must have currency; raise if missing
-    if not account_currency:
-        raise ValueError(f"Account {dto.account} has no currency defined")
-    if not base_currency:
-        raise ValueError(f"Base currency not configured")
-    
-    # If base account or no amount provided, skip inference
-    if account_currency == base_currency or not dto.amount:
-        return dto
-    
-    # Get forex rate for account currency
-    rate = self._get_forex_rate(account_currency)
-    
-    # Set currency_amount to the input amount, set rate, and let normalization calculate base amount
-    dto.currency = account_currency
-    dto.currency_amount = Decimal(str(dto.amount))
-    dto.exchange_rate = Decimal(str(rate))
-    dto.amount = None  # Will be calculated by normalization layer
-    
-    return dto
-
-def _infer_currency_for_expense(self, expense: ExpenseDTO) -> ExpenseDTO:
-    """Infer currency and rate for expense."""
-    return self._infer_currency_and_rate(expense)
-
-def _infer_currency_for_income(self, income: IncomeDTO) -> IncomeDTO:
-    """Infer currency and rate for income."""
-    return self._infer_currency_and_rate(income)
-
-def _infer_currency_for_transfer(self, transfer: TransferDTO) -> TransferDTO:
-    """Infer currency and rate for transfer."""
-    return self._infer_currency_and_rate(transfer)
-```
-
-### Forex rate manager
-
-New module `src/python/homebudget/forex.py`:
-
-```python
-class ForexRateManager:
-    """Manages forex rate fetching, caching, and conversion."""
-    
-    def __init__(self, config: dict, cache_path: str | Path):
-        """Initialize with config and cache location."""
-    
-    def get_rate(self, currency: str) -> float:
-        """Fetch or retrieve cached rate for currency vs USD.
-        
-        Returns rate to USD; any pair can be calculated via RATES[A]/RATES[B].
-        Falls back to 1.0 if offline or rate unavailable.
-        """
-    
-    def _fetch_from_api(self, currency: str) -> dict[str, float]:
-        """Fetch all rates from ExchangeRate-API."""
-    
-    def _load_cache(self) -> dict:
-        """Load cache from JSON file."""
-    
-    def _save_cache(self, data: dict) -> None:
-        """Persist cache to JSON file."""
-    
-    def _is_cache_valid(self) -> bool:
-        """Return True when cached rates are still valid."""
-        return False
-```
-
-## Architecture and implementation
-
-### Module structure
+**Module structure**
 
 ```
 src/python/homebudget/
   forex.py               ← New module
   client.py              ← Integrate forex manager initialization
   config.py              ← Handle forex config section (optional)
-```
-
-### API implementation
-
-ExchangeRate-API is the single, hardcoded API provider:
-
-```python
-class ForexRateManager:
-    """Manages forex rate fetching, caching, and conversion."""
-    
-    EXCHANGE_RATE_API_URL = "https://api.exchangerate-api.com/v4/latest"
-    
-    def _fetch_from_api(self, currency: str) -> dict[str, float]:
-        """Fetch all rates from ExchangeRate-API for a single currency."""
-        url = f"{self.EXCHANGE_RATE_API_URL}/{currency}"
-        response = requests.get(url, timeout=self.timeout)
-        response.raise_for_status()
-        data = response.json()
-        return data.get("rates", {})
-```
-
-### Client initialization
-
-Add the forex manager to `HomeBudgetClient.__init__`:
-
-```python
-class HomeBudgetClient:
-    def __init__(self, ..., enable_forex_rates: bool = True):
-        # ... existing code ...
-        
-        self.enable_forex_rates = enable_forex_rates
-        if enable_forex_rates:
-            self._forex_manager = ForexRateManager(
-                config=self.config.get("forex", {}),
-                cache_path=self._derive_cache_path()
-            )
-        else:
-            self._forex_manager = None
-    
-    def _get_forex_rate(self, currency: str) -> float:
-        """Get forex rate, with fallback to 1.0 if unavailable."""
-        if not self._forex_manager:
-            return 1.0
-        return self._forex_manager.get_rate(currency)
-```
-
-### Client initialization
-
-### Exception hierarchy
-
-```python
-class ForexError(Exception):
-    """Base exception for forex operations."""
-    pass
-
-class ForexAPIError(ForexError):
-    """Raised when API request fails."""
-    
-    def __init__(self, message: str, status_code: int | None = None):
-        super().__init__(message)
-        self.status_code = status_code
-
-class ForexCacheError(ForexError):
-    """Raised when cache I/O fails."""
-    pass
-
-class InvalidCurrencyError(ForexError):
-    """Raised for invalid currency codes."""
-    pass
 ```
 
 ## Error handling
@@ -595,6 +397,29 @@ def _load_cache(self) -> dict:
         if self._cache_path.exists():
             self._cache_path.unlink()
         return {}
+```
+
+### Exception hierarchy
+
+```python
+class ForexError(Exception):
+    """Base exception for forex operations."""
+    pass
+
+class ForexAPIError(ForexError):
+    """Raised when API request fails."""
+    
+    def __init__(self, message: str, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+
+class ForexCacheError(ForexError):
+    """Raised when cache I/O fails."""
+    pass
+
+class InvalidCurrencyError(ForexError):
+    """Raised for invalid currency codes."""
+    pass
 ```
 
 ## Configuration

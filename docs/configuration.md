@@ -12,6 +12,7 @@ The HomeBudget wrapper uses a JSON configuration file to manage database paths, 
 ```
 
 **Alternative locations checked (in order):**
+
 1. Path specified by `HB_CONFIG` environment variable
 2. Default path shown above
 
@@ -68,6 +69,7 @@ Open `%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json` and update
 ### UAT (User Acceptance Testing) Setup
 
 For UAT tests with live database and mobile sync:
+
 - Set `db_path` to operational database
 - Set `sync_enabled` to `true`
 - Ensure HomeBudget apps (Windows and mobile) use the same database
@@ -75,13 +77,14 @@ For UAT tests with live database and mobile sync:
 ### SIT (System Integration Testing) Setup
 
 For SIT tests with headless fixtures:
+
 - No configuration file needed
 - Tests use fixtures from `tests/fixtures/`
 - Configuration is ignored during SIT
 
 ## Using Configuration
 
-### With API
+### With methods
 
 Configuration is loaded automatically when creating a client:
 
@@ -123,7 +126,7 @@ homebudget --db "C:\path\to\homebudget.db" expense list
 
 The wrapper loads configuration in this order (first found wins):
 
-1. **Explicit parameter**: API `db_path` parameter or CLI `--db` flag
+1. **Explicit parameter**: Methods `db_path` parameter or CLI `--db` flag
 2. **Environment variable**: `HB_CONFIG` pointing to config file
 3. **Default location**: `%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json`
 
@@ -140,7 +143,7 @@ Sync is always enabled via CLI and cannot be disabled to ensure consistency betw
 
 **If no configuration file exists:**
 
-- API: Must provide `db_path` parameter, or will raise error
+- Methods: Must provide `db_path` parameter, or will raise error
 - CLI: Must provide `--db` flag, or will raise error
 
 ## Sample Configuration File
@@ -168,7 +171,7 @@ A complete sample is provided at `config/hb-config.json.sample`:
 
 ### "Config file not found" Error
 
-**Problem:** CLI or API cannot locate configuration file.
+**Problem:** CLI or methods cannot locate configuration file.
 
 **Solution:**
 
@@ -200,5 +203,5 @@ A complete sample is provided at `config/hb-config.json.sample`:
 
 - [User Guide](user-guide.md) - Getting started and usage examples
 - [Developer Guide](developer-guide.md) - Development workflow and testing
-- [CLI Examples](cli-examples.md) - Command-line usage examples
+- [CLI Guide](cli-guide.md) - Command-line usage examples
 - [Sync Update Mechanism](sync-update.md) - How sync works

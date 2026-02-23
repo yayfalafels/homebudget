@@ -9,6 +9,7 @@
 - [Entry points](#entry-points)
 - [Forex input rules](#forex-input-rules)
   - [Currency matching constraints](#currency-matching-constraints)
+
 - [Feature mapping](#feature-mapping)
 - [Working with expenses](#working-with-expenses)
 - [Working with income](#working-with-income)
@@ -21,6 +22,7 @@
 The HomeBudget wrapper is a Python library and CLI that lets you manage HomeBudget data through a SQLite database. The wrapper supports expense, income, and transfer operations with full CRUD (create, read, update, delete) functionality. It also supports sync updates so changes appear in the HomeBudget apps across all devices.
 
 What you need
+
 - Python 3.10 or later
 - SQLite 3.35 or later
 - A HomeBudget database file
@@ -69,24 +71,27 @@ For full configuration options and troubleshooting, see [Configuration Guide](co
 
 ## Basic usage
 
-For a complete set of examples, see the API and CLI example documents.
+For a complete set of examples, see the methods and CLI guides.
 
-- API examples: [docs/api-examples.md](api-examples.md)
-- CLI examples: [docs/cli-examples.md](cli-examples.md)
+- [Methods](methods.md)
+- [CLI guide](cli-guide.md)
 
 ## Entry points
 
 Library entry point
+
 - Use the `HomeBudgetClient` class to perform CRUD operations
 - Use DTO classes to validate data before writing to the database
 
 CLI entry point
+
 - Use `homebudget` or `hb` for the command line interface
 - Provide `--db` for the database path when `hb-config.json` is not configured
 
 ## Sync behavior
 
 Sync updates are enabled by default and mandatory for all write commands. This ensures consistency between local and remote devices:
+
 - Creates SyncUpdate records in the database
 - Enables mobile and other HomeBudget clients to synchronize changes
 - Automatically manages the HomeBudget UI to maintain data consistency (Feature 001)
@@ -98,12 +103,14 @@ Sync cannot be disabled via the CLI to prevent irreparable breaks between local 
 Forex inputs use one of two paths for expenses and income.
 
 Base currency path
+
 - Provide amount only
 - Currency defaults to the account currency
 - Currency amount is set to amount for base currency updates
 - Exchange rate is treated as 1.0
 
 Foreign currency path
+
 - Provide currency and currency amount
 - Exchange rate is optional (if omitted, the wrapper infers a rate from the forex cache)
 - Amount is calculated as currency amount times exchange rate
@@ -117,15 +124,18 @@ Do not provide amount and currency amount together.
 When adding or updating transactions (expense, income, transfer), the currency you specify must match the account's base currency rules:
 
 **For expenses and income:**
+
 - **Cannot add base currency transactions to non-base currency accounts**: If an account's currency is non-base (e.g., USD account "TWH IB USD"), you cannot add a transaction in the system's base currency (SGD). The account will reject base currency inputs.
 - **Can add foreign currency transactions to base currency accounts**: If an account's currency is the system base (SGD), you can add transactions in foreign currencies (USD, EUR, GEL, etc.) by specifying `--currency`, `--currency-amount`, and optionally `--exchange-rate`.
 
 **Examples:**
+
 - ✓ VALID: Add USD expense to "TWH - Personal" (SGD base) with `--currency USD --currency-amount 27.50 --exchange-rate 0.9273`
 - ✗ INVALID: Add SGD income to "TWH IB USD" (USD base) - account does not accept base currency
 - ✓ VALID: Add USD income to "DBS Multi" (SGD base) with `--currency USD --currency-amount 2700 --exchange-rate 0.7407`
 
 **For transfers between mixed-currency accounts:**
+
 - You can specify the currency amount and exchange rate for **either the source or destination account's currency**, but not both
 - Examples:
   - ✓ VALID: Transfer from "TWH - Personal" (SGD) to "TWH IB USD" (USD) specifying USD: `--currency USD --currency-amount 110 --exchange-rate 0.9091`
@@ -138,11 +148,13 @@ When adding or updating transactions (expense, income, transfer), the currency y
 When you run a write command with sync enabled (the default), the HomeBudget UI is **automatically closed** during the database operation and **automatically reopened** when complete.
 
 **Why this happens:**
+
 - Ensures the UI doesn't read incomplete data during database changes
 - Prevents database locks that occur while the UI reads during sync operations
 - Atomic database transactions are guaranteed without UI interference
 
 **What you'll observe:**
+
 - The HomeBudget application window will briefly close and reopen
 - The entire operation (close → change → reopen) typically takes 6-11 seconds
 - No manual intervention is needed; it's completely automated
@@ -615,7 +627,7 @@ Example JSON for operations.json:
 ]
 ```
 
-### API usage
+### Methods usage
 
 ```python
 from homebudget import HomeBudgetClient

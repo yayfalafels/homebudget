@@ -19,6 +19,7 @@ User acceptance test to validate expense create, read, update, and delete operat
   - Copy `config/hb-config.json.sample` to `%USERPROFILE%/OneDrive/Documents/HomeBudgetData/hb-config.json`
   - Edit the config file to set `db_path` to your operational homebudget.db
   - Or use `--db` flag to specify your operational database path
+
 - Wrapper environment activated
 - Package installed in editable mode
 

@@ -67,9 +67,8 @@ nav:
     - Configuration: configuration.md
     - Dependencies: dependencies.md
 
-  - Usage Examples:
-    - CLI Examples: cli-examples.md
-    - API Examples: api-examples.md
+  - Methods: methods.md
+  - CLI: cli-guide.md
   
   - Development:
     - Developer Guide: developer-guide.md
@@ -81,7 +80,6 @@ nav:
     - Sync Updates: sync-update.md
     - Forex Rates: forex-rates.md
     - Transfer Currency Normalization: transfer-currency-normalization.md
-    - Method List: methods.md
   
   - Testing:
     - Test Guide: test-guide.md

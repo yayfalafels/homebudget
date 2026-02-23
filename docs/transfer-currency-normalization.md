@@ -1,12 +1,25 @@
 # Transfer Currency Normalization Layer
 
+## Table of contents
+
+- [Overview](#overview)
+- [Backend storage format](#backend-storage-format)
+- [User input modes](#user-input-modes)
+- [Design rationale](#design-rationale)
+- [Implementation architecture](#implementation-architecture)
+- [Normalization calculations](#normalization-calculations)
+- [Example transformation](#example-transformation)
+- [Error handling](#error-handling)
+- [Testing](#testing)
+- [Related documentation](#related-documentation)
+
 ## Overview
 
-The transfer currency normalization layer allows users to specify currency specifications for **either** the from_account **or** the to_account when creating transfers. This user-facing layer normalizes all inputs to the backend standard format before validation and persistence.
+The transfer currency normalization layer lets users specify currency for **either** the from_account **or** the to_account when creating transfers. It normalizes inputs to the backend standard format before validation and persistence.
 
 ## Backend Storage Format
 
-The Transfer table stores currency information in a specific format:
+The Transfer table stores currency information in this format:
 
 | Field | Description |
 |-------|-------------|
@@ -14,29 +27,30 @@ The Transfer table stores currency information in a specific format:
 | `currency_amount` | Amount in from_account currency |
 | `amount` | Amount in to_account currency |
 
-This constraint (`currency = from_account`) is **strictly enforced** at the backend layer to ensure unambiguous conversion semantics.
+The backend enforces `currency = from_account` to keep conversion semantics unambiguous.
 
 ## User Input Modes
 
 Users can specify transfer amounts in three ways:
 
-### 1. Amount Only (Inference)
+### 1. Amount Only, Inference
 
-Specify only `amount` field. The system infers currency based on account types:
+Specify only the `amount` field. The system infers currency based on account types:
 
 ```json
 {
-  "from_account": "TWH - Personal",  // SGD (base)
+  "from_account": "TWH - Personal",  // SGD, base currency
   "to_account": "TWH IB USD",  // USD
-  "amount": "200.00"  // Inferred as SGD (base currency present)
+  "amount": "200.00"  // Inferred as SGD, base currency present
 }
 ```
 
 **Inference rules:**
-- If base currency in either account → user amount is in base currency
-- If base in neither account → user amount is in from_account currency
 
-### 2. From-Currency Explicit (Pass Through)
+- If base currency in either account -> user amount is in base currency
+- If base in neither account -> user amount is in from_account currency
+
+### 2. From-Currency Explicit, Pass Through
 
 Specify `currency` + `currency_amount` matching the **from_account**:
 
@@ -49,15 +63,15 @@ Specify `currency` + `currency_amount` matching the **from_account**:
 }
 ```
 
-**Behavior:** Already in backend format → passes through unchanged.
+**Behavior:** Already in backend format -> passes through unchanged.
 
-### 3. To-Currency Explicit (Normalized)
+### 3. To-Currency Explicit, Normalized
 
 Specify `currency` + `currency_amount` matching the **to_account**:
 
 ```json
 {
-  "from_account": "TWH - Personal",  // SGD (base)
+  "from_account": "TWH - Personal",  // SGD, base currency
   "to_account": "TWH IB USD",  // USD
   "currency": "USD",  // Matches to_account
   "currency_amount": "100.00"  // to_amount
@@ -65,98 +79,119 @@ Specify `currency` + `currency_amount` matching the **to_account**:
 ```
 
 **Behavior:** Normalized to backend format:
-1. Interpret `currency_amount` as `to_amount` (100.00 USD)
-2. Calculate `from_amount` using forex inverse: `from_amount = to_amount / forex_rate`
+
+1. Interpret `currency_amount` as `to_amount`, 100.00 USD
+2. Calculate `from_amount` using the inverse rate, `from_amount = to_amount / forex_rate`
 3. Convert to standard form:
-   - `currency` = "SGD" (from_account)
-   - `currency_amount` = calculated from_amount
-   - `amount` = 100.00 (to_amount)
+    - `currency` = "SGD", from_account
+    - `currency_amount` = calculated from_amount
+    - `amount` = 100.00, to_amount
+
+## Design Rationale
+
+### Why Normalize to from_account?
+
+The backend constraint `currency = from_account` provides:
+
+1. **Unambiguous semantics:** Always clear which account's currency is the reference
+2. **Consistent querying:** Filtering by currency always uses from_account perspective
+3. **Simplified validation:** Single constraint rule instead of multiple cases
+
+### Why Accept Both Specifications?
+
+User convenience:
+
+- **From-account specification:** Natural when user thinks "I'm sending X USD"
+- **To-account specification:** Natural when user thinks "Recipient gets Y EUR"
+- **Either works:** System handles both transparently
+
+The normalization layer provides user flexibility while maintaining backend consistency.
 
 ## Implementation Architecture
 
-### Layer 1: User Input (Flexible)
+### Layer 1: User Input, Flexible
 
-**Location:** JSON parsing in CLI (`cli/transfer.py`)
+**Location:** JSON parsing in CLI, `cli/transfer.py`
 
 **Accepts:**
-- `amount` only (optional)
-- `currency` + `currency_amount` (optional, can match either account)
 
-### Layer 2: Normalization (Conversion)
+- `amount` only, optional
+- `currency` + `currency_amount`, optional and can match either account
 
-**Location:** `client.py` → `_infer_currency_for_transfer()` (lines 602-699)
+### Layer 2: Normalization, Conversion
+
+**Location:** `client.py`, `_infer_currency_for_transfer()`
 
 **Logic:**
+
 1. If `currency` + `currency_amount` specified:
-   - Validate: `currency` must match **either** from_account or to_account
-   - If matches from_account → pass through
-   - If matches to_account → calculate inverse and swap to backend format
+    - Validate: `currency` must match **either** from_account or to_account
+    - If matches from_account, pass through
+    - If matches to_account, calculate inverse and swap to backend format
+
 2. If only `amount` specified:
-   - Apply inference rules (base currency priority)
+    - Apply inference rules, base currency priority
+
 3. Return normalized TransferDTO
 
-### Layer 3: Validation (Constraint Enforcement)
+### Layer 3: Validation, Constraint Enforcement
 
-**Location:** `client.py` → `_validate_transfer_currency_constraint()` (lines 577-600)
+**Location:** `client.py`, `_validate_transfer_currency_constraint()`
 
-**Enforces:** `currency` **must** equal from_account currency (backend constraint)
+**Enforces:** `currency` **must** equal from_account currency, backend constraint
 
 This validation runs **after** normalization, so it always sees backend-formatted data.
 
-### Layer 4: Persistence
-
-**Location:** `repository.py` → `insert_transfer()`
-
-**Stores:** Backend-formatted data to database
+Persistence stores backend-formatted data via repository `insert_transfer`.
 
 ## Normalization Calculations
 
 ### Same Currency Accounts
 
 ```
-from_amount = to_amount (no conversion)
+from_amount = to_amount
 ```
 
-### Foreign → Base Currency
+### Foreign to Base Currency
 
 ```
-to_amount (base) = from_amount (foreign) × forex_rate
+to_amount_base = from_amount_foreign * forex_rate
 ```
 
-Inverse (when normalizing to_amount → from_amount):
+Inverse, when normalizing to_amount to from_amount:
 ```
-from_amount (foreign) = to_amount (base) / forex_rate
-```
-
-### Base → Foreign Currency
-
-```
-to_amount (foreign) = from_amount (base) / forex_rate
+from_amount_foreign = to_amount_base / forex_rate
 ```
 
-Inverse (when normalizing to_amount → from_amount):
-```
-from_amount (base) = to_amount (foreign) × forex_rate
-```
-
-### Foreign → Foreign Currency
+### Base to Foreign Currency
 
 ```
-to_amount = from_amount × (from_rate / to_rate)
+to_amount_foreign = from_amount_base / forex_rate
 ```
 
-Inverse (when normalizing to_amount → from_amount):
+Inverse, when normalizing to_amount to from_amount:
 ```
-from_amount = to_amount × (to_rate / from_rate)
+from_amount_base = to_amount_foreign * forex_rate
+```
+
+### Foreign to Foreign Currency
+
+```
+to_amount = from_amount * from_rate / to_rate
+```
+
+Inverse, when normalizing to_amount to from_amount:
+```
+from_amount = to_amount * to_rate / from_rate
 ```
 
 ## Example Transformation
 
-**User Input (to_account currency):**
+**User Input, to_account currency:**
 ```json
 {
   "date": "2026-02-22",
-  "from_account": "TWH - Personal",  // SGD (base), rate = 1.0
+  "from_account": "TWH - Personal",  // SGD, base currency, rate = 1.0
   "to_account": "TWH IB USD",  // USD, rate = 0.74
   "currency": "USD",
   "currency_amount": "100.00",
@@ -166,31 +201,22 @@ from_amount = to_amount × (to_rate / from_rate)
 
 **Normalization Steps:**
 
-1. **Identify:** `currency` = USD matches `to_account` (not from_account)
-2. **Interpret:** `currency_amount` (100.00) is the to_amount in USD
+1. **Identify:** `currency` = USD matches `to_account`, not from_account
+2. **Interpret:** `currency_amount` 100.00 is the to_amount in USD
 3. **Calculate from_amount:**
-   - Conversion: Foreign (USD) → Base (SGD)
-   - Formula: `from_amount = to_amount / forex_rate`
-   - Calculation: `100.00 / 0.74 = 135.14` SGD
+  - Conversion: foreign USD to base SGD
+  - Formula: `from_amount = to_amount / forex_rate`
+  - Calculation: `100.00 / 0.74 = 135.14` SGD
+
 4. **Normalize to backend format:**
    ```json
    {
-     "currency": "SGD",          // from_account (backend constraint)
-     "currency_amount": "135.14", // from_amount (calculated)
-     "amount": "100.00"           // to_amount (preserved)
+     "currency": "SGD",          // from_account, backend constraint
+     "currency_amount": "135.14", // from_amount, calculated
+     "amount": "100.00"           // to_amount, preserved
    }
    ```
 
-**Database Storage:**
-```sql
-INSERT INTO Transfer (
-  date, from_account, to_account, 
-  currency, currency_amount, amount, notes
-) VALUES (
-  '2026-02-22', 'TWH - Personal', 'TWH IB USD',
-  'SGD', 135.14, 100.00, 'Normalized transfer'
-);
-```
 
 ## Error Handling
 
@@ -209,7 +235,7 @@ Cannot specify **both** `amount` and `currency_amount`:
 **Error message:**
 ```
 Cannot specify both 'amount' and 'currency_amount'. 
-Provide either 'amount' alone (for inference) or 'currency' with 'currency_amount'.
+Provide either 'amount' alone for inference or 'currency' with 'currency_amount'.
 ```
 
 ### Invalid Currency Error
@@ -236,49 +262,34 @@ from_account uses SGD, to_account uses USD, but transfer specifies EUR.
 ### Integration Test Coverage
 
 The normalization layer is tested in:
+
 - `tests/integration/test_currency_constraints.py::test_transfer_currency_must_match_from_account`
 
 This test verifies:
+
 1. ✅ To-currency specification is normalized correctly
 2. ✅ From-currency specification passes through unchanged
-3. ✅ Invalid currencies (matching neither account) are rejected
+3. ✅ Invalid currencies, matching neither account, are rejected
 
 ### UAT Test Cases
 
 Comprehensive batch transfer tests in:
-- `tests/manual/batch_templates/transfers_valid_batch.json`
+
+- [transfers_valid_batch.json](https://github.com/yayfalafels/homebudget/blob/main/tests/manual/batch_templates/transfers_valid_batch.json)
 
 Test coverage:
-- **Items 1-4:** Amount-only inference (4 cases)
-- **Items 5-7:** Explicit from-currency (3 cases)
-- **Items 8-10:** Explicit to-currency with normalization (3 cases)
-- **Item 11:** Invalid date format (parsing error test)
 
-See `tests/manual/BATCH_TRANSFER_TEST_CASES.md` for detailed test case documentation.
+- **Items 1-4:** Amount-only inference, 4 cases
+- **Items 5-7:** Explicit from-currency, 3 cases
+- **Items 8-10:** Explicit to-currency with normalization, 3 cases
+- **Item 11:** Invalid date format, parsing error test
 
-## Design Rationale
+See [Test cases](tests/BATCH_TRANSFER_TEST_CASES.md) for detailed test case documentation.
 
-### Why Normalize to from_account?
-
-The backend constraint (`currency = from_account`) provides:
-
-1. **Unambiguous semantics:** Always clear which account's currency is the reference
-2. **Consistent querying:** Filtering by currency always uses from_account perspective
-3. **Simplified validation:** Single constraint rule instead of multiple cases
-
-### Why Accept Both Specifications?
-
-User convenience:
-
-- **From-account specification:** Natural when user thinks "I'm sending X USD"
-- **To-account specification:** Natural when user thinks "Recipient gets Y EUR"
-- **Either works:** System handles both transparently
-
-The normalization layer provides user flexibility while maintaining backend consistency.
 
 ## Related Documentation
 
-- **Design:** `docs/design.md` (Transfer currency semantics)
-- **Schema:** `docs/sqlite-schema.md` (Transfer table structure)
-- **Test Strategy:** `docs/test-strategy.md` (Inference testing approach)
-- **Test Cases:** `tests/manual/BATCH_TRANSFER_TEST_CASES.md` (UAT coverage)
+- **[Design](design.md)**, transfer currency semantics
+- **[Schema](sqlite-schema.md)**, transfer table structure
+- **[Test Strategy](test-strategy.md)**, inference testing approach
+- **[Test Cases](tests/BATCH_TRANSFER_TEST_CASES.md)**, UAT coverage

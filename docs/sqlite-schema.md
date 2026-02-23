@@ -2,6 +2,7 @@
 Database: HomeBudget sample SQLite database (local reference)
 
 ## Table of contents
+
 - [Account](#account)
 - [AccountLog](#accountlog)
 - [AccountTrans](#accounttrans)

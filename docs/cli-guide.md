@@ -1,9 +1,8 @@
-# HomeBudget wrapper CLI examples
+# HomeBudget CLI Guide
 
 ## Table of contents
 
 - [Overview](#overview)
-- [UI Control Behavior](#ui-control-behavior)
 - [Setup](#setup)
 - [Configuration](#configuration)
 - [Global options](#global-options)
@@ -15,29 +14,18 @@
 
 ## Overview
 
-The HomeBudget CLI provides access to database operations via command-line interface. All write operations (add, update, delete) automatically manage the HomeBudget UI to ensure data consistency.
+The HomeBudget CLI provides command-line access to database operations. All write operations (add, update, delete) automatically manage the HomeBudget UI to ensure data consistency.
 
-## UI Control Behavior
+When sync is enabled (default):
 
-**When sync is enabled (default):**
 - HomeBudget UI automatically closes before database operations
 - Database changes are applied atomically while UI is closed
 - HomeBudget UI automatically reopens after operations complete
 - This prevents data inconsistency and database locks during updates
 
-Example sequence:
-```
-$ hb expense add --date 2026-02-17 --category "Food" --amount 25.50 --account "Wallet"
-[UI closes]
-→ Database operation executes
-→ SyncUpdate records created
-[UI reopens]
-Added expense 12345
-```
-
 ## Setup
 
-After setting up the virutal env and installing dependencies, activate the main environment and run the CLI from the repository root.
+After setting up the virtual environment and installing dependencies, activate the main environment and run the CLI from the repository root.
 
 ```bash
 source env/Scripts/activate
@@ -45,42 +33,38 @@ source env/Scripts/activate
 
 ## Configuration
 
-The CLI uses a configuration file for database path and settings. For complete setup and configuration options, see the [Configuration Guide](configuration.md).
+The CLI uses a configuration file for database path and settings. For complete setup and configuration options, see [Configuration Guide](configuration.md).
 
 **Quick reference:**
+
 - Config location: `%USERPROFILE%\OneDrive\Documents\HomeBudgetData\hb-config.json`
 - Sample: `config/hb-config.json.sample`
 
 **Override config:**
+
 ```bash
 homebudget --db "C:/path/to/homebudget.db" expense list
 ```
 
 ## Global options
 
+**`--db PATH`**
+
+Override database path instead of using config file.
+
 ```bash
 homebudget --db "C:/path/to/homebudget.db" expense list
 ```
 
-Override database path (instead of using config file).
+**Sync control:**
 
-### Sync Control
-
-Sync updates are enabled by default and cannot be disabled via CLI. This ensures consistency between local and remote devices.
-
-When a write command is executed:
-- SyncUpdate records are automatically created
-- The HomeBudget UI is automatically managed to prevent conflicts
-- Mobile and other clients can synchronize changes
+Sync updates are enabled by default and cannot be disabled via CLI. This ensures consistency between local and remote devices. When a write command is executed, SyncUpdate records are automatically created and the HomeBudget UI is automatically managed to prevent conflicts.
 
 ## Expense commands
 
-Forex rule
-- Provide amount only for base currency
-- Provide currency, currency amount, and exchange rate for foreign currency
-- For base currency updates, currency amount matches amount
+### Add
 
-Add an expense using the account default currency.
+Base currency account:
 
 ```bash
 homebudget expense add \
@@ -92,7 +76,7 @@ homebudget expense add \
   --notes "Lunch"
 ```
 
-Add an expense using a foreign currency and exchange rate.
+Foreign currency:
 
 ```bash
 homebudget expense add \
@@ -106,7 +90,9 @@ homebudget expense add \
   --notes "Lunch"
 ```
 
-List expenses with filters.
+### List
+
+With filters:
 
 ```bash
 homebudget expense list \
@@ -116,13 +102,17 @@ homebudget expense list \
   --limit 50
 ```
 
-Get a single expense by key.
+### Get
+
+Retrieve by key:
 
 ```bash
 homebudget expense get 13074
 ```
 
-Update an expense using the account default currency.
+### Update
+
+Base currency:
 
 ```bash
 homebudget expense update 13074 \
@@ -130,7 +120,7 @@ homebudget expense update 13074 \
   --notes "Lunch with tip"
 ```
 
-Update an expense using a foreign currency and exchange rate.
+Foreign currency:
 
 ```bash
 homebudget expense update 13074 \
@@ -140,7 +130,7 @@ homebudget expense update 13074 \
   --notes "Lunch with tip"
 ```
 
-Delete an expense.
+### Delete
 
 ```bash
 homebudget expense delete 13074 --yes
@@ -148,12 +138,9 @@ homebudget expense delete 13074 --yes
 
 ## Income commands
 
-Forex rule
-- Provide amount only for base currency
-- Provide currency, currency amount, and exchange rate for foreign currency
-- For base currency updates, currency amount matches amount
+### Add
 
-Add income using the account default currency.
+Base currency:
 
 ```bash
 homebudget income add \
@@ -164,7 +151,7 @@ homebudget income add \
   --notes "February salary"
 ```
 
-Add income using a foreign currency and exchange rate.
+Foreign currency:
 
 ```bash
 homebudget income add \
@@ -177,7 +164,7 @@ homebudget income add \
   --notes "February salary"
 ```
 
-List income.
+### List
 
 ```bash
 homebudget income list \
@@ -185,14 +172,22 @@ homebudget income list \
   --end-date 2026-02-28
 ```
 
-Update income using the account default currency.
+### Get
+
+```bash
+homebudget income get 14021
+```
+
+### Update
+
+Base currency:
 
 ```bash
 homebudget income update 14021 \
   --notes "Updated notes"
 ```
 
-Update income using a foreign currency and exchange rate.
+Foreign currency:
 
 ```bash
 homebudget income update 14021 \
@@ -202,7 +197,7 @@ homebudget income update 14021 \
   --notes "Updated notes"
 ```
 
-Delete income.
+### Delete
 
 ```bash
 homebudget income delete 14021 --yes
@@ -210,9 +205,11 @@ homebudget income delete 14021 --yes
 
 ## Transfer commands
 
-Transfers support a **currency normalization layer** that allows flexible input for mixed-currency transfers. You can specify the amount in either the from_account or to_account currency.
+Transfers support a currency normalization layer that allows flexible input for mixed-currency transfers. You can specify the amount in either the from_account or to_account currency.
 
-Add a same-currency transfer.
+### Add
+
+Same currency:
 
 ```bash
 homebudget transfer add \
@@ -223,11 +220,9 @@ homebudget transfer add \
   --notes "Cash withdrawal"
 ```
 
-Add a mixed-currency transfer (amount only, inferred).
+Mixed currency, amount inferred:
 
 ```bash
-# Transfer from SGD account to USD account
-# System infers: amount is in base currency (SGD)
 homebudget transfer add \
   --date 2026-02-20 \
   --from-account "TWH - Personal" \
@@ -236,10 +231,9 @@ homebudget transfer add \
   --notes "Transfer to USD account"
 ```
 
-Add a mixed-currency transfer (explicit from-currency).
+Mixed currency, explicit from-currency:
 
 ```bash
-# Specify amount in from_account currency (USD)
 homebudget transfer add \
   --date 2026-02-20 \
   --from-account "TWH IB USD" \
@@ -250,10 +244,9 @@ homebudget transfer add \
   --notes "Transfer to SGD account"
 ```
 
-Add a mixed-currency transfer (explicit to-currency, normalized).
+Mixed currency, explicit to-currency (normalized):
 
 ```bash
-# Specify amount in to_account currency (EUR) - system normalizes
 homebudget transfer add \
   --date 2026-02-20 \
   --from-account "TWH IB USD" \
@@ -264,7 +257,7 @@ homebudget transfer add \
   --notes "Transfer to EUR account"
 ```
 
-List transfers.
+### List
 
 ```bash
 homebudget transfer list \
@@ -272,13 +265,13 @@ homebudget transfer list \
   --end-date 2026-02-28
 ```
 
-Get a single transfer by key.
+### Get
 
 ```bash
 homebudget transfer get 21007
 ```
 
-Update a transfer.
+### Update
 
 ```bash
 homebudget transfer update 21007 \
@@ -286,7 +279,7 @@ homebudget transfer update 21007 \
   --notes "Updated transfer amount"
 ```
 
-Update a transfer with foreign currency.
+Mixed currency:
 
 ```bash
 homebudget transfer update 21007 \
@@ -296,7 +289,7 @@ homebudget transfer update 21007 \
   --notes "Updated with explicit USD amount"
 ```
 
-Delete a transfer.
+### Delete
 
 ```bash
 homebudget transfer delete 21007 --yes
@@ -304,35 +297,27 @@ homebudget transfer delete 21007 --yes
 
 ## Batch commands
 
-The batch command accepts a JSON file list of CRUD operations on transactions (expense, income, transfer).
-
-Command
+Execute multiple CRUD operations on transactions via JSON file. Run with default stop-on-error:
 
 ```bash
 homebudget batch run --file operations.json
 ```
 
-Run with stop-on-error mode.
+Run with continue-on-error:
 
 ```bash
-homebudget batch run --file operations.json --stop-on-error
+homebudget batch run --file operations.json --continue-on-error
 ```
 
-Run with error report output.
+Output error report:
 
 ```bash
 homebudget batch run --file operations.json --error-report batch_errors.json
 ```
 
-JSON structure
+### JSON structure
 
-Each entry is a JSON object with these keys.
-
-- `resource` with values expense, income, or transfer
-- `operation` with values add, update, or delete
-- `parameters` with the same fields used by the single record CLI commands
-
-Example JSON
+Each entry is an object with `resource` (expense, income, transfer), `operation` (add, update, delete), and `parameters` using the same fields as single-record CLI commands.
 
 ```json
 [
@@ -368,46 +353,44 @@ Example JSON
 
 ## UI control commands
 
-The CLI provides commands to control the HomeBudget UI application.
-
-Start the HomeBudget UI.
+### Start
 
 ```bash
 homebudget ui start
 ```
 
-Close the HomeBudget UI.
-
-```bash
-homebudget ui close
-```
-
-Refresh the HomeBudget UI (close and reopen).
-
-```bash
-homebudget ui refresh
-```
-
-Check the status of the HomeBudget UI.
-
-```bash
-homebudget ui status
-```
-
-Start UI with custom verification settings.
+With custom verification settings:
 
 ```bash
 homebudget ui start --verify-attempts 10 --verify-delay 0.3 --settle-time 3.0
 ```
 
-Close UI without verification.
+### Close
+
+```bash
+homebudget ui close
+```
+
+Without verification:
 
 ```bash
 homebudget ui close --no-verify
 ```
 
-Refresh UI with force kill disabled.
+### Refresh
+
+```bash
+homebudget ui refresh
+```
+
+Without force kill:
 
 ```bash
 homebudget ui refresh --no-force
+```
+
+### Status
+
+```bash
+homebudget ui status
 ```

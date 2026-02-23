@@ -14,11 +14,13 @@ Two comprehensive batch transfer test cases have been added to test the batch im
 The implementation includes a normalization layer that accepts user currency specifications for **either** the from_account OR to_account, and converts them to the backend standard format (currency = from_account, currency_amount = from_amount).
 
 **User Input Modes:**
+
 1. **Amount only**: System infers currency based on account types (base currency if present)
 2. **From-currency explicit**: `currency` + `currency_amount` matching from_account (pass through)
 3. **To-currency explicit**: `currency` + `currency_amount` matching to_account (normalized to from-currency format)
 
 **Backend Storage Format:**
+
 - `currency`: Always equals from_account currency
 - `currency_amount`: Amount in from_account currency
 - `amount`: Amount in to_account currency
@@ -27,6 +29,7 @@ The implementation includes a normalization layer that accepts user currency spe
 
 ### Purpose
 Validate that batch import correctly creates multiple transfers with different currency scenarios and properly syncs to mobile app. Tests:
+
 - Inferred currency (amount only)
 - Explicit from-currency specification (currency matches from_account)
 - **Explicit to-currency specification (currency matches to_account) - tests normalization layer**
@@ -147,51 +150,60 @@ Batch import completed
 ```
 
 **Parsing Errors:**
+
 - ❌ **Item 8:** Invalid date format (2026-22-02) - demonstrates that parsing errors are now reported instead of being silently dropped
 
 **Item 1: Base→Foreign (SGD→USD) - Amount Only**
+
 - ✅ Created
 - `currency=SGD` (from_account)
 - `currency_amount=200` (in SGD)
 - `amount≈148` (in USD, 200/1.35)
 
 **Item 2: Foreign→Base (USD→SGD) - Amount Only**
+
 - ✅ Created
 - `currency=USD` (from_account)
 - `currency_amount≈296` (in USD, 400/1.35)
 - `amount=400` (in SGD)
 
 **Item 3: Foreign→Foreign (USD→EUR) - Amount Only**
+
 - ✅ Created
 - `currency=USD` (from_account)
 - `currency_amount=180` (in USD)
 - `amount` calculated using cross-rate
 
 **Item 4: Same Currency (SGD→SGD)**
+
 - ✅ Created
 - `currency=SGD`
 - `currency_amount=600` (1:1)
 - `amount=600` (1:1, no forex)
 
 **Item 5: Base→Foreign (SGD→USD) - Explicit From Currency**
+
 - ✅ Created
 - `currency=SGD` (explicitly specified, matches from_account)
 - `currency_amount=250` (in SGD, explicitly specified)
 - `amount≈185` (in USD, calculated: 250/1.35)
 
 **Item 6: Foreign→Base (USD→SGD) - Explicit From Currency**
+
 - ✅ Created
 - `currency=USD` (explicitly specified, matches from_account)
 - `currency_amount=150` (in USD, explicitly specified)
 - `amount≈202.50` (in SGD, calculated: 150*1.35)
 
 **Item 7: Foreign→Foreign (USD→EUR) - Explicit From Currency**
+
 - ✅ Created
 - `currency=USD` (explicitly specified, matches from_account)
 - `currency_amount=120` (in USD, explicitly specified)
 - `amount` calculated using cross-rate (USD→SGD→EUR)
 
 ### Sync Validation
+
 - ✅ 10 SyncUpdate records created (1 item failed parsing, doesn't reach processing)
 - ✅ All 10 transfers visible in Windows app
 - ✅ All 10 transfers visible in mobile app (with correct currencies)
@@ -215,6 +227,7 @@ The test follows a streamlined workflow that doesn't enumerate each transfer cas
 **Note:** The test is generic and adapts to whatever transfers are defined in `transfers_valid_batch.json`. Adding or removing test cases updates the batch automatically without changing the test workflow.
 
 ### Rollback
+
 - Automated rollback using batch delete with recorded transfer keys
 - The rollback step uses the `rollback_transfers.json` template which expands `{TRANSFER_KEYS}` to individual delete operations
 
@@ -334,10 +347,12 @@ Failed records:
 ### Expected Results
 
 **Successful (2 created):**
+
 - ✅ **Item 1:** SGD->USD, 100 (valid)
 - ✅ **Item 11:** USD->SGD, 250 (valid)
 
 **Failed (9 rejected):**
+
 - ❌ **Item 2:** Negative amount (-50.00)
 - ❌ **Item 3:** Zero amount (0.00)
 - ❌ **Item 4:** Over-specified (amount + currency_amount, no rate)
@@ -393,6 +408,7 @@ python tests/manual/manual_test_runner.py --list | grep batch_transfer
 ## Cleanup
 
 **Both Tests Now Use Automated Rollback:**
+
 - Test runner records transfer keys from batch output
 - Automated rollback step uses `hb batch run` with `rollback_transfers.json` template
 - Template expands `{TRANSFER_KEYS}` to individual delete operations
@@ -407,17 +423,20 @@ python tests/manual/find_and_delete_transfers.py --date 2026-02-22 --from-accoun
 ## JSON Format Reference
 
 **Required Fields:**
+
 - `date` - YYYY-MM-DD format
 - `from_account` - Account name (must exist)
 - `to_account` - Account name (must exist)
 - `amount` - Decimal value (for inference) OR explicitly specify`currency` + `currency_amount`
 
 **Optional Fields:**
+
 - `notes` - Transfer notes/description
 - `currency` - Must match from_account currency (inferred if not specified)
 - `currency_amount` - Amount in from_account currency (inferred if not specified)
 
 **Validation Rules:**
+
 - **Cannot specify both `amount` and `currency_amount` without `exchange_rate`** (ambiguous)
 - `currency` must match `from_account` currency (if specified)
 - `amount` and `currency_amount` must be positive (> 0)

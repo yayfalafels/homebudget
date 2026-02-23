@@ -21,8 +21,7 @@ homebudget/
 │   └── workflows/           # CI/CD workflows (future)
 ├── docs/                    # Design and reference documentation
 │   ├── index.md
-│   ├── api-examples.md
-│   ├── cli-examples.md
+│   ├── cli-guide.md
 │   ├── configuration.md
 │   ├── dependencies.md
 │   ├── design.md

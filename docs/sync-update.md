@@ -7,7 +7,7 @@
 - [SyncUpdate table structure](#syncupdate-table-structure)
 - [Encoding and decoding](#encoding-and-decoding)
 - [Payload structure by operation](#payload-structure-by-operation)
-- [Update operations and attribute fan out](#update-operations-and-attribute-fan-out)
+- [Update operations and attribute fan out](#update-operations)
 - [Device identifiers](#device-identifiers)
 - [Wrapper integration flow](#wrapper-integration-flow)
 - [References](#references)
@@ -39,11 +39,15 @@ The implementation that loads and applies the configuration is in [src/python/ho
 | uuid | TEXT | Unique identifier for the operation |
 | payload | TEXT | Base64 encoded and zlib compressed JSON payload |
 
-Source: [docs/sqlite-schema.md](sqlite-schema.md#syncupdate)
+Source: [Sqlite Schema](sqlite-schema.md#syncupdate)
 
 ## Encoding and decoding
 
 The payload field follows a multi step encoding process. Rules are defined per operation in the configuration.
+
+- Full zlib format is required, raw deflate fails for native payloads.
+- URL safe base64 is required and trailing = must be stripped.
+- Padding is operation specific, not a fixed payload length.
 
 ### Encoding flow
 
@@ -61,12 +65,6 @@ The payload field follows a multi step encoding process. Rules are defined per o
 4. Strip trailing null bytes that were used for minimum size padding
 5. Decompress with full zlib format using wbits 15
 6. Parse the UTF 8 JSON string
-
-Key learnings:
-
-- Full zlib format is required, raw deflate fails for native payloads.
-- URL safe base64 is required and trailing = must be stripped.
-- Padding is operation specific, not a fixed payload length.
 
 Reference implementations:
 
@@ -247,7 +245,7 @@ DeleteTransfer uses a minimal payload with a singular key.
 }
 ```
 
-## Update operations and attribute fan out
+## Update operations
 
 Update operations generate a SyncUpdate entry per changed attribute. The wrapper creates one SyncUpdate entry for each field change, using the full final record payload in each entry. This mirrors native behavior where a multi field update results in multiple sync events.
 
@@ -267,9 +265,9 @@ Resolution details:
 1. Begin a database transaction
 2. Insert or update the resource record
 3. Insert related AccountTrans rows when needed
-4. Build the payload from sync-config.json
+4. Build the payload from `sync-config.json`
 5. Encode the payload with the configured compression rules
-6. Insert SyncUpdate row with updateType Any and a new UUID
+6. Insert SyncUpdate row with `updateType`='Any' and a new UUID
 7. Commit the transaction
 
 If any step fails, the transaction is rolled back to keep the database consistent.
