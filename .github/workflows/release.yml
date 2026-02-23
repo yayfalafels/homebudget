@@ -18,7 +18,7 @@ jobs:
           python-version: '3.12'
       
       - name: Install build tools
-        run: pip install build wheel
+        run: pip install build wheel setuptools
       
       - name: Build package
         run: python -m build
