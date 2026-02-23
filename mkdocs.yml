@@ -94,5 +94,4 @@ nav:
   - Implementation Example: 
     - Workflow: workflow.md
   
-  - Issues & Troubleshooting:
-    - Issues Overview: issues.md
+  - Issues: issues.md
