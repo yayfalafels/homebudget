@@ -23,6 +23,7 @@
    ```
 
 3. **VERIFY** - Output displays:
+
    - [ ] Parent category name is shown
    - [ ] All subcategories for that category appear
    - [ ] Subcategory names are clear and readable
@@ -35,16 +36,19 @@
    ```
 
 5. **VERIFY** - Error handling:
+
    - [ ] Clear error message displayed (not a stack trace)
    - [ ] Message indicates category was not found
    - [ ] Command exits cleanly
 
 6. **USER FEEDBACK**:
+
    - Is the output helpful for viewing subcategories?
    - Is the format clear?
    - Would you like filtering or additional information?
 
 ### Result
+
 - [ ] PASS - Subcategories display and errors handled correctly
 - [ ] FAIL - [Note issues]
 

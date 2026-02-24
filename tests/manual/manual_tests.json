@@ -981,6 +981,65 @@
           "command_template": "hb account balance --account \"{account_today}\""
         }
       ]
+    },
+    {
+      "id": "uat_category_list",
+      "title": "UAT: Category List",
+      "resource": "category",
+      "steps": [
+        {
+          "kind": "auto",
+          "label": "List all categories",
+          "command": "hb category list"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: All expense categories appear in the output",
+          "input_fields": [
+            {"name": "category_count", "label": "Approximate number of categories visible", "type": "integer"}
+          ]
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Category names are clear and readable, output is ordered by sequence number"
+        }
+      ]
+    },
+    {
+      "id": "uat_category_subcategories",
+      "title": "UAT: Category Subcategories",
+      "resource": "category",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Provide a category name to test",
+          "input_fields": [
+            {"name": "test_category", "label": "Category name (e.g., 'Food (Basic)')", "type": "string"}
+          ]
+        },
+        {
+          "kind": "auto",
+          "label": "List subcategories for selected category",
+          "command_template": "hb category subcategories --category \"{test_category}\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: All subcategories for the category appear in the output"
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Subcategory names are clear and readable, ordered by sequence number"
+        },
+        {
+          "kind": "auto",
+          "label": "Test with non-existent category",
+          "command": "hb category subcategories --category \"NonExistentCategory\""
+        },
+        {
+          "kind": "user",
+          "label": "Verify: Clear error message displayed (not a stack trace), command exits cleanly"
+        }
+      ]
     }
   ]
 }
