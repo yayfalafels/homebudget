@@ -2101,11 +2101,16 @@
 <ul>
 <li>HomeBudgetClient with context manager support</li>
 </ul>
+<p>Account methods</p>
+<ul>
+<li><code>get_account_balance(account, query_date)</code>: Query account balance on a specific date, calculated from most recent reconcile record adjusted through transactions</li>
+</ul>
 <p>Transaction data objects</p>
 <ul>
 <li>ExpenseDTO: Validated expense input for persistence</li>
 <li>IncomeDTO: Validated income input for persistence</li>
 <li>TransferDTO: Validated transfer input for persistence with currency normalization</li>
+<li>BalanceRecord: Read-only result object with account balance information at query date</li>
 </ul>
 <p>Batch operation data objects</p>
 <ul>
