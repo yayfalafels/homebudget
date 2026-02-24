@@ -5,9 +5,9 @@ repo_url: https://github.com/yayfalafels/homebudget
 repo_name: yayfalafels/homebudget
 
 extra:
-  version: "2.0"
+  version: "2.1.0"
 
-copyright: Copyright &copy; 2026 HomeBudget Python Wrapper | Version 2.0
+copyright: Copyright &copy; 2026 HomeBudget Python Wrapper | Version 2.1.0
 
 theme:
   name: material
@@ -85,10 +85,14 @@ nav:
     - Test Guide: test-guide.md
     - Test Strategy: test-strategy.md
     - Test Cases: test-cases.md
-    - Transfer Test Cases: tests/TRANSFER_TEST_CASES.md
-    - Batch Transfer Test Cases: tests/BATCH_TRANSFER_TEST_CASES.md
+    - Feature Tests:
+      - Account List: tests/feature-account-list.md
+      - Category List: tests/feature-category-list.md
+      - Subcategory List: tests/feature-subcategory-list.md
     - Expense CRUD Tests: tests/feature_5.1_expense_crud.md
     - Transfer CRUD Tests: tests/feature_5.3_transfer_crud.md
+    - Transfer Test Cases: tests/TRANSFER_TEST_CASES.md
+    - Batch Transfer Test Cases: tests/BATCH_TRANSFER_TEST_CASES.md
     - Sync Validation Procedure: tests/sync_validation_procedure.md
   
   - Implementation Example: 
