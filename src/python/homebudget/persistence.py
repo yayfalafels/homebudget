@@ -37,3 +37,16 @@ class PersistenceBackend(ABC):
     @abstractmethod
     def list_accounts(self) -> list[dict[str, Any]]:
         """Return account summary rows."""
+
+    @abstractmethod
+    def get_accounts(self) -> list[dict[str, Any]]:
+        """Return account reference list ordered by name."""
+
+    @abstractmethod
+    def get_categories(self) -> list[dict[str, Any]]:
+        """Return category reference list ordered by seqNum."""
+
+    @abstractmethod
+    def get_subcategories(self, category_key: int) -> list[dict[str, Any]]:
+        """Return subcategory reference list for the given category, ordered by seqNum."""
+

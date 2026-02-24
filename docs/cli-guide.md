@@ -6,6 +6,8 @@
 - [Setup](#setup)
 - [Configuration](#configuration)
 - [Global options](#global-options)
+- [Account commands](#account-commands)
+- [Category commands](#category-commands)
 - [Expense commands](#expense-commands)
 - [Income commands](#income-commands)
 - [Transfer commands](#transfer-commands)
@@ -59,6 +61,100 @@ homebudget --db "C:/path/to/homebudget.db" expense list
 **Sync control:**
 
 Sync updates are enabled by default and cannot be disabled via CLI. This ensures consistency between local and remote devices. When a write command is executed, SyncUpdate records are automatically created and the HomeBudget UI is automatically managed to prevent conflicts.
+
+## Account commands
+
+### Balance
+
+Query the account balance on a specific date. The balance is calculated from the most recent reconcile (balance) record, then adjusted forward or backward through transactions to the query date.
+
+**Query today's balance:**
+
+```bash
+homebudget account balance --account Wallet
+```
+
+**Query balance on a specific date:**
+
+```bash
+homebudget account balance --account "TWH - Personal" --date 2026-02-01
+```
+
+**Output example:**
+
+```
+Account Balance: TWH - Personal
+Query Date: 2026-02-01
+Balance: 1230.45
+
+Reconcile Date: 2026-01-15
+Reconcile Amount: 1000.00
+```
+
+**How it works:**
+
+- If the query date matches a reconcile date, the balance equals the reconcile amount
+- If the query date is after the reconcile date, the balance is calculated forward: reconcile amount + income and transfer_in amounts - expense and transfer_out amounts
+- If the query date is before the reconcile date, the balance is calculated backward by reversing the transaction adjustments from the reconcile date
+- Raises an error if the account has no reconcile balance record
+
+## Category commands
+
+### List
+
+Display all expense categories ordered by sequence number.
+
+```bash
+homebudget category list
+```
+
+**Output example:**
+
+```
+Categories:
+============================================================
+Seq   Name
+============================================================
+0     Personal Discretionary
+1     Social & Entertainment
+2     Food (Basic)
+3     Transport
+4     Utilities
+============================================================
+```
+
+### Subcategories
+
+Display all subcategories for a given parent category, ordered by sequence number.
+
+```bash
+homebudget category subcategories --category "Food (Basic)"
+```
+
+**Output example:**
+
+```
+Subcategories for 'Food (Basic)':
+============================================================
+Seq   Name
+============================================================
+13    Groceries
+14    Cheap restaurant
+35    Food Court
+110   Tingkat
+162   meal prep
+============================================================
+```
+
+**Error handling:**
+
+If the category is not found, a clear error message is displayed:
+
+```bash
+homebudget category subcategories --category "NonExistentCategory"
+```
+
+Output: `Error: Category not found`
 
 ## Expense commands
 

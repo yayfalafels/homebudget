@@ -5,11 +5,13 @@
 - [Overview](#overview)
 - [Quick start](#quick-start)
 - [Client methods](#client-methods)
+- [Account methods](#account-methods)
 - [Expense methods](#expense-methods)
 - [Income methods](#income-methods)
 - [Transfer methods](#transfer-methods)
 - [Batch methods](#batch-methods)
 - [Reference data methods](#reference-data-methods)
+- [Category methods](#category-methods)
 - [Data transfer objects](#data-transfer-objects)
 
 ## Overview
@@ -56,7 +58,42 @@ with HomeBudgetClient() as client:
     pass  # closes automatically
 ```
 
-### Expense methods
+## Account methods
+
+**`get_account_balance(account: str, query_date: datetime.date = None) -> BalanceRecord`**
+
+Query the account balance on a specific date. The balance is calculated from the most recent reconcile (balance) record for the account, then adjusted forward or backward through transactions to the query date.
+
+If `query_date` is omitted, today's date is used.
+
+Raises `NotFoundError` if the account cannot be found or has no reconcile balance record.
+
+```python
+import datetime
+from homebudget import HomeBudgetClient
+
+with HomeBudgetClient() as client:
+    # Query today's balance
+    balance = client.get_account_balance("Wallet")
+    print(f"{balance.accountName}: {balance.balanceAmount} on {balance.queryDate}")
+    
+    # Query balance on a specific date
+    past_balance = client.get_account_balance(
+        "TWH - Personal",
+        query_date=datetime.date(2026, 2, 1)
+    )
+    print(f"Balance: {past_balance.balanceAmount}")
+    print(f"Reconcile: {past_balance.reconcileAmount} on {past_balance.reconcileDate}")
+```
+
+**How it works:**
+
+- **Exact reconcile date:** If the query date matches a reconcile date in the account's transaction history, the balance equals the reconcile amount
+- **After reconcile date:** The balance is calculated forward by starting with the reconcile amount and adding income/transfer_in transactions and subtracting expense/transfer_out transactions from the reconcile date through the query date
+- **Before reconcile date:** The balance is calculated backward by reversing the transaction adjustments between the query date and the reconcile date
+- **Transaction amounts:** All transaction amounts are stored as positive values in the database; the calculation logic applies the appropriate signs based on transaction type
+
+## Expense methods
 
 **`add_expense(expense: ExpenseDTO) -> ExpenseRecord`**
 
@@ -266,17 +303,6 @@ with HomeBudgetClient() as client:
         print(account.name, account.currency)
 ```
 
-**`list_categories() -> list[CategoryDTO]`**
-
-Retrieve all available expense and income categories with their subcategories.
-
-```python
-with HomeBudgetClient() as client:
-    categories = client.list_categories()
-    for category in categories:
-        print(category.category, category.subcategory)
-```
-
 **`list_currencies() -> list[CurrencyDTO]`**
 
 Retrieve all available currencies with their exchange rates against the base currency.
@@ -288,7 +314,41 @@ with HomeBudgetClient() as client:
         print(currency.code, currency.exchange_rate)
 ```
 
+## Category methods
+
+**`get_categories() -> list[CategoryRecord]`**
+
+Retrieve all expense categories ordered by sequence number. Use this to display available categories for expense entry.
+
+```python
+with HomeBudgetClient() as client:
+    categories = client.get_categories()
+    for category in categories:
+        print(f"{category.seqNum}: {category.name}")
+```
+
+**`get_subcategories(category_name: str) -> list[SubcategoryRecord]`**
+
+Retrieve all subcategories for a given parent category, ordered by sequence number.
+
+Raises `NotFoundError` if the category name is not found.
+
+```python
+with HomeBudgetClient() as client:
+    subcategories = client.get_subcategories("Food (Basic)")
+    for subcat in subcategories:
+        print(f"{subcat.seqNum}: {subcat.name}")
+```
+
 ## Data transfer objects
+
+### BalanceRecord
+
+**`BalanceRecord`** (read-only result object returned by `get_account_balance()`)
+
+Fields: `accountKey` (int), `accountName` (str), `queryDate` (datetime.date), `balanceAmount` (Decimal), `reconcileDate` (datetime.date), `reconcileAmount` (Decimal).
+
+This frozen dataclass represents an account's balance at a specific date, calculated from the most recent reconcile balance and adjusted through transactions. All balance calculations are based on the most recent reconcile record found on or before the query date.
 
 ### Transaction DTOs
 
@@ -326,9 +386,17 @@ Fields: `key`, `date`, `from_account`, `to_account`, `amount`, `currency`, `curr
 
 Fields: `name`, `currency`, `account_type`.
 
-**`CategoryDTO`**
+**`CategoryRecord`**
 
-Fields: `category`, `subcategory`, `transaction_type`.
+Fields: `key` (int), `name` (str), `seqNum` (int).
+
+Read-only record returned by `get_categories()`. Represents a spend category with its sequence number for display ordering.
+
+**`SubcategoryRecord`**
+
+Fields: `key` (int), `categoryKey` (int), `categoryName` (str), `name` (str), `seqNum` (int).
+
+Read-only record returned by `get_subcategories()`. Represents a subcategory with parent category context and sequence number for display ordering.
 
 **`CurrencyDTO`**
 

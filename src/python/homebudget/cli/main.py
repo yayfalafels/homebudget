@@ -7,7 +7,9 @@ from pathlib import Path
 import click
 
 from homebudget.__version__ import __version__
+from homebudget.cli.account import account
 from homebudget.cli.batch import batch
+from homebudget.cli.category import category
 from homebudget.cli.expense import expense
 from homebudget.cli.income import income
 from homebudget.cli.sync import sync
@@ -31,7 +33,9 @@ def main(ctx: click.Context, db_path: Path | None) -> None:
     }
 
 
+main.add_command(account)
 main.add_command(batch)
+main.add_command(category)
 main.add_command(expense)
 main.add_command(income)
 main.add_command(sync)
