@@ -7,6 +7,7 @@
 - [Configuration](#configuration)
 - [Global options](#global-options)
 - [Account commands](#account-commands)
+- [Category commands](#category-commands)
 - [Expense commands](#expense-commands)
 - [Income commands](#income-commands)
 - [Transfer commands](#transfer-commands)
@@ -96,6 +97,64 @@ Reconcile Amount: 1000.00
 - If the query date is after the reconcile date, the balance is calculated forward: reconcile amount + income and transfer_in amounts - expense and transfer_out amounts
 - If the query date is before the reconcile date, the balance is calculated backward by reversing the transaction adjustments from the reconcile date
 - Raises an error if the account has no reconcile balance record
+
+## Category commands
+
+### List
+
+Display all expense categories ordered by sequence number.
+
+```bash
+homebudget category list
+```
+
+**Output example:**
+
+```
+Categories:
+============================================================
+Seq   Name
+============================================================
+0     Personal Discretionary
+1     Social & Entertainment
+2     Food (Basic)
+3     Transport
+4     Utilities
+============================================================
+```
+
+### Subcategories
+
+Display all subcategories for a given parent category, ordered by sequence number.
+
+```bash
+homebudget category subcategories --category "Food (Basic)"
+```
+
+**Output example:**
+
+```
+Subcategories for 'Food (Basic)':
+============================================================
+Seq   Name
+============================================================
+13    Groceries
+14    Cheap restaurant
+35    Food Court
+110   Tingkat
+162   meal prep
+============================================================
+```
+
+**Error handling:**
+
+If the category is not found, a clear error message is displayed:
+
+```bash
+homebudget category subcategories --category "NonExistentCategory"
+```
+
+Output: `Error: Category not found`
 
 ## Expense commands
 

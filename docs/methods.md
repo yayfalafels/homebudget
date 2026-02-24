@@ -11,6 +11,7 @@
 - [Transfer methods](#transfer-methods)
 - [Batch methods](#batch-methods)
 - [Reference data methods](#reference-data-methods)
+- [Category methods](#category-methods)
 - [Data transfer objects](#data-transfer-objects)
 
 ## Overview
@@ -302,17 +303,6 @@ with HomeBudgetClient() as client:
         print(account.name, account.currency)
 ```
 
-**`list_categories() -> list[CategoryDTO]`**
-
-Retrieve all available expense and income categories with their subcategories.
-
-```python
-with HomeBudgetClient() as client:
-    categories = client.list_categories()
-    for category in categories:
-        print(category.category, category.subcategory)
-```
-
 **`list_currencies() -> list[CurrencyDTO]`**
 
 Retrieve all available currencies with their exchange rates against the base currency.
@@ -322,6 +312,32 @@ with HomeBudgetClient() as client:
     currencies = client.list_currencies()
     for currency in currencies:
         print(currency.code, currency.exchange_rate)
+```
+
+## Category methods
+
+**`get_categories() -> list[CategoryRecord]`**
+
+Retrieve all expense categories ordered by sequence number. Use this to display available categories for expense entry.
+
+```python
+with HomeBudgetClient() as client:
+    categories = client.get_categories()
+    for category in categories:
+        print(f"{category.seqNum}: {category.name}")
+```
+
+**`get_subcategories(category_name: str) -> list[SubcategoryRecord]`**
+
+Retrieve all subcategories for a given parent category, ordered by sequence number.
+
+Raises `NotFoundError` if the category name is not found.
+
+```python
+with HomeBudgetClient() as client:
+    subcategories = client.get_subcategories("Food (Basic)")
+    for subcat in subcategories:
+        print(f"{subcat.seqNum}: {subcat.name}")
 ```
 
 ## Data transfer objects
@@ -370,9 +386,17 @@ Fields: `key`, `date`, `from_account`, `to_account`, `amount`, `currency`, `curr
 
 Fields: `name`, `currency`, `account_type`.
 
-**`CategoryDTO`**
+**`CategoryRecord`**
 
-Fields: `category`, `subcategory`, `transaction_type`.
+Fields: `key` (int), `name` (str), `seqNum` (int).
+
+Read-only record returned by `get_categories()`. Represents a spend category with its sequence number for display ordering.
+
+**`SubcategoryRecord`**
+
+Fields: `key` (int), `categoryKey` (int), `categoryName` (str), `name` (str), `seqNum` (int).
+
+Read-only record returned by `get_subcategories()`. Represents a subcategory with parent category context and sequence number for display ordering.
 
 **`CurrencyDTO`**
 
