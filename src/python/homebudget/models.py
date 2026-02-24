@@ -225,3 +225,26 @@ class BatchResult:
     successful: list[ExpenseRecord | IncomeRecord | TransferRecord]
     failed: list[tuple[ExpenseDTO | IncomeDTO | TransferDTO, Exception]]
     operation_id: str | None = None
+
+
+@dataclass(frozen=True)
+class BalanceRecord:
+    """Account balance at a given query date.
+    
+    Represents the calculated balance of an account at a specific date,
+    based on the most recent reconcile balance and subsequent transactions.
+    
+    Attributes:
+        accountKey: Internal database key for the account
+        accountName: Display name of the account
+        queryDate: Date for which the balance was calculated
+        balanceAmount: Calculated balance at the query date
+        reconcileDate: Date of the most recent reconcile balance
+        reconcileAmount: Amount of the most recent reconcile balance
+    """
+    accountKey: int
+    accountName: str
+    queryDate: dt.date
+    balanceAmount: Decimal
+    reconcileDate: dt.date
+    reconcileAmount: Decimal

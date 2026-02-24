@@ -863,6 +863,124 @@
           "command_template": "hb batch run --file batch_templates/rollback_transfers.json"
         }
       ]
+    },
+    {
+      "id": "uat_balance_query",
+      "title": "UAT: Account Balance Query",
+      "resource": "balance",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "Provide test data: Account name, query date (YYYY-MM-DD), and UI balance",
+          "input_fields": [
+            {"name": "account_name", "label": "Account name (e.g., TWH IB USD)", "type": "string"},
+            {"name": "query_date", "label": "Query date (YYYY-MM-DD)", "type": "date"},
+            {"name": "ui_balance", "label": "Balance from UI (numeric, e.g., 1500.50)", "type": "decimal"}
+          ]
+        },
+        {
+          "kind": "auto",
+          "label": "Query CLI balance and compare with UI value",
+          "command_template": "hb account balance --account \"{account_name}\" --date {query_date}"
+        }
+      ]
+    },
+    {
+      "id": "uat_balance_multi_account",
+      "title": "UAT: Balance Query - Multiple Accounts",
+      "resource": "balance",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "[Test 1] Provide: Account name, date, UI balance",
+          "input_fields": [
+            {"name": "account_name_1", "label": "Account 1 name", "type": "string"},
+            {"name": "query_date_1", "label": "Account 1 date (YYYY-MM-DD)", "type": "date"},
+            {"name": "ui_balance_1", "label": "Account 1 UI balance", "type": "decimal"}
+          ]
+        },
+        {
+          "kind": "auto",
+          "label": "[Test 1] Query CLI balance for Account 1",
+          "command_template": "hb account balance --account \"{account_name_1}\" --date {query_date_1}"
+        },
+        {
+          "kind": "user",
+          "label": "[Test 2] Provide: Account name, date, UI balance",
+          "input_fields": [
+            {"name": "account_name_2", "label": "Account 2 name", "type": "string"},
+            {"name": "query_date_2", "label": "Account 2 date (YYYY-MM-DD)", "type": "date"},
+            {"name": "ui_balance_2", "label": "Account 2 UI balance", "type": "decimal"}
+          ]
+        },
+        {
+          "kind": "auto",
+          "label": "[Test 2] Query CLI balance for Account 2",
+          "command_template": "hb account balance --account \"{account_name_2}\" --date {query_date_2}"
+        },
+        {
+          "kind": "user",
+          "label": "[Test 3] Provide: Account name, date, UI balance",
+          "input_fields": [
+            {"name": "account_name_3", "label": "Account 3 name", "type": "string"},
+            {"name": "query_date_3", "label": "Account 3 date (YYYY-MM-DD)", "type": "date"},
+            {"name": "ui_balance_3", "label": "Account 3 UI balance", "type": "decimal"}
+          ]
+        },
+        {
+          "kind": "auto",
+          "label": "[Test 3] Query CLI balance for Account 3",
+          "command_template": "hb account balance --account \"{account_name_3}\" --date {query_date_3}"
+        }
+      ]
+    },
+    {
+      "id": "uat_balance_date_boundaries",
+      "title": "UAT: Balance Query - Date Boundary Cases",
+      "resource": "balance",
+      "steps": [
+        {
+          "kind": "user",
+          "label": "[Old date] Provide account, earliest transaction date, UI balance",
+          "input_fields": [
+            {"name": "account_old", "label": "Account name", "type": "string"},
+            {"name": "date_old", "label": "Earliest date (YYYY-MM-DD)", "type": "date"},
+            {"name": "balance_old", "label": "UI balance on that date", "type": "decimal"}
+          ]
+        },
+        {
+          "kind": "auto",
+          "label": "[Old date] Query CLI balance",
+          "command_template": "hb account balance --account \"{account_old}\" --date {date_old}"
+        },
+        {
+          "kind": "user",
+          "label": "[Recent date] Provide account, recent date, UI balance",
+          "input_fields": [
+            {"name": "account_recent", "label": "Account name", "type": "string"},
+            {"name": "date_recent", "label": "Recent date (YYYY-MM-DD)", "type": "date"},
+            {"name": "balance_recent", "label": "UI balance on that date", "type": "decimal"}
+          ]
+        },
+        {
+          "kind": "auto",
+          "label": "[Recent date] Query CLI balance",
+          "command_template": "hb account balance --account \"{account_recent}\" --date {date_recent}"
+        },
+        {
+          "kind": "user",
+          "label": "[Today] Provide account and current UI balance",
+          "input_fields": [
+            {"name": "account_today", "label": "Account name", "type": "string"},
+            {"name": "balance_today", "label": "Current UI balance (today)", "type": "decimal"}
+          ]
+        },
+        {
+          "kind": "auto",
+          "label": "[Today] Query CLI balance without date (defaults to today)",
+          "command_template": "hb account balance --account \"{account_today}\""
+        }
+      ]
     }
   ]
 }

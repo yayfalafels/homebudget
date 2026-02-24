@@ -11,6 +11,7 @@ import logging
 import os
 
 from homebudget.models import (
+    BalanceRecord,
     BatchResult,
     BatchOperation,
     BatchOperationResult,
@@ -1035,6 +1036,45 @@ class HomeBudgetClient:
             delete_func=self.repository.delete_transfer,
             key=key,
             sync_operation="DeleteTransfer",
+        )
+
+    def get_account_balance(
+        self, account_name: str, query_date: dt.date | None = None
+    ) -> BalanceRecord:
+        """Get account balance at a given date.
+        
+        Calculates the balance based on the most recent reconcile balance
+        and transactions up to the query date.
+        
+        Args:
+            account_name: Name of the account
+            query_date: Date for balance calculation (defaults to today)
+            
+        Returns:
+            BalanceRecord with balance details
+            
+        Raises:
+            NotFoundError: If account not found or has no reconcile balance
+        """
+        # Resolve account name to key
+        account_info = self.repository._get_account(account_name)
+        account_key = account_info["key"]
+        
+        # Default to today if not specified
+        if query_date is None:
+            query_date = dt.date.today()
+        
+        # Get balance from repository
+        result = self.repository.get_account_balance(account_key, query_date)
+        
+        # Convert dict result to BalanceRecord
+        return BalanceRecord(
+            accountKey=result["accountKey"],
+            accountName=result["accountName"],
+            queryDate=result["queryDate"],
+            balanceAmount=result["balanceAmount"],
+            reconcileDate=result["reconcileDate"],
+            reconcileAmount=result["reconcileAmount"],
         )
 
     def _normalize_forex_inputs(

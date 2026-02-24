@@ -84,11 +84,16 @@ Public methods interface
 
 - HomeBudgetClient with context manager support
 
+Account methods
+
+- `get_account_balance(account, query_date)`: Query account balance on a specific date, calculated from most recent reconcile record adjusted through transactions
+
 Transaction data objects
 
 - ExpenseDTO: Validated expense input for persistence
 - IncomeDTO: Validated income input for persistence
 - TransferDTO: Validated transfer input for persistence with currency normalization
+- BalanceRecord: Read-only result object with account balance information at query date
 
 Batch operation data objects
 

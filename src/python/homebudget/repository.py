@@ -980,6 +980,180 @@ class Repository(PersistenceBackend):
         )
         self.connection.execute("DELETE FROM Transfer WHERE key = ?", (key,))
 
+    def get_account_balance(
+        self, account_key: int, query_date: dt.date
+    ) -> dict[str, object]:
+        """Calculate account balance at a given date based on reconcile balance.
+        
+        Args:
+            account_key: Internal account key
+            query_date: Date for which to calculate the balance
+            
+        Returns:
+            Dictionary with keys: accountKey, accountName, queryDate, balanceAmount,
+            reconcileDate, reconcileAmount
+            
+        Raises:
+            NotFoundError: If account has no reconcile balance record
+        """
+        self._ensure_connection()
+        
+        # Get the most recent reconcile balance (transType=0) for the account
+        reconcile_row = self.connection.execute(
+            """
+            SELECT transDate, transAmount
+            FROM AccountTrans
+            WHERE accountKey = ? AND transType = ?
+            ORDER BY transDate DESC
+            LIMIT 1
+            """,
+            (account_key, TRANSACTION_TYPES["balance"]),
+        ).fetchone()
+        
+        if reconcile_row is None:
+            raise NotFoundError("Reconcile balance not found for account")
+        
+        reconcile_date = dt.date.fromisoformat(reconcile_row["transDate"])
+        reconcile_amount = Decimal(str(reconcile_row["transAmount"]))
+        
+        # Get account name
+        account_row = self.connection.execute(
+            "SELECT name FROM Account WHERE key = ?",
+            (account_key,),
+        ).fetchone()
+        account_name = account_row["name"] if account_row else f"Account {account_key}"
+        
+        # Calculate balance based on query date relative to reconcile date
+        if query_date == reconcile_date:
+            # On reconcile date, return reconcile amount only
+            balance_amount = reconcile_amount
+        elif query_date > reconcile_date:
+            # Forward: sum income and transfer_in, subtract expense and transfer_out
+            # Transaction amounts are stored as positive values regardless of type
+            
+            # Sum income (type 2) and transfer_in (type 4)
+            income_transfer_in = self.connection.execute(
+                """
+                SELECT COALESCE(SUM(transAmount), 0) as total
+                FROM AccountTrans
+                WHERE accountKey = ?
+                  AND transType IN (?, ?)
+                  AND transDate > ?
+                  AND transDate <= ?
+                """,
+                (
+                    account_key,
+                    TRANSACTION_TYPES["income"],
+                    TRANSACTION_TYPES["transfer_in"],
+                    reconcile_date.isoformat(),
+                    query_date.isoformat(),
+                ),
+            ).fetchone()
+            
+            # Sum expense (type 1) and transfer_out (type 3)
+            expense_transfer_out = self.connection.execute(
+                """
+                SELECT COALESCE(SUM(transAmount), 0) as total
+                FROM AccountTrans
+                WHERE accountKey = ?
+                  AND transType IN (?, ?)
+                  AND transDate > ?
+                  AND transDate <= ?
+                """,
+                (
+                    account_key,
+                    TRANSACTION_TYPES["expense"],
+                    TRANSACTION_TYPES["transfer_out"],
+                    reconcile_date.isoformat(),
+                    query_date.isoformat(),
+                ),
+            ).fetchone()
+            
+            balance_amount = (
+                reconcile_amount
+                + Decimal(str(income_transfer_in["total"]))
+                - Decimal(str(expense_transfer_out["total"]))
+            )
+        else:
+            # Backward: subtract all transactions between query date and reconcile date
+            # For transfers (3=out, 4=in), we need to reverse their sign:
+            # - transfer_in (4) amounts should be subtracted (were added after query date)
+            # - transfer_out (3) amounts should be added back (were subtracted after query date)
+            # For other types, amounts are already signed properly
+            
+            # Get transfer_in and transfer_out sums (unsigned, need to apply sign)
+            transfer_in_sum = self.connection.execute(
+                """
+                SELECT COALESCE(SUM(transAmount), 0) as total
+                FROM AccountTrans
+                WHERE accountKey = ?
+                  AND transType = ?
+                  AND transDate > ?
+                  AND transDate < ?
+                """,
+                (
+                    account_key,
+                    TRANSACTION_TYPES["transfer_in"],
+                    query_date.isoformat(),
+                    reconcile_date.isoformat(),
+                ),
+            ).fetchone()
+            
+            transfer_out_sum = self.connection.execute(
+                """
+                SELECT COALESCE(SUM(transAmount), 0) as total
+                FROM AccountTrans
+                WHERE accountKey = ?
+                  AND transType = ?
+                  AND transDate > ?
+                  AND transDate < ?
+                """,
+                (
+                    account_key,
+                    TRANSACTION_TYPES["transfer_out"],
+                    query_date.isoformat(),
+                    reconcile_date.isoformat(),
+                ),
+            ).fetchone()
+            
+            # Get income and expense sums (already signed: positive for income, negative for expense)
+            other_trans_sum = self.connection.execute(
+                """
+                SELECT COALESCE(SUM(transAmount), 0) as total
+                FROM AccountTrans
+                WHERE accountKey = ?
+                  AND transType IN (?, ?)
+                  AND transDate > ?
+                  AND transDate < ?
+                """,
+                (
+                    account_key,
+                    TRANSACTION_TYPES["income"],
+                    TRANSACTION_TYPES["expense"],
+                    query_date.isoformat(),
+                    reconcile_date.isoformat(),
+                ),
+            ).fetchone()
+            
+            # For backward calculation:
+            # - subtract income and transfer_in (they added to balance)
+            # - add back expense and transfer_out (they subtracted from balance)
+            balance_amount = (
+                reconcile_amount
+                - Decimal(str(other_trans_sum["total"]))
+                - Decimal(str(transfer_in_sum["total"]))
+                + Decimal(str(transfer_out_sum["total"]))
+            )
+        
+        return {
+            "accountKey": account_key,
+            "accountName": account_name,
+            "queryDate": query_date,
+            "balanceAmount": balance_amount,
+            "reconcileDate": reconcile_date,
+            "reconcileAmount": reconcile_amount,
+        }
+
     def _ensure_connection(self) -> None:
         """Ensure the connection is initialized before use."""
         if self.connection is None:

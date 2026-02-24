@@ -15,6 +15,13 @@ from typing import Any
 
 
 @dataclass
+class InputField:
+    name: str
+    label: str
+    type: str = "string"
+
+
+@dataclass
 class ManualStep:
     kind: str
     label: str
@@ -22,6 +29,7 @@ class ManualStep:
     command_template: str | None = None
     template: str | None = None
     template_command: str | None = None
+    input_fields: list[InputField] | None = None
 
 
 @dataclass
@@ -43,17 +51,31 @@ class ManualTestRunner:
         tests_data = payload.get("tests", [])
         tests: list[ManualTest] = []
         for item in tests_data:
-            steps = [
-                ManualStep(
-                    kind=step.get("kind", "user"),
-                    label=step.get("label", ""),
-                    command=step.get("command"),
-                    command_template=step.get("command_template"),
-                    template=step.get("template"),
-                    template_command=step.get("template_command"),
+            steps = []
+            for step in item.get("steps", []):
+                # Parse input_fields if present
+                input_fields = None
+                if "input_fields" in step:
+                    input_fields = [
+                        InputField(
+                            name=field.get("name", ""),
+                            label=field.get("label", ""),
+                            type=field.get("type", "string"),
+                        )
+                        for field in step.get("input_fields", [])
+                    ]
+                
+                steps.append(
+                    ManualStep(
+                        kind=step.get("kind", "user"),
+                        label=step.get("label", ""),
+                        command=step.get("command"),
+                        command_template=step.get("command_template"),
+                        template=step.get("template"),
+                        template_command=step.get("template_command"),
+                        input_fields=input_fields,
+                    )
                 )
-                for step in item.get("steps", [])
-            ]
             tests.append(
                 ManualTest(
                     test_id=item.get("id", ""),
@@ -201,6 +223,90 @@ class ManualTestRunner:
         
         return keys
 
+    def _extract_balance_from_output(self, output: str) -> dict[str, str]:
+        """Extract balance information from balance query CLI output.
+        
+        The balance command outputs formatted text like:
+            Account Balance: TWH IB USD
+            Query Date: 2025-11-30
+            Balance: 1502.89
+            
+            Reconcile Date: 2025-11-30
+            Reconcile Amount: 1502.89
+        
+        Returns:
+            Dict with extracted balance data (cli_balance key)
+        """
+        balance_data: dict[str, str] = {}
+        try:
+            # Look for "Balance: <amount>" line
+            match = re.search(r'^Balance:\s*([-\d.]+)', output, re.MULTILINE)
+            if match:
+                balance_amount = match.group(1)
+                balance_data["cli_balance"] = balance_amount
+        except Exception:
+            pass
+        
+        return balance_data
+
+    def _find_matching_ui_balance_key(self, variables: dict[str, str], step_label: str) -> str | None:
+        """Find the UI balance variable key that matches the current step.
+        
+        For steps like "[Test 1] Query CLI balance for Account 1", looks for ui_balance_1.
+        For simple steps without numbers, looks for ui_balance.
+        
+        Args:
+            variables: Dict of all captured variables
+            step_label: The label of the current step
+            
+        Returns:
+            The variable key (e.g., 'ui_balance_1') or None if not found
+        """
+        # Check if step label contains a test number like "[Test 1]"
+        test_match = re.search(r'\[Test (\d+)\]', step_label)
+        if test_match:
+            test_num = test_match.group(1)
+            ui_balance_key = f"ui_balance_{test_num}"
+            if ui_balance_key in variables:
+                return ui_balance_key
+        
+        # Check for boundary case variables: ui_balance_old, ui_balance_recent, ui_balance_today
+        if "[Old date]" in step_label:
+            return "balance_old" if "balance_old" in variables else None
+        elif "[Recent date]" in step_label:
+            return "balance_recent" if "balance_recent" in variables else None
+        elif "[Today]" in step_label:
+            return "balance_today" if "balance_today" in variables else None
+        
+        # Default: look for simple ui_balance
+        if "ui_balance" in variables:
+            return "ui_balance"
+        
+        return None
+
+    def _compare_balances(self, ui_balance_str: str, cli_balance_str: str, balance_key: str) -> str:
+        """Compare UI balance with CLI balance and return comparison result.
+        
+        Args:
+            ui_balance_str: Balance value from UI (as string)
+            cli_balance_str: Balance value from CLI (as string)
+            balance_key: The variable key name (for reporting)
+            
+        Returns:
+            String with comparison result, marked with ✓ for match or ✗ for mismatch
+        """
+        try:
+            from decimal import Decimal
+            ui_val = Decimal(str(ui_balance_str).strip())
+            cli_val = Decimal(str(cli_balance_str).strip())
+            if ui_val == cli_val:
+                return f"✓ Balance match ({balance_key}): {ui_balance_str} == {cli_balance_str}"
+            else:
+                diff = abs(ui_val - cli_val)
+                return f"✗ Balance mismatch ({balance_key}): {ui_balance_str} != {cli_balance_str} (diff: {diff})"
+        except Exception as e:
+            return f"✗ Unable to compare balances: {str(e)}"
+
     def _process_batch_command(self, command: str, variables: dict[str, str]) -> str:
         """Process a command that references a batch template file.
         
@@ -321,6 +427,27 @@ class ManualTestRunner:
                         variables.update(new_keys)
                         if new_keys:
                             notes = f"Keys recorded: {', '.join(new_keys.keys())}"
+                        
+                        # Extract balance from balance query output and auto-compare with UI balance
+                        if "balance" in command.lower() and "account balance" in command.lower():
+                            balance_data = self._extract_balance_from_output(result.stdout)
+                            if balance_data:
+                                variables.update(balance_data)
+                                cli_balance_str = balance_data.get('cli_balance', '')
+                                
+                                # Find matching UI balance variable(s)
+                                # Look for ui_balance, ui_balance_1, ui_balance_2, etc.
+                                ui_balance_key = self._find_matching_ui_balance_key(variables, step.label)
+                                if ui_balance_key:
+                                    ui_balance_str = variables.get(ui_balance_key, '')
+                                    notes = self._compare_balances(ui_balance_str, cli_balance_str, ui_balance_key)
+                                    # Set status based on comparison
+                                    if "✓" in notes:
+                                        status = "pass"
+                                    elif "✗" in notes:
+                                        status = "fail"
+                                else:
+                                    notes = f"CLI Balance: {cli_balance_str}"
                     
                     # After showing output, allow user to rerun list commands with different limit
                     if status == "pass" and "list" in command and "--limit" in command:
@@ -353,31 +480,44 @@ class ManualTestRunner:
                     notes = str(e)
                 results.append(self._format_result(index, step, status, notes, command))
             else:
-                # User verification step
-                print("This step requires your manual verification.")
-                status = self._prompt_choice("Result", ["pass", "fail", "skip"])
+                # User step - may have input_fields to capture or require verification
+                status = "pass"
                 notes = ""
                 
-                # Prompt for variable input if this is a recording step
-                if status == "pass" and "Record" in step.label and "key" in step.label.lower():
-                    # Support multiple key types: expense_key, income_key, transfer_key(s)
-                    # Check if this is requesting multiple keys (transfer_keys for comma-separated input)
-                    if "transfer" in step.label.lower() and "keys" in step.label.lower():
-                        # Multiple transfer keys (comma-separated)
-                        key_input = input("Enter the values (comma-separated, e.g., 11457,11458): ").strip()
-                        if key_input:
-                            variables["transfer_keys"] = key_input
-                            notes = f"Recorded: transfer_keys = {key_input}"
-                            print(notes)
-                    else:
-                        # Single key (expense_key, income_key, or singular transfer_key)
-                        key_input = input("Enter the value: ").strip()
-                        if key_input:
-                            # Determine key type from test resource or step label
-                            key_type = self._determine_key_type(step.label, test.resource)
-                            variables[key_type] = key_input
-                            notes = f"Recorded: {key_type} = {key_input}"
-                            print(notes)
+                # If step has input_fields, prompt for them
+                if step.input_fields:
+                    print("\nPlease provide the following information:")
+                    for field in step.input_fields:
+                        user_input = input(f"  {field.label}: ").strip()
+                        if user_input:
+                            variables[field.name] = user_input
+                
+                # For verification steps (without input_fields), ask for pass/fail
+                if not step.input_fields:
+                    print("\nThis step requires your manual verification.")
+                    status = self._prompt_choice("Result", ["pass", "fail", "skip"])
+                    
+                    # If this is a verification step with potential balance comparison, extract and compare
+                    if "verify" in step.label.lower() and "balance" in step.label.lower():
+                        ui_balance = variables.get("ui_balance")
+                        cli_balance = variables.get("cli_balance")
+                        
+                        if ui_balance and cli_balance:
+                            print(f"\nBalance comparison:")
+                            print(f"  UI balance:  {ui_balance}")
+                            print(f"  CLI balance: {cli_balance}")
+                            
+                            try:
+                                from decimal import Decimal
+                                ui_val = Decimal(str(ui_balance))
+                                cli_val = Decimal(str(cli_balance))
+                                if ui_val == cli_val:
+                                    notes = f"✓ Match: {ui_balance} == {cli_balance}"
+                                else:
+                                    diff = abs(ui_val - cli_val)
+                                    notes = f"✗ Differ by {diff}: {ui_balance} != {cli_balance}"
+                            except Exception:
+                                notes = f"UI={ui_balance}, CLI={cli_balance}"
                 
                 results.append(self._format_result(index, step, status, notes))
         
@@ -390,7 +530,22 @@ class ManualTestRunner:
         
         # Write report
         self._write_report(output_path, test, results, overall, "")
-        print(f"\nWrote results to {output_path}")
+        
+        # Print summary to console
+        print(f"\n{'='*70}")
+        print(f"TEST RESULT: {overall.upper()}")
+        print(f"{'='*70}")
+        
+        # Extract and print key findings (balance comparisons, etc.)
+        for result in results:
+            if "Balance match" in result or "Balance mismatch" in result:
+                # Extract the notes line from the result
+                match = re.search(r'Notes: (.+?)(?:\n|$)', result)
+                if match:
+                    notes = match.group(1)
+                    print(f"  {notes}")
+        
+        print(f"\nReport written to: {output_path}\n")
         return output_path
 
     def _write_report(
