@@ -96,6 +96,34 @@ class Repository(PersistenceBackend):
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
 
+    def get_accounts(self) -> list[dict[str, object]]:
+        """Return account reference list ordered by name."""
+        self._ensure_connection()
+        cursor = self.connection.execute(
+            "SELECT key, name, accountType, balance, currency FROM Account ORDER BY name"
+        )
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_categories(self) -> list[dict[str, object]]:
+        """Return category reference list ordered by seqNum."""
+        self._ensure_connection()
+        cursor = self.connection.execute(
+            "SELECT key, name, seqNum FROM Category ORDER BY seqNum"
+        )
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def get_subcategories(self, category_key: int) -> list[dict[str, object]]:
+        """Return subcategory reference list for the given category, ordered by seqNum."""
+        self._ensure_connection()
+        cursor = self.connection.execute(
+            "SELECT key, catKey, name, seqNum FROM SubCategory WHERE catKey = ? ORDER BY seqNum",
+            (category_key,),
+        )
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
     def insert_expense(self, expense: ExpenseDTO) -> ExpenseRecord:
         """Insert a new expense row and return the record."""
         self._ensure_connection()

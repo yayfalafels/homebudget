@@ -248,3 +248,62 @@ class BalanceRecord:
     balanceAmount: Decimal
     reconcileDate: dt.date
     reconcileAmount: Decimal
+
+
+@dataclass(frozen=True)
+class AccountRecord:
+    """Reference record for an account with balance info.
+    
+    Represents a summary of an account including its type, balance, and currency.
+    Used for displaying account lists and reference data.
+    
+    Attributes:
+        key: Internal database key for the account
+        name: Display name of the account
+        accountType: Type of account (Checking, Savings, Credit Card, etc.)
+        balance: Current account balance
+        currency: Currency code for the account
+    """
+    key: int
+    name: str
+    accountType: str
+    balance: Decimal
+    currency: str
+
+
+@dataclass(frozen=True)
+class CategoryRecord:
+    """Reference record for an expense category.
+    
+    Represents a spend category for organizing expenses and budgets.
+    Ordered by sequence number for consistent display order.
+    
+    Attributes:
+        key: Internal database key for the category
+        name: Display name of the category
+        seqNum: Sequence number for display ordering
+    """
+    key: int
+    name: str
+    seqNum: int
+
+
+@dataclass(frozen=True)
+class SubcategoryRecord:
+    """Reference record for a subcategory with parent category context.
+    
+    Represents a subcategory under a parent category for detailed expense tracking.
+    Includes parent category information for context.
+    
+    Attributes:
+        key: Internal database key for the subcategory
+        categoryKey: Internal database key for the parent category
+        categoryName: Display name of the parent category
+        name: Display name of the subcategory
+        seqNum: Sequence number for display ordering within the category
+    """
+    key: int
+    categoryKey: int
+    categoryName: str
+    name: str
+    seqNum: int

@@ -11,14 +11,17 @@ import logging
 import os
 
 from homebudget.models import (
+    AccountRecord,
     BalanceRecord,
     BatchResult,
     BatchOperation,
     BatchOperationResult,
+    CategoryRecord,
     ExpenseDTO,
     ExpenseRecord,
     IncomeDTO,
     IncomeRecord,
+    SubcategoryRecord,
     TransferDTO,
     TransferRecord,
 )
@@ -1076,6 +1079,85 @@ class HomeBudgetClient:
             reconcileDate=result["reconcileDate"],
             reconcileAmount=result["reconcileAmount"],
         )
+
+    def get_accounts(
+        self,
+        currency: str | None = None,
+        account_type: str | None = None,
+    ) -> list[AccountRecord]:
+        """Get list of all accounts ordered by name.
+        
+        Args:
+            currency: Optional filter by currency code (e.g., 'USD', 'SGD')
+            account_type: Optional filter by account type (e.g., 'Cash', 'Credit')
+        
+        Returns:
+            List of AccountRecord objects ordered by account name
+        """
+        results = self.repository.get_accounts()
+        accounts = [
+            AccountRecord(
+                key=row["key"],
+                name=row["name"],
+                accountType=row["accountType"],
+                balance=Decimal(str(row["balance"])),
+                currency=row["currency"],
+            )
+            for row in results
+        ]
+        
+        # Apply filters if provided
+        if currency is not None:
+            accounts = [acc for acc in accounts if acc.currency == currency]
+        if account_type is not None:
+            accounts = [acc for acc in accounts if acc.accountType == account_type]
+        
+        return accounts
+
+    def get_categories(self) -> list[CategoryRecord]:
+        """Get list of all categories ordered by sequence number.
+        
+        Returns:
+            List of CategoryRecord objects ordered by seqNum
+        """
+        results = self.repository.get_categories()
+        return [
+            CategoryRecord(
+                key=row["key"],
+                name=row["name"],
+                seqNum=row["seqNum"],
+            )
+            for row in results
+        ]
+
+    def get_subcategories(self, category_name: str) -> list[SubcategoryRecord]:
+        """Get list of subcategories for a category, ordered by sequence number.
+        
+        Args:
+            category_name: Name of the parent category
+            
+        Returns:
+            List of SubcategoryRecord objects ordered by seqNum
+            
+        Raises:
+            NotFoundError: If category not found
+        """
+        # Resolve category name to key
+        category_info = self.repository._get_category(category_name)
+        category_key = category_info["key"]
+        
+        # Get subcategories from repository
+        results = self.repository.get_subcategories(category_key)
+        return [
+            SubcategoryRecord(
+                key=row["key"],
+                categoryKey=row["catKey"],
+                categoryName=category_name,
+                name=row["name"],
+                seqNum=row["seqNum"],
+            )
+            for row in results
+        ]
 
     def _normalize_forex_inputs(
         self,
