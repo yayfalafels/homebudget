@@ -820,6 +820,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#category-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Category methods
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#data-transfer-objects" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1805,6 +1816,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#category-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Category methods
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#data-transfer-objects" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1916,6 +1938,7 @@
 <li><a href="#transfer-methods">Transfer methods</a></li>
 <li><a href="#batch-methods">Batch methods</a></li>
 <li><a href="#reference-data-methods">Reference data methods</a></li>
+<li><a href="#category-methods">Category methods</a></li>
 <li><a href="#data-transfer-objects">Data transfer objects</a></li>
 </ul>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
@@ -2120,19 +2143,28 @@
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="k">for</span> <span class="n">account</span> <span class="ow">in</span> <span class="n">accounts</span><span class="p">:</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">account</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">account</span><span class="o">.</span><span class="n">currency</span><span class="p">)</span>
 </code></pre></div>
-<p><strong><code>list_categories() -&gt; list[CategoryDTO]</code></strong></p>
-<p>Retrieve all available expense and income categories with their subcategories.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">with</span> <span class="n">HomeBudgetClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">categories</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">list_categories</span><span class="p">()</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">category</span><span class="o">.</span><span class="n">category</span><span class="p">,</span> <span class="n">category</span><span class="o">.</span><span class="n">subcategory</span><span class="p">)</span>
-</code></pre></div>
 <p><strong><code>list_currencies() -&gt; list[CurrencyDTO]</code></strong></p>
 <p>Retrieve all available currencies with their exchange rates against the base currency.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">with</span> <span class="n">HomeBudgetClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">currencies</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">list_currencies</span><span class="p">()</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="k">for</span> <span class="n">currency</span> <span class="ow">in</span> <span class="n">currencies</span><span class="p">:</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">currency</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">currency</span><span class="o">.</span><span class="n">exchange_rate</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="category-methods">Category methods<a class="headerlink" href="#category-methods" title="Permanent link">&para;</a></h2>
+<p><strong><code>get_categories() -&gt; list[CategoryRecord]</code></strong></p>
+<p>Retrieve all expense categories ordered by sequence number. Use this to display available categories for expense entry.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">with</span> <span class="n">HomeBudgetClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">currencies</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">list_currencies</span><span class="p">()</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="k">for</span> <span class="n">currency</span> <span class="ow">in</span> <span class="n">currencies</span><span class="p">:</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">currency</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">currency</span><span class="o">.</span><span class="n">exchange_rate</span><span class="p">)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">categories</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_categories</span><span class="p">()</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">category</span><span class="o">.</span><span class="n">seqNum</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">category</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><strong><code>get_subcategories(category_name: str) -&gt; list[SubcategoryRecord]</code></strong></p>
+<p>Retrieve all subcategories for a given parent category, ordered by sequence number.</p>
+<p>Raises <code>NotFoundError</code> if the category name is not found.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">with</span> <span class="n">HomeBudgetClient</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="n">subcategories</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_subcategories</span><span class="p">(</span><span class="s2">&quot;Food (Basic)&quot;</span><span class="p">)</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="k">for</span> <span class="n">subcat</span> <span class="ow">in</span> <span class="n">subcategories</span><span class="p">:</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">subcat</span><span class="o">.</span><span class="n">seqNum</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">subcat</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="data-transfer-objects">Data transfer objects<a class="headerlink" href="#data-transfer-objects" title="Permanent link">&para;</a></h2>
 <h3 id="balancerecord">BalanceRecord<a class="headerlink" href="#balancerecord" title="Permanent link">&para;</a></h3>
@@ -2157,8 +2189,12 @@
 <h3 id="reference-data-dtos">Reference data DTOs<a class="headerlink" href="#reference-data-dtos" title="Permanent link">&para;</a></h3>
 <p><strong><code>AccountDTO</code></strong></p>
 <p>Fields: <code>name</code>, <code>currency</code>, <code>account_type</code>.</p>
-<p><strong><code>CategoryDTO</code></strong></p>
-<p>Fields: <code>category</code>, <code>subcategory</code>, <code>transaction_type</code>.</p>
+<p><strong><code>CategoryRecord</code></strong></p>
+<p>Fields: <code>key</code> (int), <code>name</code> (str), <code>seqNum</code> (int).</p>
+<p>Read-only record returned by <code>get_categories()</code>. Represents a spend category with its sequence number for display ordering.</p>
+<p><strong><code>SubcategoryRecord</code></strong></p>
+<p>Fields: <code>key</code> (int), <code>categoryKey</code> (int), <code>categoryName</code> (str), <code>name</code> (str), <code>seqNum</code> (int).</p>
+<p>Read-only record returned by <code>get_subcategories()</code>. Represents a subcategory with parent category context and sequence number for display ordering.</p>
 <p><strong><code>CurrencyDTO</code></strong></p>
 <p>Fields: <code>code</code>, <code>exchange_rate</code>.</p>
 <h3 id="batch-operation-dtos">Batch operation DTOs<a class="headerlink" href="#batch-operation-dtos" title="Permanent link">&para;</a></h3>
@@ -2201,7 +2237,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright &copy; 2026 HomeBudget Python Wrapper | Version 2.0
+      Copyright &copy; 2026 HomeBudget Python Wrapper | Version 2.1.0
     </div>
   
   
@@ -2225,7 +2261,7 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": "2.0"}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": "2.1.0"}</script>
     
     
       <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
