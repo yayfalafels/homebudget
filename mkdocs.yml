@@ -5,9 +5,9 @@ repo_url: https://github.com/yayfalafels/homebudget
 repo_name: yayfalafels/homebudget
 
 extra:
-  version: "2.1.0"
+  version: "2.1.1"
 
-copyright: Copyright &copy; 2026 HomeBudget Python Wrapper | Version 2.1.0
+copyright: Copyright &copy; 2026 HomeBudget Python Wrapper | Version 2.1.1
 
 theme:
   name: material
@@ -97,5 +97,9 @@ nav:
   
   - Implementation Example: 
     - Workflow: workflow.md
+
+  - Releases:
+    - 2.1.1:
+      - Negative Amounts Support: releases/211/211-negative-amounts.md
   
   - Issues: issues.md
