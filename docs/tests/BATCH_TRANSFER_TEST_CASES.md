@@ -329,12 +329,11 @@ Validate that batch import correctly handles mixed valid/invalid transfers with 
 ### Expected Command Output
 ```
 Batch import completed
-  Successful: 2
-  Failed: 9
+  Successful: 3
+  Failed: 8
 
 Failed records:
-  2026-02-23 TWH - Personal -> TWH IB USD: Invalid amount (must be positive)
-  2026-02-23 TWH - Personal -> TWH IB USD: Invalid amount (must be positive)
+  2026-02-23 TWH - Personal -> TWH IB USD: Invalid amount (must not be zero)
   2026-02-23 TWH - Personal -> TWH IB USD: Cannot specify both amount and currency_amount without exchange_rate
   2026-02-23 TWH - Personal -> TWH IB USD: Transfer currency must match from_account currency
   2026-02-23 Nonexistent Account -> TWH IB USD: Account not found: Nonexistent Account
@@ -346,14 +345,14 @@ Failed records:
 
 ### Expected Results
 
-**Successful (2 created):**
+**Successful (3 created):**
 
 - ✅ **Item 1:** SGD->USD, 100 (valid)
+- ✅ **Item 2:** SGD->USD, -50 (valid - negative amount allowed)
 - ✅ **Item 11:** USD->SGD, 250 (valid)
 
-**Failed (9 rejected):**
+**Failed (8 rejected):**
 
-- ❌ **Item 2:** Negative amount (-50.00)
 - ❌ **Item 3:** Zero amount (0.00)
 - ❌ **Item 4:** Over-specified (amount + currency_amount, no rate)
 - ❌ **Item 5:** Currency mismatch (USD doesn't match from_account SGD)
@@ -439,6 +438,6 @@ python tests/manual/find_and_delete_transfers.py --date 2026-02-22 --from-accoun
 
 - **Cannot specify both `amount` and `currency_amount` without `exchange_rate`** (ambiguous)
 - `currency` must match `from_account` currency (if specified)
-- `amount` and `currency_amount` must be positive (> 0)
+- `amount` and `currency_amount` must not be zero
 - From and to accounts must be different
 - From and to accounts must exist in database

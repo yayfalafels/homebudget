@@ -1,0 +1,215 @@
+[
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-02-28",
+      "category": "Balancing",
+      "subcategory": "Unknown",
+      "amount": "15.00",
+      "account": "TWH - Personal",
+      "notes": "cash loss adj 2026-03-12"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-03-12",
+      "category": "Balancing",
+      "subcategory": "Unknown",
+      "amount": "18.15",
+      "account": "TWH - Personal",
+      "notes": "cash loss adj 2026-03-12"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-01-28",
+      "category": "Social & Entertainment",
+      "subcategory": "Drinks - nonalcoholic",
+      "amount": "17.60",
+      "account": "TWH - Personal",
+      "notes": "TWH drinks"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-01-28",
+      "category": "Food (Basic)",
+      "subcategory": "Food Court",
+      "amount": "14.20",
+      "account": "TWH - Personal",
+      "notes": "TWH lunch"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-01-28",
+      "category": "Food (Basic)",
+      "subcategory": "Food Court",
+      "amount": "13.00",
+      "account": "TWH - Personal",
+      "notes": "TWH xAC"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-01-28",
+      "category": "Food (Basic)",
+      "subcategory": "Food Court",
+      "amount": "40.20",
+      "account": "TWH - Personal",
+      "notes": "TWH AC"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-02-28",
+      "category": "Food (Basic)",
+      "subcategory": "Food Court",
+      "amount": "12.30",
+      "account": "TWH - Personal",
+      "notes": "TWH breakfast"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-02-28",
+      "category": "Social & Entertainment",
+      "subcategory": "Drinks - nonalcoholic",
+      "amount": "20.20",
+      "account": "TWH - Personal",
+      "notes": "TWH drinks"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-02-28",
+      "category": "Food (Basic)",
+      "subcategory": "Food Court",
+      "amount": "41.65",
+      "account": "TWH - Personal",
+      "notes": "TWH lunch"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-02-28",
+      "category": "Social & Entertainment",
+      "subcategory": "Drinks - nonalcoholic",
+      "amount": "3.70",
+      "account": "TWH - Personal",
+      "notes": "TWH snacks"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-02-28",
+      "category": "Food (Basic)",
+      "subcategory": "Food Court",
+      "amount": "114.55",
+      "account": "TWH - Personal",
+      "notes": "TWH AC"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-03-28",
+      "category": "Food (Basic)",
+      "subcategory": "Food Court",
+      "amount": "7.60",
+      "account": "TWH - Personal",
+      "notes": "TWH breakfast"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-03-28",
+      "category": "Social & Entertainment",
+      "subcategory": "Drinks - nonalcoholic",
+      "amount": "8.40",
+      "account": "TWH - Personal",
+      "notes": "TWH drinks"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-03-28",
+      "category": "Food (Basic)",
+      "subcategory": "Food Court",
+      "amount": "11.00",
+      "account": "TWH - Personal",
+      "notes": "TWH xAC"
+    }
+  },
+  {
+    "resource": "expense",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-03-28",
+      "category": "Food (Basic)",
+      "subcategory": "Food Court",
+      "amount": "97.10",
+      "account": "TWH - Personal",
+      "notes": "TWH AC"
+    }
+  },
+  {
+    "resource": "transfer",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-01-31",
+      "from_account": "Cash TWH SGD",
+      "to_account": "TWH - Personal",
+      "amount": "85.00",
+      "notes": "food and drinks 2026 01 JAN part 02"
+    }
+  },
+  {
+    "resource": "transfer",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-02-28",
+      "from_account": "Cash TWH SGD",
+      "to_account": "TWH - Personal",
+      "amount": "207.40",
+      "notes": "food and drinks 2026 02 FEB"
+    }
+  },
+  {
+    "resource": "transfer",
+    "operation": "add",
+    "parameters": {
+      "date": "2026-03-12",
+      "from_account": "Cash TWH SGD",
+      "to_account": "TWH - Personal",
+      "amount": "124.10",
+      "notes": "food and drinks 2026 03 Mar part 01"
+    }
+  }
+]

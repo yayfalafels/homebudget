@@ -25,13 +25,13 @@ def _ensure_non_empty(value: str, field_name: str) -> str:
 
 
 def _ensure_decimal(value: Decimal | str | int | float, field_name: str) -> Decimal:
-    """Parse and validate positive decimal values."""
+    """Parse and validate decimal values."""
     try:
         amount = value if isinstance(value, Decimal) else Decimal(str(value))
     except Exception as exc:
         raise ValueError(f"{field_name} must be a decimal") from exc
-    if amount <= Decimal("0"):
-        raise ValueError(f"{field_name} must be greater than zero")
+    if amount == Decimal("0"):
+        raise ValueError(f"{field_name} must not be zero")
     return amount
 
 

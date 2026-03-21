@@ -203,9 +203,9 @@ class TestCurrencyConstraintEdgeCases:
     """Edge case tests for currency constraints."""
 
     @pytest.mark.sit
-    def test_expense_positive_amount_required(self, test_db_path) -> None:
-        """Expense: Amounts must be positive."""
-        with pytest.raises(ValueError, match="must be greater than zero"):
+    def test_expense_zero_amount_rejected(self, test_db_path) -> None:
+        """Expense: Zero amounts are rejected."""
+        with pytest.raises(ValueError, match="must not be zero"):
             ExpenseDTO(
                 date=dt.date(2026, 2, 16),
                 category="Food (Basic)",
@@ -216,27 +216,27 @@ class TestCurrencyConstraintEdgeCases:
             )
 
     @pytest.mark.sit
-    def test_income_positive_amount_required(self, test_db_path) -> None:
-        """Income: Amounts must be positive."""
-        with pytest.raises(ValueError, match="must be greater than zero"):
+    def test_income_zero_amount_rejected(self, test_db_path) -> None:
+        """Income: Zero amounts are rejected."""
+        with pytest.raises(ValueError, match="must not be zero"):
             IncomeDTO(
                 date=dt.date(2026, 2, 16),
                 name="Income",
-                amount=Decimal("-1000.00"),  # Negative amount
+                amount=Decimal("0.00"),  # Zero amount
                 account="Cash TWH SGD",
-                notes="Negative amount",
+                notes="Zero amount",
             )
 
     @pytest.mark.sit
-    def test_transfer_positive_amount_required(self, test_db_path) -> None:
-        """Transfer: Amounts must be positive."""
-        with pytest.raises(ValueError, match="must be greater than zero"):
+    def test_transfer_zero_amount_rejected(self, test_db_path) -> None:
+        """Transfer: Zero amounts are rejected."""
+        with pytest.raises(ValueError, match="must not be zero"):
             TransferDTO(
                 date=dt.date(2026, 2, 16),
                 from_account="Cash TWH SGD",
                 to_account="Bank Account",
-                amount=Decimal("-100.00"),  # Negative amount
-                notes="Negative amount",
+                amount=Decimal("0.00"),  # Zero amount
+                notes="Zero amount",
             )
 
 

@@ -15,7 +15,7 @@ This document lists system integration tests, manual tests, and forex rate and i
 ### Unit tests
 
 - Exception types and messages, including DuplicateError, NotFoundError, and validation errors.
-- DTO validation for required fields, positive amounts, and allowed value ranges.
+- DTO validation for required fields, non-zero amounts, and allowed value ranges.
 - DTO serialization and deserialization for date, decimal, and currency fields.
 - Schema constants and table references for core entities such as Expense, Income, Transfer, AccountTrans, and SyncUpdate.
 
@@ -29,7 +29,7 @@ This document lists system integration tests, manual tests, and forex rate and i
 - Transfer create, read, update, delete, and list behavior with date filters.
 - Transfer dual AccountTrans creation for transfer out and transfer in rows.
 - Currency matching rules for base and non base account scenarios.
-- Positive amount constraints for expense, income, and transfer DTOs.
+- Non-zero amount constraints for expense, income, and transfer DTOs (negative amounts allowed).
 - SyncUpdate payload structure and required keys for core operations.
 - Batch add for expense, income, and transfer DTO collections with success and failure reporting.
 - Batch operations with continue on error behavior and stop on error behavior.

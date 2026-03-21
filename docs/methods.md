@@ -91,7 +91,7 @@ with HomeBudgetClient() as client:
 - **Exact reconcile date:** If the query date matches a reconcile date in the account's transaction history, the balance equals the reconcile amount
 - **After reconcile date:** The balance is calculated forward by starting with the reconcile amount and adding income/transfer_in transactions and subtracting expense/transfer_out transactions from the reconcile date through the query date
 - **Before reconcile date:** The balance is calculated backward by reversing the transaction adjustments between the query date and the reconcile date
-- **Transaction amounts:** All transaction amounts are stored as positive values in the database; the calculation logic applies the appropriate signs based on transaction type
+- **Transaction amounts:** Amounts can be negative in input (e.g., negative income or refunds); they are stored in the database with their sign, and the calculation logic applies the appropriate adjustments based on transaction type
 
 ## Expense methods
 

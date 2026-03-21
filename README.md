@@ -4,6 +4,14 @@ A Python library and CLI for managing HomeBudget transactions with full CRUD ope
 
 see [HomeBudget Python Wrapper](https://yayfalafels.github.io/homebudget/) for complete documentation and usage guides.
 
+## Release 2.1.1
+
+for full release notes, see [211-negative-amounts.md](docs/releases/211/211-negative-amounts.md)
+
+In this release
+
+1. **Negative Amounts Support**: Updated validation rules to allow negative amounts for income and expenses, while still enforcing non-zero amounts. 
+
 ## Features
 
 - **Full CRUD Operations**: Create, read, update, delete for expenses, income, and transfers
